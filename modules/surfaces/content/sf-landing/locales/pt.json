@@ -1,0 +1,8 @@
+{
+	"operations": {
+		"open": {
+			"label": "Abrir página inicial",
+			"description": "Abrir a página inicial pública."
+		}
+	}
+}

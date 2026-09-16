@@ -1,10 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { resolve } from "node:path";
 import { importMapSpecifiers } from "./import-map";
-import {
-	localizedSurfaceEntry,
-	readSurfaceLocales,
-} from "./surface-locales";
+import { localizedSurfaceEntry, readSurfaceLocales } from "./surface-locales";
 
 const projectRoot = resolve(import.meta.dir, "../../../../..");
 const authEntry = resolve(
@@ -41,6 +38,9 @@ describe("surface locale compiler", () => {
 		expect(script).toContain("defineSurface");
 		expect(script).toContain("Welcome to Converged");
 		expect(script).toContain("Добро пожаловать");
+		// Registered under the id the shell looks up, and the legacy one.
+		expect(script).toContain('"sf-auth"');
+		expect(script).toContain('"auth-sf"');
 	});
 
 	test("leaves an entry without a locales directory untouched", async () => {

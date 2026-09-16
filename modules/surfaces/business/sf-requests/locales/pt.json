@@ -135,6 +135,14 @@
 		"to_order": {
 			"label": "Criar pedido a partir da solicitação",
 			"description": "Colocar esta solicitação em produção: o pedido carrega o id da solicitação, a solicitação passa a «em andamento» e o passo entra no diário. Quantidade, material, prazo e contato são lidos da solicitação se não informados aqui. Executar duas vezes abre o pedido que já existe."
+		},
+		"requestCreate": {
+			"label": "Criar solicitação de fabricação",
+			"description": "Criar uma solicitação a partir de arquivos enviados ou de uma necessidade de fabricação descrita."
+		},
+		"requestSave": {
+			"label": "Salvar solicitação",
+			"description": "Salvar as alterações de uma solicitação de fabricação."
 		}
 	}
 }

@@ -34,5 +34,15 @@
 		"checkEmail": "Verifique seu e-mail para continuar",
 		"loginFailed": "Falha no login",
 		"tryAgain": "Por favor, tente novamente"
+	},
+	"operations": {
+		"sessionLogin": {
+			"label": "Entrar",
+			"description": "Entrar na sua conta."
+		},
+		"sessionLogout": {
+			"label": "Sair",
+			"description": "Sair desta sessão."
+		}
 	}
 }

@@ -73,5 +73,31 @@
 		"quantity": "Quantity",
 		"customer": "Customer",
 		"gone": "This order is no longer in this workspace."
+	},
+	"operations": {
+		"reviewPublish": {
+			"label": "Publish review",
+			"description": "Put a review on the site. Until this, it is visible only in this console."
+		},
+		"reviewReject": {
+			"label": "Reject review",
+			"description": "Keep a review out of the site. It stays readable here."
+		},
+		"reviewReply": {
+			"label": "Answer review",
+			"description": "The shop’s answer, which travels with the review wherever it is shown."
+		},
+		"reviewCreate": {
+			"label": "Record a review",
+			"description": "Enter a review the shop received elsewhere — by phone, in person or on a platform."
+		},
+		"inviteCreate": {
+			"label": "Ask for a review",
+			"description": "Mint a personal review link for one order and one address."
+		},
+		"reviewDelete": {
+			"label": "Remove review",
+			"description": "Delete a review permanently."
+		}
 	}
 }

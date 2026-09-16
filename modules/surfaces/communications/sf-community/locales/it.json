@@ -4,5 +4,23 @@
 		"post": "Scrivi un messaggio...",
 		"reply": "Scrivi una risposta...",
 		"locked": "Questo argomento è bloccato"
+	},
+	"operations": {
+		"sectionCreate": {
+			"label": "Crea sezione",
+			"description": "Aggiungi una sezione al forum."
+		},
+		"sectionDelete": {
+			"label": "Elimina sezione",
+			"description": "Elimina una sezione e tutte le discussioni al suo interno."
+		},
+		"topicCreate": {
+			"label": "Nuova discussione",
+			"description": "Apri una discussione nel forum con il primo messaggio."
+		},
+		"topicSetFlags": {
+			"label": "Fissa, blocca o archivia discussione",
+			"description": "Indicatori di moderazione di una discussione."
+		}
 	}
 }

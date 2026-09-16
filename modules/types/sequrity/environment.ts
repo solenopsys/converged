@@ -24,10 +24,29 @@ export type SurfaceLayout = {
 	unpinned: string[];
 };
 
+/**
+ * The pins of one tabbed place other than the surface strip: `home` for the
+ * sections on the home screen, `menu:<surface>` for the bar inside a surface.
+ * The same override shape as `SurfaceLayout`, and the same rule: a preference,
+ * never a grant.
+ */
+export type ScopedLayout = {
+	scope: string;
+	pinned: string[];
+	unpinned: string[];
+};
+
 export type UserEnvironment = {
 	windows: SavedWindow[];
 	commands: CommandLayout;
 	surfaces: SurfaceLayout;
+	layouts: ScopedLayout[];
+	/**
+	 * Interface language the user chose, e.g. `ru`; empty until they choose one.
+	 * Kept with the account rather than in the console's URL, so it follows the
+	 * person to another machine and a reload does not lose it.
+	 */
+	locale: string;
 	updatedAt: string;
 };
 
@@ -36,4 +55,7 @@ export interface EnvironmentService {
 	saveWindows(windows: SavedWindow[]): Promise<UserEnvironment>;
 	saveCommandLayout(layout: CommandLayout): Promise<UserEnvironment>;
 	saveSurfaceLayout(layout: SurfaceLayout): Promise<UserEnvironment>;
+	/** Replaces one place's pins; `surfaces` is the strip itself. */
+	saveLayout(scope: string, layout: SurfaceLayout): Promise<UserEnvironment>;
+	saveLocale(locale: string): Promise<UserEnvironment>;
 }

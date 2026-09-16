@@ -1,4 +1,5 @@
 import { createDomain } from "effector";
+import { $activeLocale, $localeCatalogRevision } from "../i18n";
 import { onOperationAuthorizationChanged } from "./authorization";
 import { localized } from "./catalog";
 import { objectRegistry, surfaceDeclared, surfaceRegistered } from "./registry";
@@ -149,6 +150,36 @@ export function availableSurfaces(): SurfaceEntry[] {
 		)
 		.map(({ order: _order, ...surface }) => surface);
 }
+
+/**
+ * Asks for the list again when something outside the registry changed the
+ * answer — a `discover` predicate, say. Declaring, registering, configuring and
+ * signing in already do this on their own.
+ */
+export const surfacesRefreshed = domain.createEvent("REFRESHED");
+onOperationAuthorizationChanged(() => surfacesRefreshed());
+
+/**
+ * `availableSurfaces()` as a store. Solutions are installed while the page is
+ * live, so the catalog a menu reads has to follow the registry rather than be a
+ * snapshot taken whenever a component happened to render. Configuration is
+ * read on its `updates` so the recomputation sees the new value.
+ */
+export const $availableSurfaces = domain
+	.createStore<readonly SurfaceEntry[]>([], { name: "AVAILABLE_SURFACES" })
+	.on(
+		[
+			surfaceDeclared,
+			surfaceRegistered,
+			$surfaceConfig.updates,
+			surfacesRefreshed,
+			// Labels are translated: a new language, or a surface's messages
+			// arriving, changes the answer as much as a new surface does.
+			$activeLocale.updates,
+			$localeCatalogRevision.updates,
+		],
+		() => availableSurfaces(),
+	);
 
 export function availableSurface(id: string): SurfaceEntry | undefined {
 	return availableSurfaces().find((surface) => surface.id === id);

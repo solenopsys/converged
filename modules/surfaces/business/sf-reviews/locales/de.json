@@ -73,5 +73,31 @@
 		"quantity": "Menge",
 		"customer": "Kunde",
 		"gone": "Dieser Auftrag ist nicht mehr in diesem Arbeitsbereich."
+	},
+	"operations": {
+		"reviewPublish": {
+			"label": "Bewertung veröffentlichen",
+			"description": "Eine Bewertung auf der Website zeigen. Bis dahin ist sie nur in dieser Konsole sichtbar."
+		},
+		"reviewReject": {
+			"label": "Bewertung ablehnen",
+			"description": "Eine Bewertung von der Website fernhalten. Hier bleibt sie lesbar."
+		},
+		"reviewReply": {
+			"label": "Auf Bewertung antworten",
+			"description": "Die Antwort des Shops, die überall mit der Bewertung angezeigt wird."
+		},
+		"reviewCreate": {
+			"label": "Bewertung erfassen",
+			"description": "Eine Bewertung eintragen, die der Shop anderswo erhalten hat – telefonisch, persönlich oder auf einer Plattform."
+		},
+		"inviteCreate": {
+			"label": "Um Bewertung bitten",
+			"description": "Einen persönlichen Bewertungslink für eine Bestellung und eine Adresse erzeugen."
+		},
+		"reviewDelete": {
+			"label": "Bewertung entfernen",
+			"description": "Eine Bewertung endgültig löschen."
+		}
 	}
 }

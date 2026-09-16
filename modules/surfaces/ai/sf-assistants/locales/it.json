@@ -89,5 +89,11 @@
 			"error": "Errore",
 			"uploaded": "Fatto"
 		}
+	},
+	"operations": {
+		"chatDelete": {
+			"label": "Elimina chat",
+			"description": "Elimina una conversazione con l’assistente insieme ai suoi messaggi."
+		}
 	}
 }

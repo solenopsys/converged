@@ -135,6 +135,14 @@
 		"to_order": {
 			"label": "Crear pedido desde la solicitud",
 			"description": "Poner esta solicitud en producción: el pedido guarda el id de la solicitud, la solicitud pasa a «en curso» y el paso queda en el registro. Cantidad, material, plazo y contacto se leen de la solicitud si no se indican aquí. Ejecutarlo dos veces abre el pedido que ya existe."
+		},
+		"requestCreate": {
+			"label": "Crear solicitud de fabricación",
+			"description": "Crear una solicitud a partir de archivos subidos o de una necesidad de fabricación descrita."
+		},
+		"requestSave": {
+			"label": "Guardar solicitud",
+			"description": "Guardar los cambios de una solicitud de fabricación."
 		}
 	}
 }

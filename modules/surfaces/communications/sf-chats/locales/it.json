@@ -3,5 +3,23 @@
 	"members": "Membri",
 	"composer": {
 		"placeholder": "Scrivi un messaggio..."
+	},
+	"operations": {
+		"chatCreate": {
+			"label": "Nuova stanza",
+			"description": "Crea una stanza di chat e aggiungi i primi membri."
+		},
+		"chatMembers": {
+			"label": "Membri della stanza",
+			"description": "Apri i membri di una stanza in una scheda dedicata."
+		},
+		"memberAdd": {
+			"label": "Aggiungi membro",
+			"description": "Aggiungi una persona a una stanza di chat."
+		},
+		"memberRemove": {
+			"label": "Rimuovi membro",
+			"description": "Rimuovi una persona da una stanza di chat."
+		}
 	}
 }

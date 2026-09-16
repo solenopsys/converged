@@ -73,5 +73,31 @@
 		"quantity": "Quantità",
 		"customer": "Cliente",
 		"gone": "Questo ordine non è più in questo spazio di lavoro."
+	},
+	"operations": {
+		"reviewPublish": {
+			"label": "Pubblica recensione",
+			"description": "Metti una recensione sul sito. Fino ad allora è visibile solo in questa console."
+		},
+		"reviewReject": {
+			"label": "Rifiuta recensione",
+			"description": "Non mostrare una recensione sul sito. Qui resta leggibile."
+		},
+		"reviewReply": {
+			"label": "Rispondi alla recensione",
+			"description": "La risposta del negozio, che accompagna la recensione ovunque venga mostrata."
+		},
+		"reviewCreate": {
+			"label": "Registra recensione",
+			"description": "Inserisci una recensione ricevuta altrove dal negozio: al telefono, di persona o su una piattaforma."
+		},
+		"inviteCreate": {
+			"label": "Chiedi una recensione",
+			"description": "Genera un link personale per la recensione di un ordine e un indirizzo."
+		},
+		"reviewDelete": {
+			"label": "Rimuovi recensione",
+			"description": "Elimina definitivamente una recensione."
+		}
 	}
 }

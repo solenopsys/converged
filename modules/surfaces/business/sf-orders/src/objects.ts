@@ -340,6 +340,8 @@ export default defineSurface({
 			target: "orders.order",
 			label: "Save order",
 			labelKey: "operations.save.label",
+			description: "Save changes to an order.",
+			descriptionKey: "operations.save.description",
 			inputs: [{ name: "order", accepts: objectOf("orders.order") }],
 			parameters: { type: "object", properties: orderProperties },
 			invoke: async ({ references, params }) => {

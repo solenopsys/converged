@@ -59,6 +59,19 @@ export class EnvironmentServiceImpl implements EnvironmentService {
 		await this.ready();
 		return this.stores.users.saveSurfaceLayout(this.currentUserId(), layout);
 	}
+
+	async saveLayout(
+		scope: string,
+		layout: SurfaceLayout,
+	): Promise<UserEnvironment> {
+		await this.ready();
+		return this.stores.users.saveLayout(this.currentUserId(), scope, layout);
+	}
+
+	async saveLocale(locale: string): Promise<UserEnvironment> {
+		await this.ready();
+		return this.stores.users.saveLocale(this.currentUserId(), locale);
+	}
 }
 
 export default EnvironmentServiceImpl;

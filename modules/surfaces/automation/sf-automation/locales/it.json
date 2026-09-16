@@ -1,0 +1,16 @@
+{
+	"operations": {
+		"triggerCreate": {
+			"label": "Nuovo trigger",
+			"description": "Aggiungi un trigger che avvia un workflow quando si verifica un evento."
+		},
+		"cronCreate": {
+			"label": "Crea pianificazione",
+			"description": "Esegui un workflow secondo una pianificazione ricorrente."
+		},
+		"endpointCreate": {
+			"label": "Crea endpoint webhook",
+			"description": "Crea un indirizzo che i servizi esterni chiamano per avviare un workflow."
+		}
+	}
+}

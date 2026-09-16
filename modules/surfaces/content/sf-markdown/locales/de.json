@@ -1,0 +1,8 @@
+{
+	"operations": {
+		"documentSave": {
+			"label": "Markdown-Dokument speichern",
+			"description": "Ein Markdown-Dokument speichern."
+		}
+	}
+}

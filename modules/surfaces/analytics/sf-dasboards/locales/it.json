@@ -4,5 +4,11 @@
 	},
 	"dashboard": {
 		"title": "Cruscotto"
+	},
+	"operations": {
+		"dashboardOpen": {
+			"label": "Dashboard",
+			"description": "Apri la dashboard delle statistiche."
+		}
 	}
 }

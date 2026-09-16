@@ -4,5 +4,23 @@
 		"post": "Écrire un message...",
 		"reply": "Écrire une réponse...",
 		"locked": "Ce sujet est verrouillé"
+	},
+	"operations": {
+		"sectionCreate": {
+			"label": "Créer une section",
+			"description": "Ajouter une section au forum."
+		},
+		"sectionDelete": {
+			"label": "Supprimer la section",
+			"description": "Supprimer une section et tous les sujets qu’elle contient."
+		},
+		"topicCreate": {
+			"label": "Nouveau sujet",
+			"description": "Lancer un sujet de forum avec son premier message."
+		},
+		"topicSetFlags": {
+			"label": "Épingler, verrouiller ou archiver le sujet",
+			"description": "Indicateurs de modération d’un sujet."
+		}
 	}
 }

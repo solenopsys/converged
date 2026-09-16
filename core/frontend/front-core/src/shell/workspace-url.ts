@@ -1,17 +1,19 @@
+import { combine } from "effector";
 import {
+	type DomainRef,
 	objectRef,
 	objectRegistry,
 	presentReference,
 	setRef,
-	type DomainRef,
 } from "front-core/object-runtime";
+import { loadSurface } from "./sf";
 import {
-	$workspace,
+	$activeSurface,
+	$pressedSubtab,
 	surfaceMounted,
 	type WorkspaceSubtab,
 	workspaceReset,
 } from "./workspace";
-import { loadSurface } from "./sf";
 
 export const CONSOLE_PATH = "/console/";
 const LEGACY_CONSOLE_PATH = "/console";
@@ -44,7 +46,8 @@ function surfaceSegment(surface: string): string {
 
 function viewSegment(viewId: string): string | undefined {
 	const view = objectRegistry.view(viewId);
-	if (!view || view.accepts.kind !== "set" || !view.accepts.type) return undefined;
+	if (!view || view.accepts.kind !== "set" || !view.accepts.type)
+		return undefined;
 	const type = objectRegistry.type(view.accepts.type);
 	return slug(view.label ?? type?.pluralLabel ?? type?.label ?? view.id);
 }
@@ -64,7 +67,9 @@ function parseObject(value: string | null): Record<string, unknown> | null {
 function routeFromUrl(href: string): ConsoleRoute | null {
 	const url = new URL(href, "http://localhost");
 	if (!isConsolePath(url.pathname)) return null;
-	const tail = url.pathname.slice(LEGACY_CONSOLE_PATH.length).replace(/^\/+/, "");
+	const tail = url.pathname
+		.slice(LEGACY_CONSOLE_PATH.length)
+		.replace(/^\/+/, "");
 	const [surfacePath, projectionPath, objectId] = tail
 		? tail.split("/").map(decodeURIComponent)
 		: [];
@@ -198,7 +203,10 @@ async function restoreFromLocation(): Promise<void> {
 			);
 		}
 	} catch (error) {
-		console.error(`[shell] Failed to restore ${window.location.pathname}`, error);
+		console.error(
+			`[shell] Failed to restore ${window.location.pathname}`,
+			error,
+		);
 	} finally {
 		restoring = false;
 	}
@@ -209,16 +217,15 @@ export function bootstrapWorkspaceUrl(): void {
 	if (installed || typeof window === "undefined") return;
 	installed = true;
 
-	$workspace.updates.watch((state) => {
-		if (restoring) return;
-		const surface = state.activeSurface;
-		const key = surface ? state.pressed[surface] : null;
-		const subtab = state.subtabs.find((entry) => entry.key === key) ?? null;
-		const next = urlForWorkspace(window.location.href, surface, subtab);
-		const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-		if (current !== next)
-			window.history.pushState(window.history.state, "", next);
-	});
+	combine({ surface: $activeSurface, subtab: $pressedSubtab }).updates.watch(
+		({ surface, subtab }) => {
+			if (restoring) return;
+			const next = urlForWorkspace(window.location.href, surface, subtab);
+			const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+			if (current !== next)
+				window.history.pushState(window.history.state, "", next);
+		},
+	);
 	window.addEventListener("popstate", () => {
 		void restoreFromLocation();
 	});

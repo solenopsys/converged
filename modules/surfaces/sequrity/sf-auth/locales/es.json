@@ -34,5 +34,15 @@
 		"checkEmail": "Revisa tu correo para continuar",
 		"loginFailed": "Error de inicio de sesión",
 		"tryAgain": "Por favor, inténtalo de nuevo"
+	},
+	"operations": {
+		"sessionLogin": {
+			"label": "Iniciar sesión",
+			"description": "Iniciar sesión en tu cuenta."
+		},
+		"sessionLogout": {
+			"label": "Cerrar sesión",
+			"description": "Cerrar esta sesión."
+		}
 	}
 }

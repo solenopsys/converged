@@ -2,6 +2,7 @@ import type { SqlStore } from "back-core";
 import type {
 	CommandLayout,
 	SavedWindow,
+	ScopedLayout,
 	SurfaceLayout,
 	UserEnvironment,
 } from "../../types";
@@ -11,11 +12,19 @@ type UserEnvironmentRow = {
 	windows: string;
 	commandLayout: string;
 	surfaceLayout: string;
+	layouts: string;
+	locale: string;
 	updatedAt: string;
 };
 
 /** More surfaces than any product declares; a list past it is not a preference. */
 const MAX_SURFACES = 200;
+
+/** One scope per surface plus the home screen, with room to spare. */
+const MAX_SCOPES = 250;
+
+/** The scope that is the surface strip itself, kept in its own column. */
+export const SURFACES_SCOPE = "surfaces";
 
 const emptyCommandLayout = (): CommandLayout => ({
 	pinned: [],
@@ -29,6 +38,8 @@ const emptyEnvironment = (): UserEnvironment => ({
 	windows: [],
 	commands: emptyCommandLayout(),
 	surfaces: emptySurfaceLayout(),
+	layouts: [],
+	locale: "",
 	updatedAt: new Date(0).toISOString(),
 });
 
@@ -57,6 +68,36 @@ export function normalizeSurfaceLayout(value: unknown): SurfaceLayout {
 		pinned,
 		unpinned: ids(layout.unpinned).filter((id) => !kept.has(id)),
 	};
+}
+
+/**
+ * One entry per scope, the last one winning. A scope with nothing pinned or
+ * unpinned is dropped: it is the default, and keeping it only grows the list.
+ */
+export function normalizeScopedLayouts(value: unknown): ScopedLayout[] {
+	if (!Array.isArray(value)) return [];
+	const byScope = new Map<string, ScopedLayout>();
+	for (const entry of value) {
+		const scope =
+			typeof entry?.scope === "string" ? entry.scope.trim() : undefined;
+		if (!scope || scope === SURFACES_SCOPE) continue;
+		const layout = normalizeSurfaceLayout(entry);
+		byScope.delete(scope);
+		if (layout.pinned.length > 0 || layout.unpinned.length > 0) {
+			byScope.set(scope, { scope, ...layout });
+		}
+	}
+	return [...byScope.values()].slice(-MAX_SCOPES);
+}
+
+/**
+ * A language tag as the browser sends it — `ru`, `pt-BR` — or empty. Anything
+ * else is dropped rather than stored: it would only be sent back to be ignored.
+ */
+export function normalizeLocale(value: unknown): string {
+	if (typeof value !== "string") return "";
+	const locale = value.trim();
+	return /^[a-z]{2,3}(-[A-Za-z]{2,4})?$/.test(locale) ? locale : "";
 }
 
 const parse = (raw: string | undefined): unknown => {
@@ -107,6 +148,34 @@ export class UsersStoreService {
 		});
 	}
 
+	/**
+	 * One place's pins. The strip keeps its own column, so a client that only
+	 * speaks scopes and one that still calls `saveSurfaceLayout` see the same
+	 * pins.
+	 */
+	async saveLayout(
+		userId: string,
+		scope: string,
+		layout: SurfaceLayout,
+	): Promise<UserEnvironment> {
+		const name = scope.trim();
+		if (!name) throw new Error("environment layout requires a scope");
+		if (name === SURFACES_SCOPE) return this.saveSurfaceLayout(userId, layout);
+		const current = await this.get(userId);
+		return this.save(userId, {
+			...current,
+			layouts: normalizeScopedLayouts([
+				...current.layouts,
+				{ scope: name, ...layout },
+			]),
+		});
+	}
+
+	async saveLocale(userId: string, locale: string): Promise<UserEnvironment> {
+		const current = await this.get(userId);
+		return this.save(userId, { ...current, locale: normalizeLocale(locale) });
+	}
+
 	private async save(
 		userId: string,
 		environment: UserEnvironment,
@@ -117,6 +186,8 @@ export class UsersStoreService {
 			windows: JSON.stringify(environment.windows),
 			commandLayout: JSON.stringify(environment.commands),
 			surfaceLayout: JSON.stringify(environment.surfaces),
+			layouts: JSON.stringify(environment.layouts),
+			locale: environment.locale,
 			updatedAt,
 		};
 		const existing = await this.store.db
@@ -153,6 +224,8 @@ export class UsersStoreService {
 				order: Array.isArray(commands?.order) ? commands.order : [],
 			},
 			surfaces: normalizeSurfaceLayout(parse(row.surfaceLayout)),
+			layouts: normalizeScopedLayouts(parse(row.layouts)),
+			locale: normalizeLocale(row.locale),
 			updatedAt: row.updatedAt,
 		};
 	}

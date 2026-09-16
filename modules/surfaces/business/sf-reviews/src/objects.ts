@@ -249,6 +249,8 @@ export default defineSurface({
 			operator: "execute",
 			target: "reviews.review",
 			label: "Publish review",
+			labelKey: "operations.reviewPublish.label",
+			descriptionKey: "operations.reviewPublish.description",
 			description:
 				"Put a review on the site. Until this, it is visible only in this console.",
 			inputs: [{ name: "review", accepts: objectOf("reviews.review") }],
@@ -266,6 +268,8 @@ export default defineSurface({
 			operator: "execute",
 			target: "reviews.review",
 			label: "Reject review",
+			labelKey: "operations.reviewReject.label",
+			descriptionKey: "operations.reviewReject.description",
 			description: "Keep a review out of the site. It stays readable here.",
 			inputs: [{ name: "review", accepts: objectOf("reviews.review") }],
 			invoke: async ({ references }) => {
@@ -282,6 +286,8 @@ export default defineSurface({
 			operator: "execute",
 			target: "reviews.review",
 			label: "Answer review",
+			labelKey: "operations.reviewReply.label",
+			descriptionKey: "operations.reviewReply.description",
 			description:
 				"The shop's answer, which travels with the review wherever it is shown",
 			inputs: [{ name: "review", accepts: objectOf("reviews.review") }],
@@ -306,6 +312,8 @@ export default defineSurface({
 			operator: "create",
 			target: "reviews.review",
 			label: "Record a review",
+			labelKey: "operations.reviewCreate.label",
+			descriptionKey: "operations.reviewCreate.description",
 			description:
 				"Enter a review the shop received elsewhere — by phone, in person, or on a platform.",
 			output: objectOf("reviews.review"),
@@ -352,6 +360,8 @@ export default defineSurface({
 			operator: "create",
 			target: "reviews.invite",
 			label: "Ask for a review",
+			labelKey: "operations.inviteCreate.label",
+			descriptionKey: "operations.inviteCreate.description",
 			description: "Mint a personal review link for one order and one address.",
 			parameters: {
 				type: "object",
@@ -374,6 +384,9 @@ export default defineSurface({
 			operator: "delete",
 			target: "reviews.review",
 			label: "Remove review",
+			labelKey: "operations.reviewDelete.label",
+			description: "Delete a review permanently.",
+			descriptionKey: "operations.reviewDelete.description",
 			inputs: [{ name: "review", accepts: objectOf("reviews.review") }],
 			invoke: ({ references }) =>
 				reviewsClient.deleteReview(reviewIdOf(references)),

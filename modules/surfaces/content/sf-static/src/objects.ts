@@ -120,6 +120,9 @@ export default defineSurface({
 			operator: "create",
 			target: "static.cache-entry",
 			label: "Create SSR cache entry",
+			labelKey: "operations.cacheEntryCreate.label",
+			description: "Add a server-rendered page to the cache.",
+			descriptionKey: "operations.cacheEntryCreate.description",
 			output: objectOf("static.cache-entry"),
 			parameters: {
 				type: "object",
@@ -147,6 +150,9 @@ export default defineSurface({
 			operator: "save",
 			target: "static.cache-entry",
 			label: "Set SSR cache entry status",
+			labelKey: "operations.cacheEntrySetStatus.label",
+			description: "Change the status of a cached server-rendered page.",
+			descriptionKey: "operations.cacheEntrySetStatus.description",
 			inputs: [{ name: "entry", accepts: objectOf("static.cache-entry") }],
 			parameters: {
 				type: "object",
@@ -174,6 +180,9 @@ export default defineSurface({
 			operator: "execute",
 			target: "static.cache-entry",
 			label: "Delete SSR cache entry",
+			labelKey: "operations.cacheEntryDelete.label",
+			description: "Remove a server-rendered page from the cache.",
+			descriptionKey: "operations.cacheEntryDelete.description",
 			inputs: [{ name: "entry", accepts: objectOf("static.cache-entry") }],
 			invoke: async ({ references }) => {
 				const entry = references.find(

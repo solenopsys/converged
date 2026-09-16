@@ -1,0 +1,34 @@
+{
+	"index": {
+		"heading": "Producto",
+		"intro": "Un mapa de la documentación sobre la plataforma, las soluciones y los escenarios de implantación.",
+		"pages": {
+			"overview": {
+				"title": "Resumen",
+				"text": "Qué es Converged AI, qué trabajo asume y por qué el producto se basa en soluciones listas para usar."
+			},
+			"solutions": {
+				"title": "Soluciones",
+				"text": "Cómo se organizan las soluciones y qué áreas cubren: promoción, clientes, producción y equipo."
+			},
+			"platform": {
+				"title": "Plataforma",
+				"text": "Hardware, procesos y la capa de IA: cómo el sistema conecta el taller, los datos y las acciones."
+			},
+			"technical": {
+				"title": "Técnica",
+				"text": "Arquitectura, tecnología, rendimiento y seguridad de la plataforma."
+			},
+			"project": {
+				"title": "Proyecto",
+				"text": "Despliegue, pago, licencias, comunidad y código fuente."
+			}
+		}
+	},
+	"operations": {
+		"documentOpenHome": {
+			"label": "Abrir documentación",
+			"description": "Abrir la página de inicio de la documentación."
+		}
+	}
+}

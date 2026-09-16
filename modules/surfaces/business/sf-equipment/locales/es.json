@@ -65,5 +65,31 @@
 		"quantity": "Cantidad",
 		"material": "Material",
 		"due": "Entrega"
+	},
+	"operations": {
+		"machineCreate": {
+			"label": "Registrar máquina",
+			"description": "Añadir una máquina al taller. Solo el tipo es obligatorio; lo demás puede venir después."
+		},
+		"machineSave": {
+			"label": "Guardar máquina",
+			"description": "Guardar los cambios en los datos de una máquina."
+		},
+		"machineSetState": {
+			"label": "Cambiar estado de la máquina",
+			"description": "Marcar una máquina como en marcha, inactiva, en mantenimiento, con error o fuera de línea. El error indica una avería: se libera el turno en curso y se bloquea el pedido asignado."
+		},
+		"logCreate": {
+			"label": "Registrar evento de máquina",
+			"description": "Anotar un evento en el registro de una máquina: una reparación, una revisión o una nota."
+		},
+		"slotCreate": {
+			"label": "Reservar turno",
+			"description": "Reservar una franja en una máquina, opcionalmente para un pedido."
+		},
+		"machineDelete": {
+			"label": "Eliminar máquina",
+			"description": "Quitar una máquina del taller."
+		}
 	}
 }

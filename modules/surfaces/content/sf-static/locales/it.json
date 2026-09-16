@@ -1,0 +1,21 @@
+{
+	"screens": {
+		"cache": {
+			"title": "Cache statica"
+		}
+	},
+	"operations": {
+		"cacheEntryCreate": {
+			"label": "Crea voce di cache SSR",
+			"description": "Aggiungi alla cache una pagina renderizzata lato server."
+		},
+		"cacheEntrySetStatus": {
+			"label": "Imposta stato voce SSR",
+			"description": "Cambia lo stato di una pagina renderizzata lato server in cache."
+		},
+		"cacheEntryDelete": {
+			"label": "Elimina voce di cache SSR",
+			"description": "Rimuovi dalla cache una pagina renderizzata lato server."
+		}
+	}
+}

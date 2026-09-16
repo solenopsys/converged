@@ -61,7 +61,11 @@ export async function localizedSurfaceEntry(
 
 	const virtualEntrypoint = `sf-locales:${moduleName}`;
 	const namespace = `sf-locales-${moduleName}`;
-	const surfaceId = `${moduleName}-sf`;
+	const bare = moduleName.replace(/^sf-/, "");
+	// `sf-<name>` is the surface id the registry, the shell and most modules
+	// use. `<name>-sf` is what modules named before the rename still ask for;
+	// registering both keeps those working without a second copy of the JSON.
+	const surfaceIds = [`sf-${bare}`, `${bare}-sf`];
 	const plugin: Bun.BunPlugin = {
 		name: namespace,
 		setup(build) {
@@ -74,7 +78,11 @@ export async function localizedSurfaceEntry(
 					'import { registerSurfaceLocales as __registerSurfaceLocales } from "front-core";',
 					`import __surfaceDefinition from ${JSON.stringify(entrypoint)};`,
 					`export * from ${JSON.stringify(entrypoint)};`,
-					`__registerSurfaceLocales(${JSON.stringify(surfaceId)}, ${JSON.stringify(catalog)});`,
+					`const __catalog = ${JSON.stringify(catalog)};`,
+					...surfaceIds.map(
+						(surfaceId) =>
+							`__registerSurfaceLocales(${JSON.stringify(surfaceId)}, __catalog);`,
+					),
 					"export default __surfaceDefinition;",
 				].join("\n"),
 				loader: "js",

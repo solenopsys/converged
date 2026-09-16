@@ -65,5 +65,31 @@
 		"quantity": "Quantidade",
 		"material": "Material",
 		"due": "Prazo"
+	},
+	"operations": {
+		"machineCreate": {
+			"label": "Registrar máquina",
+			"description": "Adicionar uma máquina ao chão de fábrica. Só o tipo é obrigatório; o resto pode vir depois."
+		},
+		"machineSave": {
+			"label": "Salvar máquina",
+			"description": "Salvar as alterações nos dados de uma máquina."
+		},
+		"machineSetState": {
+			"label": "Definir estado da máquina",
+			"description": "Marcar uma máquina como em operação, ociosa, em manutenção, com erro ou offline. Erro indica uma avaria: o horário em andamento é liberado e o pedido nele é bloqueado."
+		},
+		"logCreate": {
+			"label": "Registrar evento da máquina",
+			"description": "Anotar um evento no registro de uma máquina: um reparo, uma verificação ou uma observação."
+		},
+		"slotCreate": {
+			"label": "Reservar horário",
+			"description": "Reservar uma janela em uma máquina, opcionalmente para um pedido."
+		},
+		"machineDelete": {
+			"label": "Remover máquina",
+			"description": "Remover uma máquina do chão de fábrica."
+		}
 	}
 }

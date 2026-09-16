@@ -1,5 +1,4 @@
 import type { ComponentChildren } from "preact";
-import { TabStrip, type TopBarTab } from "./TabStrip";
 
 export type TopBarLink = {
 	label: string;
@@ -7,35 +6,27 @@ export type TopBarLink = {
 	current?: boolean;
 };
 
-export type { TopBarTab };
-
-
+/**
+ * The header row: brand, then either the workspace's tabs or plain links, then
+ * controls. What the tabs are is the caller's business — the workspace passes
+ * its strip, a landing page passes nothing and gets its links.
+ */
 export function TopBar({
 	brand,
 	brandHref,
 	onBrandClick,
-	tabs = [],
+	tabs,
 	links = [],
-	onTabSelect,
-	onTabClose,
-	onTabPinToggle,
-	onTabAction,
 	controls,
 	navigationLabel = "Main navigation",
-	tabsLabel = "Workspace tabs",
 }: {
 	brand: ComponentChildren;
 	brandHref?: string;
 	onBrandClick?: () => void;
-	tabs?: TopBarTab[];
+	tabs?: ComponentChildren;
 	links?: TopBarLink[];
-	onTabSelect?: (key: string) => void;
-	onTabClose?: (key: string) => void;
-	onTabPinToggle?: (key: string) => void;
-	onTabAction?: (key: string, actionId: string) => void;
 	controls?: ComponentChildren;
 	navigationLabel?: string;
-	tabsLabel?: string;
 }) {
 	return (
 		<header class="top-bar">
@@ -49,15 +40,8 @@ export function TopBar({
 				</a>
 			)}
 
-			{tabs.length > 0 ? (
-				<TabStrip
-					tabs={tabs}
-					label={tabsLabel}
-					onSelect={onTabSelect}
-					onClose={onTabClose}
-					onPinToggle={onTabPinToggle}
-					onAction={onTabAction}
-				/>
+			{tabs ? (
+				<div class="top-bar-tabstrip">{tabs}</div>
 			) : (
 				<nav class="top-bar-nav" aria-label={navigationLabel}>
 					{links.map((link) => (

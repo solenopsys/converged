@@ -80,11 +80,13 @@ export type {
 	SurfaceEntry,
 } from "./surfaces";
 export {
+	$availableSurfaces,
 	$surfaceConfig,
 	availableSurface,
 	availableSurfaces,
 	onSurfacesChanged,
 	surfaceConfigured,
+	surfacesRefreshed,
 } from "./surfaces";
 export type {
 	CategoryId,
@@ -120,6 +122,7 @@ export type {
 	StatisticWidgetSize,
 	SurfaceDefinition,
 	SurfaceManifest,
+	SurfaceMenuItem,
 	TypeExpression,
 	ViewDefinition,
 	ViewId,

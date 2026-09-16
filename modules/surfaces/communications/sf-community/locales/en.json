@@ -4,5 +4,23 @@
 		"post": "Write a post...",
 		"reply": "Write a reply...",
 		"locked": "This topic is locked"
+	},
+	"operations": {
+		"sectionCreate": {
+			"label": "Create section",
+			"description": "Add a forum section."
+		},
+		"sectionDelete": {
+			"label": "Delete section",
+			"description": "Delete a section and every topic under it."
+		},
+		"topicCreate": {
+			"label": "New topic",
+			"description": "Start a forum topic with its opening post."
+		},
+		"topicSetFlags": {
+			"label": "Pin, lock or archive topic",
+			"description": "Moderation flags of one topic."
+		}
 	}
 }

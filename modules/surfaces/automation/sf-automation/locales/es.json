@@ -1,0 +1,16 @@
+{
+	"operations": {
+		"triggerCreate": {
+			"label": "Nuevo disparador",
+			"description": "Añadir un disparador que inicia un flujo de trabajo cuando ocurre un evento."
+		},
+		"cronCreate": {
+			"label": "Crear programación",
+			"description": "Ejecutar un flujo de trabajo según una programación periódica."
+		},
+		"endpointCreate": {
+			"label": "Crear endpoint de webhook",
+			"description": "Crear una dirección a la que llaman servicios externos para iniciar un flujo de trabajo."
+		}
+	}
+}

@@ -46,7 +46,7 @@ export async function buildStyles(): Promise<string[]> {
 	const { css: utilities } = await uno.generate(shellSource, { preflights: true });
 	const layer = (...parts: string[]) => Bun.file(join(...parts)).text();
 	const projectStyles = landingBlocksStyles();
-	const [tokens, landingTokens, base, panel, chat, diagrams, productCases, vectorImage, cncLanding, surface, topBar, blocks] =
+	const [tokens, landingTokens, base, panel, chat, diagrams, productCases, vectorImage, cncLanding, surface, topBar, tabs, blocks] =
 		await Promise.all([
 			layer(stylesDir, "tokens.css"),
 			layer(stylesDir, "landing-tokens.css"),
@@ -59,6 +59,7 @@ export async function buildStyles(): Promise<string[]> {
 			layer(stylesDir, "cnc-landing.css"),
 			layer(stylesDir, "surface.css"),
 			layer(stylesDir, "topbar.css"),
+			layer(stylesDir, "tabs.css"),
 			// The project's blocks layer comes last: it styles its own markup and
 			// is allowed to override the shared landing rules.
 			Promise.all(projectStyles.map((path) => Bun.file(path).text())).then(
@@ -69,7 +70,7 @@ export async function buildStyles(): Promise<string[]> {
 	await Promise.all([
 		Bun.write(
 			join(assetsDir, "index.css"),
-			[utilities, tokens, landingTokens, panel, base, topBar, surface, diagrams, productCases, vectorImage, cncLanding, blocks].join("\n"),
+			[utilities, tokens, landingTokens, panel, base, topBar, tabs, surface, diagrams, productCases, vectorImage, cncLanding, blocks].join("\n"),
 		),
 		Bun.write(join(assetsDir, "chat.css"), chat),
 	]);

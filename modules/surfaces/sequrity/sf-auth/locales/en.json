@@ -36,5 +36,15 @@
 		"checkEmail": "Check your email to continue",
 		"loginFailed": "Login failed",
 		"tryAgain": "Please try again"
+	},
+	"operations": {
+		"sessionLogin": {
+			"label": "Login",
+			"description": "Sign in to your account."
+		},
+		"sessionLogout": {
+			"label": "Logout",
+			"description": "Sign out of this session."
+		}
 	}
 }

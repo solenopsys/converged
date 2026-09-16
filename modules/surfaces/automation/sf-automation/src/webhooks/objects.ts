@@ -135,6 +135,10 @@ export const webhooksContribution: Pick<
 			operator: "create",
 			target: "webhooks.endpoint",
 			label: "Create webhook endpoint",
+			labelKey: "operations.endpointCreate.label",
+			description:
+				"Create an address that external services call to start a workflow.",
+			descriptionKey: "operations.endpointCreate.description",
 			output: objectOf("webhooks.endpoint"),
 			parameters: { type: "object", properties: {} },
 			invoke: async ({ params }) => {

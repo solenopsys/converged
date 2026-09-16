@@ -1,0 +1,21 @@
+{
+	"screens": {
+		"cache": {
+			"title": "Cache estático"
+		}
+	},
+	"operations": {
+		"cacheEntryCreate": {
+			"label": "Criar entrada de cache SSR",
+			"description": "Adicionar ao cache uma página renderizada no servidor."
+		},
+		"cacheEntrySetStatus": {
+			"label": "Definir status da entrada SSR",
+			"description": "Alterar o status de uma página renderizada no servidor em cache."
+		},
+		"cacheEntryDelete": {
+			"label": "Excluir entrada de cache SSR",
+			"description": "Remover do cache uma página renderizada no servidor."
+		}
+	}
+}

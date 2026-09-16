@@ -126,7 +126,8 @@
 			"description": "Una scheda per chi lavora qui. Non dà accesso alla console: per quello c'è l'importazione."
 		},
 		"member_save": {
-			"label": "Salva la scheda"
+			"label": "Salva la scheda",
+			"description": "Salva le modifiche alla scheda di un membro del team."
 		},
 		"member_setRole": {
 			"label": "Cambia ruolo",
@@ -141,7 +142,8 @@
 			"description": "Chiudere un indirizzo prima che l'invito venga usato. Immediato — il varco legge l'invito a ogni richiesta."
 		},
 		"shift_create": {
-			"label": "Programma un turno"
+			"label": "Programma un turno",
+			"description": "Assegna una persona a un turno in una fascia oraria."
 		}
 	},
 	"errors": {

@@ -1,0 +1,16 @@
+{
+	"operations": {
+		"triggerCreate": {
+			"label": "New trigger",
+			"description": "Add a trigger that starts a workflow when an event happens."
+		},
+		"cronCreate": {
+			"label": "Create schedule",
+			"description": "Run a workflow on a recurring schedule."
+		},
+		"endpointCreate": {
+			"label": "Create webhook endpoint",
+			"description": "Create an address that external services call to start a workflow."
+		}
+	}
+}

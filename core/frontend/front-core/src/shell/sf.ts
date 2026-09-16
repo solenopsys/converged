@@ -1,12 +1,12 @@
 import { createDomain } from "effector";
 import { createDomainLogger } from "front-core/core";
 import {
-	type SurfaceDefinition,
 	objectRegistry,
 	registerSurface,
+	type SurfaceDefinition,
 	setSurfaceLoader,
 } from "front-core/object-runtime";
-import { surfaceMounted } from "./workspace";
+import { $activeSurface } from "./workspace";
 
 const loads = new Map<string, Promise<void>>();
 let stylesMounted = false;
@@ -67,10 +67,7 @@ export function loadSurface(moduleName: string): Promise<void> {
 			})
 			.catch((error) => {
 				surfaceLoadFailed({ moduleName, error });
-				console.error(
-					`[shell] Failed to load surface "${moduleName}"`,
-					error,
-				);
+				console.error(`[shell] Failed to load surface "${moduleName}"`, error);
 				loads.delete(moduleName);
 				throw error;
 			});
@@ -85,9 +82,7 @@ export function loadSurfaceForType(typeId: string): Promise<void> {
 	return loadSurface(moduleName);
 }
 
-export function loadSurfaceForOperation(
-	operationId: string,
-): Promise<void> {
+export function loadSurfaceForOperation(operationId: string): Promise<void> {
 	const moduleName = objectRegistry.ownerForOperation(operationId);
 	if (!moduleName) throw new Error(`[shell] Unknown operation: ${operationId}`);
 	return loadSurface(moduleName);
@@ -95,10 +90,11 @@ export function loadSurfaceForOperation(
 
 setSurfaceLoader(loadSurface);
 
-// Mounting can come from the strip as well as an assistant command. Both paths
-// load the owner so its declared projections appear in the surface immediately.
-surfaceMounted.watch((surface) => {
-	if (typeof document === "undefined") return;
+// A surface becomes active from the strip, the catalog menu, a pin restored from
+// the account or an assistant command. Every path loads the owner, so its
+// projections have components by the time one of them is opened.
+$activeSurface.updates.watch((surface) => {
+	if (!surface || typeof document === "undefined") return;
 	if (objectRegistry.surface(surface)?.loaded) return;
 	void loadSurface(surface).catch(() => undefined);
 });

@@ -1,0 +1,21 @@
+{
+	"screens": {
+		"cache": {
+			"title": "Caché estática"
+		}
+	},
+	"operations": {
+		"cacheEntryCreate": {
+			"label": "Crear entrada de caché SSR",
+			"description": "Añadir a la caché una página renderizada en el servidor."
+		},
+		"cacheEntrySetStatus": {
+			"label": "Cambiar estado de entrada SSR",
+			"description": "Cambiar el estado de una página renderizada en el servidor que está en caché."
+		},
+		"cacheEntryDelete": {
+			"label": "Eliminar entrada de caché SSR",
+			"description": "Quitar de la caché una página renderizada en el servidor."
+		}
+	}
+}

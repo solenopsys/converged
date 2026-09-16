@@ -71,7 +71,8 @@
 			"description": "Einen Auftrag direkt in die Warteschlange stellen. Ein Auftrag aus einer Anfrage entsteht durch Umwandeln der Anfrage, damit die Verknüpfung existiert."
 		},
 		"save": {
-			"label": "Auftrag speichern"
+			"label": "Auftrag speichern",
+			"description": "Änderungen an einem Auftrag speichern."
 		},
 		"updateStatus": {
 			"label": "Status ändern",

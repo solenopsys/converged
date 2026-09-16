@@ -3,5 +3,23 @@
 	"members": "Membres",
 	"composer": {
 		"placeholder": "Écrire un message..."
+	},
+	"operations": {
+		"chatCreate": {
+			"label": "Nouveau salon",
+			"description": "Créer un salon de discussion et y ajouter ses premiers membres."
+		},
+		"chatMembers": {
+			"label": "Membres du salon",
+			"description": "Ouvrir la liste des membres d’un salon dans un onglet dédié."
+		},
+		"memberAdd": {
+			"label": "Ajouter un membre",
+			"description": "Ajouter une personne à un salon de discussion."
+		},
+		"memberRemove": {
+			"label": "Retirer un membre",
+			"description": "Retirer une personne d’un salon de discussion."
+		}
 	}
 }

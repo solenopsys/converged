@@ -89,5 +89,11 @@
 			"error": "Fehler",
 			"uploaded": "Fertig"
 		}
+	},
+	"operations": {
+		"chatDelete": {
+			"label": "Chat löschen",
+			"description": "Eine Unterhaltung mit dem Assistenten samt ihren Nachrichten löschen."
+		}
 	}
 }

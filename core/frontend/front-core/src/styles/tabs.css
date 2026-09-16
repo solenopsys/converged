@@ -1,0 +1,400 @@
+/*
+ * Every tabbed place is one component (`tabs/TabBar.tsx`) with one behaviour.
+ * These rules are its looks: the base below, then one block per theme —
+ * `strip` for the surfaces at the top, `bar` inside a surface, `list` for the
+ * phone's navigation panel. A new place picks a theme; it does not get CSS.
+ */
+
+.tabs {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--hw-space-1);
+}
+
+.tabs-list {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--hw-space-1);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.tabs-list::-webkit-scrollbar {
+  display: none;
+}
+
+.tab {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  min-width: 0;
+  max-width: 220px;
+  color: var(--hw-ink-muted);
+}
+
+.tab-select {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  min-height: calc(var(--hw-unit) * 7);
+  padding: 0 var(--hw-space-2);
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.tab-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The transient tab is provisional — the next thing opened replaces it. */
+.tab:not([data-pinned="true"]):not([data-kind="command"]) .tab-label {
+  font-style: italic;
+}
+
+.tab-icon {
+  flex: 0 0 auto;
+}
+
+/*
+ * The slot keeps its width at rest so revealing the buttons never reflows the
+ * title; only their opacity changes.
+ */
+.tab-actions {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 1px;
+  padding-right: var(--hw-space-1);
+}
+
+.tab-pin,
+.tab-close,
+.catalog-menu-pin {
+  display: inline-grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: calc(var(--hw-unit) * 5);
+  height: calc(var(--hw-unit) * 5);
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--hw-ink-muted);
+  cursor: pointer;
+}
+
+.tab-pin,
+.tab-close {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+.tab:hover .tab-pin,
+.tab:hover .tab-close,
+.tab:focus-within .tab-pin,
+.tab:focus-within .tab-close,
+.tab[data-menu-open="true"] .tab-pin,
+.tab[data-menu-open="true"] .tab-close,
+.tab[data-active="true"] .tab-close {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* A pinned tab has to read as pinned with nothing hovered. */
+.tab[data-pinned="true"] .tab-pin {
+  opacity: 1;
+  pointer-events: auto;
+  color: var(--hw-accent);
+}
+
+@media (hover: none) {
+  .tab .tab-pin,
+  .tab .tab-close {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+.tab-select:focus-visible,
+.tab-pin:hover,
+.tab-pin:focus-visible,
+.tab-close:hover,
+.tab-close:focus-visible {
+  outline: none;
+  background: color-mix(in srgb, var(--hw-panel) 45%, transparent);
+  color: var(--hw-ink);
+}
+
+/* --- strip: the surfaces ------------------------------------------------ */
+
+.tabs[data-theme="strip"] .tab {
+  border: 1px solid var(--hw-panel-border);
+  border-radius: 4px;
+}
+
+.tabs[data-theme="strip"] .tab[data-active="true"] {
+  border-color: var(--hw-ink);
+  background: var(--hw-canvas);
+  color: var(--hw-ink);
+}
+
+/* --- bar: inside a surface ---------------------------------------------- */
+
+.tabs[data-theme="bar"] .tab {
+  border-radius: 999px;
+}
+
+.tabs[data-theme="bar"] .tab[data-active="true"] {
+  background: color-mix(in srgb, var(--hw-focus) 14%, transparent);
+  color: var(--hw-ink);
+}
+
+.tabs[data-theme="bar"] .tab[data-kind="command"] {
+  border: 1px dashed var(--hw-panel-border);
+}
+
+.tabs[data-theme="bar"] .tab-select:hover {
+  color: var(--hw-focus);
+}
+
+/* --- list: the phone's navigation --------------------------------------- */
+
+.tabs[data-theme="list"] {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.tabs[data-theme="list"] .tabs-list {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  overflow: visible;
+}
+
+.tabs[data-theme="list"] .tab {
+  max-width: none;
+  border-bottom: 1px solid var(--hw-panel-border);
+}
+
+.tabs[data-theme="list"] .tab-select {
+  flex: 1;
+  min-height: calc(var(--hw-unit) * 9);
+  padding-left: 0;
+}
+
+.tabs[data-theme="list"] .tab[data-active="true"] {
+  color: var(--hw-focus);
+  font-weight: 600;
+}
+
+.tabs[data-theme="list"] .catalog-menu {
+  align-self: flex-start;
+  margin-top: var(--hw-space-2);
+}
+
+/* --- the "+" menu ------------------------------------------------------- */
+
+.catalog-menu {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.catalog-menu-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--hw-space-1);
+  min-width: calc(var(--hw-unit) * 7);
+  height: calc(var(--hw-unit) * 7);
+  padding: 0 var(--hw-space-2);
+  border: 1px dashed var(--hw-panel-border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--hw-ink-muted);
+  cursor: pointer;
+}
+
+.catalog-menu-trigger:hover,
+.catalog-menu-trigger:focus-visible,
+.catalog-menu-trigger[aria-expanded="true"] {
+  border-color: var(--hw-focus);
+  color: var(--hw-ink);
+  outline: none;
+}
+
+/* Rendered into the document root and placed against the viewport by
+   `tabs/floating.ts`, so no scrolling ancestor can clip it. */
+.catalog-menu-panel {
+  position: fixed;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: var(--hw-space-1);
+  width: min(360px, calc(100vw - 16px));
+  max-height: min(440px, 70vh);
+  padding: var(--hw-space-1);
+  border: 1px solid var(--hw-panel-border);
+  border-radius: 6px;
+  background: var(--hw-canvas);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--hw-ink) 18%, transparent);
+  color: var(--hw-ink);
+}
+
+.catalog-menu-hint {
+  margin: 0;
+  padding: 0 var(--hw-space-2);
+  color: var(--hw-ink-muted);
+  font-size: 11px;
+}
+
+.catalog-menu-search {
+  width: 100%;
+  min-height: calc(var(--hw-unit) * 8);
+  padding: 0 var(--hw-space-2);
+  border: 1px solid var(--hw-panel-border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--hw-ink);
+  font: inherit;
+}
+
+.catalog-menu-search:focus-visible {
+  border-color: var(--hw-focus);
+  outline: none;
+}
+
+.catalog-menu-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.catalog-menu-group {
+  padding: var(--hw-space-2) var(--hw-space-2) var(--hw-space-1);
+  color: var(--hw-ink-muted);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.catalog-menu-row {
+  display: flex;
+  align-items: center;
+  gap: var(--hw-space-1);
+  border-radius: 4px;
+}
+
+.catalog-menu-row[data-highlighted="true"] {
+  background: color-mix(in srgb, var(--hw-panel) 45%, transparent);
+}
+
+.catalog-menu-choose {
+  display: grid;
+  flex: 1;
+  grid-template-columns: 16px minmax(0, 1fr);
+  column-gap: var(--hw-space-2);
+  align-items: center;
+  min-width: 0;
+  min-height: calc(var(--hw-unit) * 8);
+  padding: var(--hw-space-1) var(--hw-space-2);
+  border: 0;
+  background: transparent;
+  color: var(--hw-ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.catalog-menu-choose .tab-icon {
+  grid-row: 1 / span 2;
+  color: var(--hw-ink-muted);
+}
+
+.catalog-menu-label,
+.catalog-menu-description {
+  grid-column: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.catalog-menu-description {
+  color: var(--hw-ink-muted);
+  font-size: 11px;
+  font-weight: 400;
+}
+
+/* Already on screen: choosing it only switches to it. */
+.catalog-menu-row[data-open="true"] .catalog-menu-label {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.catalog-menu-pin {
+  margin-right: var(--hw-space-1);
+  opacity: 0.35;
+}
+
+.catalog-menu-row:hover .catalog-menu-pin,
+.catalog-menu-row[data-highlighted="true"] .catalog-menu-pin,
+.catalog-menu-pin[aria-pressed="true"] {
+  opacity: 1;
+}
+
+.catalog-menu-pin[aria-pressed="true"] {
+  color: var(--hw-accent);
+}
+
+.catalog-menu-pin:hover {
+  background: color-mix(in srgb, var(--hw-panel) 45%, transparent);
+  color: var(--hw-ink);
+}
+
+.catalog-menu-empty {
+  margin: 0;
+  padding: var(--hw-space-3) var(--hw-space-2);
+  color: var(--hw-ink-muted);
+}
+
+/* --- where the bars sit --------------------------------------------------- */
+
+.surface-bar {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  padding: var(--hw-space-2) var(--hw-space-4);
+  border-bottom: 1px solid var(--hw-panel-border);
+}
+
+.home-toolbar {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.home-section-remove {
+  opacity: 0;
+}
+
+.home-section:hover .home-section-remove,
+.home-section-remove:focus-visible {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .home-section-remove {
+    opacity: 1;
+  }
+}

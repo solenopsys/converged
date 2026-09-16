@@ -71,7 +71,8 @@
 			"description": "Colocar um trabalho na fila diretamente. Um trabalho que vem de uma solicitação é criado convertendo a solicitação, para que o vínculo exista."
 		},
 		"save": {
-			"label": "Salvar pedido"
+			"label": "Salvar pedido",
+			"description": "Salvar as alterações de um pedido."
 		},
 		"updateStatus": {
 			"label": "Alterar status",

@@ -1,30 +1,31 @@
 import { useUnit } from "effector-preact";
 import { invokeAction } from "front-core/core";
-import { $objectRegistryRevision } from "front-core/object-runtime";
 import { translator } from "i18n";
-import { useEffect, useMemo, useRef, useState } from "preact/hooks";
+import { useEffect } from "preact/hooks";
 import { CHAT_MESSAGES_NAMESPACE } from "../chat/i18n";
-import { ChevronDown, ChevronRight, RotateCcw, X } from "../icons";
+import { ChevronDown, ChevronRight, Plus, RotateCcw, X } from "../icons";
 import { cn } from "../lib/utils";
+import { CatalogMenu } from "../tabs";
+import {
+	$collapsed,
+	$hiddenWidgets,
+	$homeSections,
+	$loadingOwners,
+	homeMenu,
+	homeSections,
+	homeShown,
+	sectionToggled,
+	widgetHidden,
+	widgetsRestored,
+} from "./home";
 import { StatisticActionsProvider } from "./statistic-actions";
 import {
-	collectStatisticSections,
-	loadStatisticSection,
 	resolveStatistic,
 	type StatisticSection,
 	type StatisticWidget,
 } from "./statistic-catalog";
-import {
-	hideWidget,
-	readStatisticPreferences,
-	restoreWidgets,
-	type StatisticPreferences,
-	toggleSection,
-	writeStatisticPreferences,
-} from "./statistic-preferences";
 
 const t = translator(CHAT_MESSAGES_NAMESPACE);
-const SUMMARY_LOAD_CONCURRENCY = 3;
 
 function Widget({
 	widget,
@@ -106,32 +107,38 @@ function Section({
 	expanded,
 	loading,
 	hidden,
-	onToggle,
-	onHideWidget,
-	onRestore,
 }: {
 	section: StatisticSection;
 	expanded: boolean;
 	loading: boolean;
 	hidden: ReadonlySet<string>;
-	onToggle: () => void;
-	onHideWidget: (typeId: string) => void;
-	onRestore: () => void;
 }) {
+	const { toggle, hide, restore, remove } = useUnit({
+		toggle: sectionToggled,
+		hide: widgetHidden,
+		restore: widgetsRestored,
+		remove: homeSections.closed,
+	});
 	const visible = section.widgets.filter(
 		(widget) => !hidden.has(widget.typeId),
 	);
 	const hiddenCount = section.widgets.length - visible.length;
 	const Chevron = expanded ? ChevronDown : ChevronRight;
+	const toggleLabel = expanded
+		? t("statistics.collapse", { title: section.label })
+		: t("statistics.expand", { title: section.label });
+	const removeLabel = t("statistics.removeSection", { title: section.label });
 
 	return (
-		<section className="rounded-xl border bg-card">
+		<section className="home-section rounded-xl border bg-card">
 			<div className="flex items-center gap-4 px-4 py-3">
 				<button
 					type="button"
 					className="shrink-0 text-muted-foreground"
 					aria-expanded={expanded}
-					onClick={onToggle}
+					aria-label={toggleLabel}
+					title={toggleLabel}
+					onClick={() => toggle(section.owner)}
 				>
 					<Chevron
 						aria-hidden="true"
@@ -148,7 +155,7 @@ function Section({
 					onClick={() => {
 						const actionId = section.summary?.statistic?.actions?.title;
 						if (actionId) void invokeAction(actionId);
-						else onToggle();
+						else toggle(section.owner);
 					}}
 				>
 					{section.label}
@@ -158,7 +165,7 @@ function Section({
 				</span>
 
 				{/* The readout stays up whether the section is open or shut: it is what
-				    makes a fully collapsed dashboard worth looking at. */}
+				    makes a collapsed section worth keeping on the home screen. */}
 				<div className="min-w-0 flex-1 overflow-hidden">
 					<SectionReadout section={section} loading={loading} />
 				</div>
@@ -167,12 +174,23 @@ function Section({
 						type="button"
 						className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted-foreground transition hover:bg-accent hover:text-foreground"
 						title={t("statistics.restoreHidden", { count: hiddenCount })}
-						onClick={onRestore}
+						onClick={() =>
+							restore(section.widgets.map((widget) => widget.typeId))
+						}
 					>
 						<RotateCcw aria-hidden="true" className="h-3.5 w-3.5" />
 						{hiddenCount}
 					</button>
 				) : null}
+				<button
+					type="button"
+					className="home-section-remove inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition hover:bg-accent hover:text-foreground"
+					aria-label={removeLabel}
+					title={removeLabel}
+					onClick={() => remove(section.owner)}
+				>
+					<X aria-hidden="true" className="h-3.5 w-3.5" />
+				</button>
 			</div>
 
 			{expanded ? (
@@ -191,7 +209,7 @@ function Section({
 								<Widget
 									key={widget.typeId}
 									widget={widget}
-									onHide={() => onHideWidget(widget.typeId)}
+									onHide={() => hide(widget.typeId)}
 								/>
 							))}
 						</div>
@@ -203,108 +221,63 @@ function Section({
 }
 
 /**
- * The whole admin's statistics on one page: a section per surface, every
- * one collapsed to start with. Nothing but the section headers is rendered
- * until a section is opened — that is also when its surface is imported.
+ * The home screen: the sections the user added, each collapsible, and a "+"
+ * with every other section. Nothing is imported for a section that is not
+ * here — adding one is what loads its surface.
  */
 export function StatisticsDashboard() {
-	const revision = useUnit($objectRegistryRevision);
-	const [preferences, setPreferences] = useState<StatisticPreferences>(
-		readStatisticPreferences,
-	);
-	const [loadingOwners, setLoadingOwners] = useState<readonly string[]>([]);
-	// Owners an import has already been started for, so neither a click nor the
-	// background pass asks for the same module twice.
-	const requested = useRef<Set<string>>(new Set());
+	const { sections, collapsed, hidden, loading, pinToggled, shown } = useUnit({
+		sections: $homeSections,
+		collapsed: $collapsed,
+		hidden: $hiddenWidgets,
+		loading: $loadingOwners,
+		pinToggled: homeSections.pinToggled,
+		shown: homeShown,
+	});
 
-	const sections = useMemo(() => collectStatisticSections(), [revision]);
-
-	const expanded = new Set(preferences.expanded);
-	const hidden = new Set(preferences.hidden);
-
-	const update = (next: StatisticPreferences) => {
-		setPreferences(writeStatisticPreferences(next));
-	};
-
-	const load = (section: StatisticSection) => {
-		if (section.loaded || requested.current.has(section.owner)) return;
-		requested.current.add(section.owner);
-
-		setLoadingOwners((owners) => [...owners, section.owner]);
-		void loadStatisticSection(section)
-			.catch((error) => {
-				// Let a later interaction retry a service that failed to load.
-				requested.current.delete(section.owner);
-				console.error("[statistics] Failed to load section", {
-					owner: section.owner,
-					error,
-				});
-			})
-			.finally(() => {
-				setLoadingOwners((owners) =>
-					owners.filter((owner) => owner !== section.owner),
-				);
-			});
-	};
-
-	const toggle = (section: StatisticSection) => {
-		update(toggleSection(preferences, section.owner));
-		if (!expanded.has(section.owner)) load(section);
-	};
-
-	// A service that publishes a readout is fetched without waiting to be opened
-	// — the point of the readout is that a collapsed dashboard already shows the
-	// numbers. A small pool avoids a long skeleton queue while keeping imports and
-	// each summary's initial aggregate request from arriving all at once.
 	useEffect(() => {
-		const pending = sections
-			.filter(
-				(section) =>
-					section.summary &&
-					!section.loaded &&
-					!requested.current.has(section.owner),
-			)
-			.slice(0, SUMMARY_LOAD_CONCURRENCY);
-		if (pending.length === 0) return;
+		shown();
+	}, [shown]);
 
-		const start = () => pending.forEach(load);
-		if (typeof requestIdleCallback !== "function") {
-			const timer = setTimeout(start, 0);
-			return () => clearTimeout(timer);
-		}
-		const idle = requestIdleCallback(start, { timeout: 2000 });
-		return () => cancelIdleCallback(idle);
-	}, [sections]);
-
-	if (sections.length === 0) {
-		return (
-			<p className="p-4 text-sm text-muted-foreground">
-				{t("statistics.empty")}
-			</p>
-		);
-	}
+	const hiddenSet = new Set<string>(hidden);
+	const addLabel = t("statistics.addSection");
 
 	return (
 		<div className="flex flex-col gap-3 p-4">
-			{sections.map((section) => (
-				<Section
-					key={section.owner}
-					section={section}
-					expanded={expanded.has(section.owner)}
-					loading={loadingOwners.includes(section.owner)}
-					hidden={hidden}
-					onToggle={() => toggle(section)}
-					onHideWidget={(typeId) => update(hideWidget(preferences, typeId))}
-					onRestore={() =>
-						update(
-							restoreWidgets(
-								preferences,
-								section.widgets.map((widget) => widget.typeId),
-							),
-						)
+			<div className="home-toolbar">
+				<CatalogMenu
+					model={homeMenu}
+					onPinToggle={pinToggled}
+					trigger={
+						<>
+							<Plus size={14} aria-hidden="true" />
+							<span>{addLabel}</span>
+						</>
 					}
+					text={{
+						label: addLabel,
+						search: t("tab.search"),
+						empty: t("tab.nothingFound"),
+						pin: (title) => t("tab.pinNamed", { title }),
+						unpin: (title) => t("tab.unpinNamed", { title }),
+					}}
 				/>
-			))}
+			</div>
+			{sections.length === 0 ? (
+				<p className="p-4 text-sm text-muted-foreground">
+					{t("statistics.homeEmpty")}
+				</p>
+			) : (
+				sections.map((section) => (
+					<Section
+						key={section.owner}
+						section={section}
+						expanded={!collapsed.includes(section.owner)}
+						loading={loading.includes(section.owner)}
+						hidden={hiddenSet}
+					/>
+				))
+			)}
 		</div>
 	);
 }

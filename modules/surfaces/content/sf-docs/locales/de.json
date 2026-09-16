@@ -1,0 +1,34 @@
+{
+	"index": {
+		"heading": "Produkt",
+		"intro": "Eine Übersicht der Dokumentation zu Plattform, Lösungen und Einführungsszenarien.",
+		"pages": {
+			"overview": {
+				"title": "Überblick",
+				"text": "Was Converged AI ist, welche Arbeit es übernimmt und warum das Produkt auf fertigen Lösungen aufbaut."
+			},
+			"solutions": {
+				"title": "Lösungen",
+				"text": "Wie die Lösungen aufgebaut sind und welche Bereiche sie abdecken: Vermarktung, Kunden, Fertigung und Team."
+			},
+			"platform": {
+				"title": "Plattform",
+				"text": "Hardware, Prozesse und die KI-Schicht: wie das System Werkstatt, Daten und Aktionen verbindet."
+			},
+			"technical": {
+				"title": "Technik",
+				"text": "Architektur, Technologie, Leistung und Sicherheit der Plattform."
+			},
+			"project": {
+				"title": "Projekt",
+				"text": "Bereitstellung, Bezahlung, Lizenzierung, Community und Quellcode."
+			}
+		}
+	},
+	"operations": {
+		"documentOpenHome": {
+			"label": "Dokumentation öffnen",
+			"description": "Die Startseite der Dokumentation öffnen."
+		}
+	}
+}

@@ -221,6 +221,14 @@ export type ViewDefinition = {
 	/** Visual role of a set projection in the workspace subtab bar. */
 	presentation?: "table" | "tool";
 	label?: string;
+	/** Message keys in the owning surface; static text remains the fallback. */
+	labelKey?: string;
+	/**
+	 * One line under the label in menus: what this projection shows. Without it
+	 * the menu uses the description of the type it accepts.
+	 */
+	description?: string;
+	descriptionKey?: string;
 	priority?: number;
 	// Components belong to independently built surfaces and carry their own prop types.
 	// biome-ignore lint/suspicious/noExplicitAny: the runtime only stores and mounts them
@@ -288,6 +296,15 @@ export type OperationDefinition = {
 };
 
 /**
+ * One entry of a surface menu. `default` marks the projection the surface opens
+ * on; without one it opens on its overview. `pinned` is the author's suggestion
+ * for the bar — the user's own pins override it either way.
+ */
+export type SurfaceMenuItem =
+	| { view: ViewId; default?: boolean; pinned?: boolean }
+	| { operation: OperationId; pinned?: boolean };
+
+/**
  * A surface is a tab: one place in the interface that gathers functionality by
  * meaning. What it calls itself and what it is for are therefore part of the
  * definition, not something to derive from the id — `sf-sales` reading as
@@ -315,6 +332,14 @@ export type SurfaceDefinition = {
 	 * asked for.
 	 */
 	hidden?: boolean;
+	/**
+	 * What the surface offers in its catalog menu, in this order: the projections
+	 * worth opening and the commands worth running. Nothing here is on screen
+	 * until the user opens or pins it. Without a menu the shell derives one from
+	 * the set views and the create operations, which is a stopgap rather than a
+	 * curated list.
+	 */
+	menu?: readonly SurfaceMenuItem[];
 	types: readonly ObjectDefinition[];
 	views: ViewDefinition[];
 	operations: OperationDefinition[];
@@ -332,6 +357,12 @@ export type ObjectIndexModule = {
 	manifest: SurfaceManifest;
 	/** LLM metadata shipped with the lazy module and available before it loads. */
 	llm?: SurfaceLlmCatalog;
+	/**
+	 * Translations of the keys the manifest names, per locale — enough to show
+	 * the surface's name, projections and commands before the module and its
+	 * full catalog are imported.
+	 */
+	locales?: Record<string, Record<string, unknown>>;
 };
 
 export type ObjectIndexFile = {

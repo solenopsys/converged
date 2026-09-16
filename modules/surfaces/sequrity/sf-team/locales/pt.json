@@ -126,7 +126,8 @@
 			"description": "Uma ficha para quem trabalha aqui. Não dá acesso à consola — para isso existe a importação."
 		},
 		"member_save": {
-			"label": "Guardar ficha"
+			"label": "Guardar ficha",
+			"description": "Salvar as alterações na ficha de um membro da equipe."
 		},
 		"member_setRole": {
 			"label": "Mudar de função",
@@ -141,7 +142,8 @@
 			"description": "Fechar um endereço antes de o convite ser usado. Imediato — a porta lê o convite em cada pedido."
 		},
 		"shift_create": {
-			"label": "Agendar um turno"
+			"label": "Agendar um turno",
+			"description": "Escalar uma pessoa para um turno em um intervalo de tempo."
 		}
 	},
 	"errors": {

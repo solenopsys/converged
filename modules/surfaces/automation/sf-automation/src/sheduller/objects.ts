@@ -151,6 +151,9 @@ export const shedullerContribution: Pick<
 			operator: "create",
 			target: "scheduler.cron",
 			label: "Create schedule",
+			labelKey: "operations.cronCreate.label",
+			description: "Run a workflow on a recurring schedule.",
+			descriptionKey: "operations.cronCreate.description",
 			output: objectOf("scheduler.cron"),
 			parameters: { type: "object", properties: {} },
 			invoke: async ({ params }) => {

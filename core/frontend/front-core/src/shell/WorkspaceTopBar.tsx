@@ -1,13 +1,8 @@
-import { useUnit } from "effector-preact";
 import type { ComponentChildren } from "preact";
+import { TabBar } from "../tabs";
 import { TopBar, type TopBarLink } from "./TopBar";
 import { TopBarSettings } from "./TopBarControls";
-import { $workspaceTabViews, workspaceTabActionInvoked } from "./tab-actions";
-import {
-	surfaceActivated,
-	surfaceClosed,
-	surfacePinToggled,
-} from "./workspace";
+import { surfaceBarText, surfaceStrip } from "./workspace-bars";
 
 export function WorkspaceTopBar({
 	brand,
@@ -22,23 +17,16 @@ export function WorkspaceTopBar({
 	links?: TopBarLink[];
 	controls?: ComponentChildren;
 }) {
-	// Every surface in the strip, pinned ones included: pinning keeps a tab here
-	// rather than filing it away somewhere else.
-	const tabs = useUnit($workspaceTabViews);
-
 	return (
 		<TopBar
 			brand={brand}
 			brandHref={brandHref}
 			onBrandClick={onBrandClick}
-			tabs={tabs}
-			links={links}
-			onTabSelect={surfaceActivated}
-			onTabClose={surfaceClosed}
-			onTabPinToggle={surfacePinToggled}
-			onTabAction={(key, actionId) =>
-				workspaceTabActionInvoked({ key, actionId })
+			// Always the strip, even empty: its catalog is how the first section is opened.
+			tabs={
+				<TabBar model={surfaceStrip} theme="strip" text={surfaceBarText()} />
 			}
+			links={links}
 			controls={
 				<>
 					{controls}

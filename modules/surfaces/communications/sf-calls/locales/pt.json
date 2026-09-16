@@ -55,5 +55,15 @@
 		"loading": "Loading…",
 		"lines": "lines",
 		"refresh": "Refresh"
+	},
+	"operations": {
+		"callCreate": {
+			"label": "Iniciar chamada",
+			"description": "Iniciar uma chamada de voz."
+		},
+		"callExecuteWeb": {
+			"label": "Chamada pelo navegador",
+			"description": "Iniciar uma chamada de voz direto do navegador."
+		}
 	}
 }

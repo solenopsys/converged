@@ -7,6 +7,10 @@ import type {
 	SurfaceManifest,
 } from "front-core/object-runtime";
 import { surfaceDir, surfaces, surfacesDir } from "./layout";
+import {
+	readSurfaceLocales,
+	type SurfaceLocaleCatalog,
+} from "./surface-locales";
 
 const stubExternals = {
 	name: "object-index-stub-externals",
@@ -64,6 +68,7 @@ function manifestOf(definition: SurfaceDefinition): SurfaceManifest {
 		...(definition.labelKey ? { labelKey: definition.labelKey } : {}),
 		purpose: definition.purpose,
 		...(definition.purposeKey ? { purposeKey: definition.purposeKey } : {}),
+		...(definition.menu ? { menu: definition.menu } : {}),
 		types: definition.types,
 		views: definition.views.map(
 			({ component: _component, props: _props, ...view }) => view,
@@ -137,17 +142,129 @@ export async function readLlmCatalog(
 	return catalog;
 }
 
+/** Every message key the manifest itself names: what the shell shows before loading. */
+export function manifestMessageKeys(manifest: SurfaceManifest): string[] {
+	const keys = [
+		manifest.labelKey,
+		manifest.purposeKey,
+		...manifest.types.flatMap((type) => [
+			type.labelKey,
+			type.pluralLabelKey,
+			type.descriptionKey,
+		]),
+		...manifest.views.flatMap((view) => [view.labelKey, view.descriptionKey]),
+		...manifest.operations.flatMap((operation) => [
+			operation.labelKey,
+			operation.descriptionKey,
+		]),
+	];
+	return [
+		...new Set(keys.filter((key): key is string => typeof key === "string")),
+	];
+}
+
+function lookup(messages: Record<string, unknown>, key: string): unknown {
+	let value: unknown = messages;
+	for (const segment of key.split(".")) {
+		if (!value || typeof value !== "object" || !(segment in value)) {
+			return messages[key];
+		}
+		value = (value as Record<string, unknown>)[segment];
+	}
+	return value;
+}
+
+function assign(target: Record<string, unknown>, key: string, value: unknown) {
+	const segments = key.split(".");
+	let node = target;
+	for (const segment of segments.slice(0, -1)) {
+		if (!node[segment] || typeof node[segment] !== "object") node[segment] = {};
+		node = node[segment] as Record<string, unknown>;
+	}
+	node[segments.at(-1) as string] = value;
+}
+
+/**
+ * The part of a surface's locales the index needs: the strip, the menus and
+ * the home screen name surfaces, projections and commands long before the
+ * module — and its full catalog — is imported. A few strings per locale, not
+ * the catalog.
+ */
+export function manifestLocales(
+	manifest: SurfaceManifest,
+	catalog: SurfaceLocaleCatalog,
+): SurfaceLocaleCatalog {
+	const keys = manifestMessageKeys(manifest);
+	const locales: SurfaceLocaleCatalog = {};
+	for (const [locale, messages] of Object.entries(catalog)) {
+		const picked: Record<string, unknown> = {};
+		for (const key of keys) {
+			const value = lookup(messages, key);
+			if (typeof value === "string") assign(picked, key, value);
+		}
+		if (Object.keys(picked).length > 0) locales[locale] = picked;
+	}
+	return locales;
+}
+
+/**
+ * Commands are text the user reads — in menus, on buttons — so their label and
+ * description come from the surface's locales, never from a literal in code.
+ * The literal stays as the fallback a missing catalog falls back to; what this
+ * refuses is a command with no key, or a key some locale does not translate.
+ */
+export function commandLocalizationProblems(
+	name: string,
+	manifest: SurfaceManifest,
+	catalog: SurfaceLocaleCatalog,
+): string[] {
+	const problems: string[] = [];
+	const locales = Object.entries(catalog);
+	for (const operation of manifest.operations) {
+		for (const field of ["labelKey", "descriptionKey"] as const) {
+			const key = operation[field];
+			if (!key) {
+				problems.push(`sf-${name}: ${operation.id} has no ${field}`);
+				continue;
+			}
+			if (locales.length === 0) {
+				problems.push(
+					`sf-${name}: ${operation.id} ${field} "${key}" but no locales`,
+				);
+			}
+			for (const [locale, messages] of locales) {
+				if (typeof lookup(messages, key) !== "string") {
+					problems.push(
+						`sf-${name}: ${locale}.json has no "${key}" (${operation.id})`,
+					);
+				}
+			}
+		}
+	}
+	return problems;
+}
+
 export async function collectObjectIndex(): Promise<ObjectIndexFile> {
 	const entries = await Promise.all(
 		surfaces.map(async (name) => {
 			const dir = surfaceDir(name);
 			const module = `sf-${name}`;
+			const manifest = manifestOf(await readDefinition(name));
+			const catalog = await readSurfaceLocales(join(dir, "src", "index.ts"));
+			const problems = commandLocalizationProblems(name, manifest, catalog);
+			if (problems.length > 0) {
+				throw new Error(
+					`[object-index] commands must be localized:\n  ${problems.join("\n  ")}`,
+				);
+			}
+			const locales = manifestLocales(manifest, catalog);
 			return [
 				name,
 				{
 					module,
-					manifest: manifestOf(await readDefinition(name)),
+					manifest,
 					llm: await readLlmCatalog(dir, name),
+					...(Object.keys(locales).length > 0 ? { locales } : {}),
 				},
 			] as const;
 		}),

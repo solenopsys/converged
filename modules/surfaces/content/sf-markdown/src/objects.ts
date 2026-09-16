@@ -80,6 +80,9 @@ export default defineSurface({
 			operator: "save",
 			target: "markdown.document",
 			label: "Save markdown document",
+			labelKey: "operations.documentSave.label",
+			description: "Save a markdown document.",
+			descriptionKey: "operations.documentSave.description",
 			output: objectOf("markdown.document"),
 			parameters: {
 				type: "object",

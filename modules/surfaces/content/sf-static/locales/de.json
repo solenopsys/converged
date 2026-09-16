@@ -1,0 +1,21 @@
+{
+	"screens": {
+		"cache": {
+			"title": "Statischer Cache"
+		}
+	},
+	"operations": {
+		"cacheEntryCreate": {
+			"label": "SSR-Cache-Eintrag erstellen",
+			"description": "Eine serverseitig gerenderte Seite in den Cache aufnehmen."
+		},
+		"cacheEntrySetStatus": {
+			"label": "Status des SSR-Cache-Eintrags setzen",
+			"description": "Den Status einer zwischengespeicherten, serverseitig gerenderten Seite ändern."
+		},
+		"cacheEntryDelete": {
+			"label": "SSR-Cache-Eintrag löschen",
+			"description": "Eine serverseitig gerenderte Seite aus dem Cache entfernen."
+		}
+	}
+}

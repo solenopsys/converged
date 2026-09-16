@@ -55,5 +55,15 @@
 		"loading": "Loading…",
 		"lines": "lines",
 		"refresh": "Refresh"
+	},
+	"operations": {
+		"callCreate": {
+			"label": "Anruf starten",
+			"description": "Einen Sprachanruf starten."
+		},
+		"callExecuteWeb": {
+			"label": "Webanruf starten",
+			"description": "Einen Sprachanruf direkt aus dem Browser starten."
+		}
 	}
 }

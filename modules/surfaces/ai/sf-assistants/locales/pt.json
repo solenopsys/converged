@@ -89,5 +89,11 @@
 			"error": "Erro",
 			"uploaded": "Concluido"
 		}
+	},
+	"operations": {
+		"chatDelete": {
+			"label": "Excluir chat",
+			"description": "Excluir uma conversa com o assistente junto com as mensagens."
+		}
 	}
 }

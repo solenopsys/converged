@@ -89,5 +89,11 @@
 			"error": "Erreur",
 			"uploaded": "Termine"
 		}
+	},
+	"operations": {
+		"chatDelete": {
+			"label": "Supprimer la discussion",
+			"description": "Supprimer une conversation avec l’assistant ainsi que ses messages."
+		}
 	}
 }

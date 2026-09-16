@@ -3,5 +3,23 @@
 	"members": "Membros",
 	"composer": {
 		"placeholder": "Escrever uma mensagem..."
+	},
+	"operations": {
+		"chatCreate": {
+			"label": "Nova sala",
+			"description": "Criar uma sala de chat e adicionar os primeiros membros."
+		},
+		"chatMembers": {
+			"label": "Membros da sala",
+			"description": "Abrir os membros de uma sala em uma aba própria."
+		},
+		"memberAdd": {
+			"label": "Adicionar membro",
+			"description": "Adicionar uma pessoa a uma sala de chat."
+		},
+		"memberRemove": {
+			"label": "Remover membro",
+			"description": "Remover uma pessoa de uma sala de chat."
+		}
 	}
 }

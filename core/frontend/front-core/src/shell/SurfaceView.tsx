@@ -1,23 +1,21 @@
 import { useUnit } from "effector-preact";
+import { $objectRegistryRevision } from "front-core/object-runtime";
 import type { ComponentChildren } from "preact";
 import { useEffect } from "preact/hooks";
-import { $objectRegistryRevision } from "front-core/object-runtime";
+import { StatisticActionsProvider } from "../dashboard/statistic-actions";
 import {
 	collectStatisticSections,
 	resolveStatistic,
 } from "../dashboard/statistic-catalog";
-import { StatisticActionsProvider } from "../dashboard/statistic-actions";
-import { SubtabBar } from "./SubtabBar";
+import { TabBar } from "../tabs";
 import { WorkspaceTopBar } from "./WorkspaceTopBar";
 import {
-	$activeSubtabs,
 	$activeSurface,
 	$pressedSubtab,
 	$surfaceTabs,
-	subtabActivated,
-	subtabClosed,
 	subtabReleased,
 } from "./workspace";
+import { menuBarText, surfaceMenuBar } from "./workspace-bars";
 
 function SurfaceStatistics({ surface }: { surface: string }) {
 	useUnit($objectRegistryRevision);
@@ -27,8 +25,12 @@ function SurfaceStatistics({ surface }: { surface: string }) {
 	const widgets = (section?.widgets ?? [])
 		.map((widget) => ({ widget, mounted: resolveStatistic(widget) }))
 		.filter(
-			(entry): entry is { widget: (typeof section.widgets)[number]; mounted: NonNullable<typeof entry.mounted> } =>
-				entry.mounted !== null,
+			(
+				entry,
+			): entry is {
+				widget: (typeof section.widgets)[number];
+				mounted: NonNullable<typeof entry.mounted>;
+			} => entry.mounted !== null,
 		);
 	if (widgets.length === 0) return null;
 
@@ -37,9 +39,15 @@ function SurfaceStatistics({ surface }: { surface: string }) {
 			{widgets.map(({ widget, mounted }) => (
 				<section
 					key={widget.typeId}
-					class={mounted.size === "full" ? "surface-statistic-full" : "surface-statistic-tile"}
+					class={
+						mounted.size === "full"
+							? "surface-statistic-full"
+							: "surface-statistic-tile"
+					}
 				>
-					<StatisticActionsProvider actions={widget.statistic?.actions?.metrics}>
+					<StatisticActionsProvider
+						actions={widget.statistic?.actions?.metrics}
+					>
 						<mounted.Component {...mounted.props} embedded />
 					</StatisticActionsProvider>
 				</section>
@@ -49,12 +57,12 @@ function SurfaceStatistics({ surface }: { surface: string }) {
 }
 
 /**
- * The stage: the active surface, its button bar, and whatever is pressed.
+ * The stage: the active surface, its bar, and whatever is open in it.
  *
- * With nothing pressed the surface shows its own screen. That state is the
- * normal one, not an empty one — it is what the first orchestrator step commits
- * to, a second after the user asked for something, and it has to be cheap
- * enough to appear immediately.
+ * The bar holds what the user pinned in this surface plus the one transient
+ * tab; its catalog lists every projection and command. With the overview active
+ * the surface shows its own screen — the resting state, and what the first
+ * orchestrator step commits to, so it has to appear immediately.
  */
 export function Surface({
 	brand,
@@ -65,20 +73,23 @@ export function Surface({
 	brandHref?: string;
 	onBrandClick?: () => void;
 }) {
-	const surface = useUnit($activeSurface);
-	const subtabs = useUnit($activeSubtabs);
-	const pressed = useUnit($pressedSubtab);
-	const tabs = useUnit($surfaceTabs);
+	const { surface, pressed, tabs, release } = useUnit({
+		surface: $activeSurface,
+		pressed: $pressedSubtab,
+		tabs: $surfaceTabs,
+		release: subtabReleased,
+	});
 
 	useEffect(() => {
 		const onKeyDown = (event: KeyboardEvent) => {
-			// Escape releases the button rather than closing the tab: the surface
-			// stays, which is what "usually none is pressed" means.
-			if (event.key === "Escape" && surface) subtabReleased(surface);
+			// Escape goes back to the overview rather than closing anything: the
+			// surface stays, and so does whatever is pinned in it.
+			if (event.key === "Escape" && surface && !event.defaultPrevented)
+				release(surface);
 		};
 		window.addEventListener("keydown", onKeyDown);
 		return () => window.removeEventListener("keydown", onKeyDown);
-	}, [surface]);
+	}, [surface, release]);
 
 	if (!surface) return null;
 
@@ -92,16 +103,12 @@ export function Surface({
 				brandHref={brandHref}
 				onBrandClick={onBrandClick}
 			/>
-			<SubtabBar
-				subtabs={subtabs}
-				pressed={pressed?.key ?? null}
-				onPress={subtabActivated}
-				onRelease={() => subtabReleased(surface)}
-				onClose={subtabClosed}
-			/>
+			<div class="surface-bar">
+				<TabBar model={surfaceMenuBar} theme="bar" text={menuBarText()} />
+			</div>
 			<div class="surface-content">
 				{View ? (
-					<View {...(pressed?.props ?? {})} />
+					<View key={pressed?.key} {...(pressed?.props ?? {})} />
 				) : (
 					<div class="surface-home">
 						<SurfaceStatistics surface={surface} />
@@ -112,7 +119,7 @@ export function Surface({
 						) && (
 							<>
 								<h1>{tab?.label ?? surface}</h1>
-								{tab?.purpose ? <p>{tab.purpose}</p> : null}
+								{tab?.description ? <p>{tab.description}</p> : null}
 							</>
 						)}
 					</div>

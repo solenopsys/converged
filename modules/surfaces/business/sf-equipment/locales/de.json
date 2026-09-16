@@ -65,5 +65,31 @@
 		"quantity": "Menge",
 		"material": "Material",
 		"due": "Fällig"
+	},
+	"operations": {
+		"machineCreate": {
+			"label": "Maschine erfassen",
+			"description": "Eine Maschine in der Halle anlegen. Nur die Art ist Pflicht, alles andere kann folgen."
+		},
+		"machineSave": {
+			"label": "Maschine speichern",
+			"description": "Änderungen an den Angaben einer Maschine speichern."
+		},
+		"machineSetState": {
+			"label": "Maschinenzustand setzen",
+			"description": "Eine Maschine als laufend, bereit, in Wartung, gestört oder offline markieren. Störung meldet einen Ausfall: der laufende Slot wird freigegeben und der Auftrag darauf blockiert."
+		},
+		"logCreate": {
+			"label": "Maschinenereignis protokollieren",
+			"description": "Ein Ereignis im Protokoll einer Maschine festhalten: eine Reparatur, eine Prüfung oder eine Notiz."
+		},
+		"slotCreate": {
+			"label": "Slot buchen",
+			"description": "Ein Zeitfenster auf einer Maschine reservieren, optional für einen Auftrag."
+		},
+		"machineDelete": {
+			"label": "Maschine entfernen",
+			"description": "Eine Maschine aus der Halle entfernen."
+		}
 	}
 }

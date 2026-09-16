@@ -73,5 +73,31 @@
 		"quantity": "Quantidade",
 		"customer": "Cliente",
 		"gone": "Esta encomenda já não está neste espaço de trabalho."
+	},
+	"operations": {
+		"reviewPublish": {
+			"label": "Publicar avaliação",
+			"description": "Colocar uma avaliação no site. Até lá, ela só aparece neste console."
+		},
+		"reviewReject": {
+			"label": "Rejeitar avaliação",
+			"description": "Não exibir uma avaliação no site. Aqui ela continua legível."
+		},
+		"reviewReply": {
+			"label": "Responder avaliação",
+			"description": "A resposta da loja, que acompanha a avaliação onde quer que ela apareça."
+		},
+		"reviewCreate": {
+			"label": "Registrar avaliação",
+			"description": "Lançar uma avaliação que a loja recebeu em outro lugar — por telefone, pessoalmente ou em uma plataforma."
+		},
+		"inviteCreate": {
+			"label": "Pedir avaliação",
+			"description": "Gerar um link pessoal de avaliação para um pedido e um endereço."
+		},
+		"reviewDelete": {
+			"label": "Remover avaliação",
+			"description": "Excluir uma avaliação permanentemente."
+		}
 	}
 }

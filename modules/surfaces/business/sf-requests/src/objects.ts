@@ -170,6 +170,8 @@ export default defineSurface({
 			operator: "create",
 			target: "requests.request",
 			label: "Create manufacturing request",
+			labelKey: "operations.requestCreate.label",
+			descriptionKey: "operations.requestCreate.description",
 			description:
 				"Create a request for uploaded files or a stated manufacturing need",
 			access: "public",
@@ -277,6 +279,9 @@ export default defineSurface({
 			operator: "save",
 			target: "requests.request",
 			label: "Save manufacturing request",
+			labelKey: "operations.requestSave.label",
+			description: "Save changes to a manufacturing request.",
+			descriptionKey: "operations.requestSave.description",
 			inputs: [{ name: "request", accepts: objectOf("requests.request") }],
 			parameters: { type: "object", properties: requestProperties },
 			invoke: async ({ references, params }) => {

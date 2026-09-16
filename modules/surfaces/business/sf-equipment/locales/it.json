@@ -65,5 +65,31 @@
 		"quantity": "Quantità",
 		"material": "Materiale",
 		"due": "Scadenza"
+	},
+	"operations": {
+		"machineCreate": {
+			"label": "Registra macchina",
+			"description": "Aggiungi una macchina al reparto. Solo il tipo è obbligatorio; il resto può seguire."
+		},
+		"machineSave": {
+			"label": "Salva macchina",
+			"description": "Salva le modifiche ai dati di una macchina."
+		},
+		"machineSetState": {
+			"label": "Imposta stato macchina",
+			"description": "Segna una macchina come in funzione, inattiva, in manutenzione, in errore o offline. L’errore segnala un guasto: lo slot in corso viene liberato e l’ordine su di esso bloccato."
+		},
+		"logCreate": {
+			"label": "Registra evento macchina",
+			"description": "Annota un evento nel registro di una macchina: una riparazione, un controllo o una nota."
+		},
+		"slotCreate": {
+			"label": "Prenota uno slot",
+			"description": "Riserva una finestra su una macchina, eventualmente per un ordine."
+		},
+		"machineDelete": {
+			"label": "Rimuovi macchina",
+			"description": "Rimuovi una macchina dal reparto."
+		}
 	}
 }

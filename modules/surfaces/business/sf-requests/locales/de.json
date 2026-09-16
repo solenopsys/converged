@@ -135,6 +135,14 @@
 		"to_order": {
 			"label": "Auftrag aus Anfrage erstellen",
 			"description": "Diese Anfrage in Produktion geben: der Auftrag trägt die Anfrage-ID, die Anfrage geht auf „in Arbeit“, der Schritt landet im Journal. Menge, Material, Termin und Kontakt werden aus der Anfrage gelesen, sofern hier nichts angegeben ist. Ein zweiter Lauf öffnet den bereits vorhandenen Auftrag."
+		},
+		"requestCreate": {
+			"label": "Fertigungsanfrage erstellen",
+			"description": "Eine Anfrage zu hochgeladenen Dateien oder einem beschriebenen Fertigungsbedarf erstellen."
+		},
+		"requestSave": {
+			"label": "Fertigungsanfrage speichern",
+			"description": "Änderungen an einer Fertigungsanfrage speichern."
 		}
 	}
 }

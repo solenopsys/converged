@@ -71,7 +71,8 @@
 			"description": "Put a job on the queue directly. A job that comes from a request is created by converting the request instead, so that the link between the two exists."
 		},
 		"save": {
-			"label": "Save order"
+			"label": "Save order",
+			"description": "Save changes to an order."
 		},
 		"updateStatus": {
 			"label": "Change status",

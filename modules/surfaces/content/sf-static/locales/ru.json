@@ -1,0 +1,21 @@
+{
+	"screens": {
+		"cache": {
+			"title": "Статический кэш"
+		}
+	},
+	"operations": {
+		"cacheEntryCreate": {
+			"label": "Добавить в SSR-кэш",
+			"description": "Добавить страницу, отрисованную на сервере, в кэш."
+		},
+		"cacheEntrySetStatus": {
+			"label": "Сменить статус в SSR-кэше",
+			"description": "Изменить статус закэшированной серверной страницы."
+		},
+		"cacheEntryDelete": {
+			"label": "Удалить из SSR-кэша",
+			"description": "Убрать серверную страницу из кэша."
+		}
+	}
+}

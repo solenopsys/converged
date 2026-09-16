@@ -1,17 +1,18 @@
+import { createEffect, sample } from "effector";
 import { useUnit } from "effector-preact";
 import { translator } from "i18n";
 import { useEffect, useState } from "preact/hooks";
 import { CHAT_MESSAGES_NAMESPACE } from "../chat/i18n";
+import { $activeLocale, LocaleController } from "../i18n";
+import { Globe, LogIn, Moon, Sun } from "../icons";
+import { AVAILABLE_LANGS } from "../landing/i18n";
 import {
 	onOperationAuthorizationChanged,
 	operationAuthorizationSession,
 	requestOperationAuthentication,
 } from "../object-runtime";
-import { Globe, LogIn, Moon, Sun } from "../icons";
-import { $activeLocale, LocaleController } from "../i18n";
-import { AVAILABLE_LANGS } from "../landing/i18n";
+import { ChoiceMenuButton, createChoiceMenu } from "../tabs";
 import { toggleTheme } from "../theme";
-import { ActionMenu } from "./ActionMenu";
 import { TopBarCommands } from "./topbar-commands";
 
 const t = translator(CHAT_MESSAGES_NAMESPACE);
@@ -31,11 +32,21 @@ export function ThemeToggle() {
 	);
 }
 
+const languageMenu = createChoiceMenu("LANGUAGE_MENU");
+
+sample({
+	clock: languageMenu.chosen,
+	target: createEffect((code: string) =>
+		LocaleController.getInstance().setLocale(code),
+	),
+});
+
 export function LanguageMenu() {
 	const locale = useUnit($activeLocale);
 
 	return (
-		<ActionMenu
+		<ChoiceMenuButton
+			model={languageMenu}
 			label={t("topbar.interfaceLanguage")}
 			trigger={
 				<>
@@ -48,7 +59,6 @@ export function LanguageMenu() {
 				label: lang.name,
 				checked: lang.code === locale,
 			}))}
-			onSelect={(code) => LocaleController.getInstance().setLocale(code)}
 		/>
 	);
 }
@@ -57,7 +67,10 @@ function LoginControl() {
 	const [session, setSession] = useState(operationAuthorizationSession);
 
 	useEffect(
-		() => onOperationAuthorizationChanged(() => setSession(operationAuthorizationSession())),
+		() =>
+			onOperationAuthorizationChanged(() =>
+				setSession(operationAuthorizationSession()),
+			),
 		[],
 	);
 

@@ -73,5 +73,31 @@
 		"quantity": "Quantité",
 		"customer": "Client",
 		"gone": "Cette commande n'est plus dans cet espace de travail."
+	},
+	"operations": {
+		"reviewPublish": {
+			"label": "Publier l’avis",
+			"description": "Mettre un avis en ligne sur le site. Jusque-là, il n’est visible que dans cette console."
+		},
+		"reviewReject": {
+			"label": "Refuser l’avis",
+			"description": "Ne pas afficher un avis sur le site. Il reste lisible ici."
+		},
+		"reviewReply": {
+			"label": "Répondre à l’avis",
+			"description": "La réponse de la boutique, affichée avec l’avis partout où il apparaît."
+		},
+		"reviewCreate": {
+			"label": "Saisir un avis",
+			"description": "Enregistrer un avis reçu ailleurs par la boutique — par téléphone, en personne ou sur une plateforme."
+		},
+		"inviteCreate": {
+			"label": "Demander un avis",
+			"description": "Créer un lien d’avis personnel pour une commande et une adresse."
+		},
+		"reviewDelete": {
+			"label": "Supprimer l’avis",
+			"description": "Supprimer définitivement un avis."
+		}
 	}
 }

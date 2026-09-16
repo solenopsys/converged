@@ -98,6 +98,10 @@ export default defineSurface({
 			operator: "execute",
 			target: "assistants.chat",
 			label: "Delete chat",
+			labelKey: "operations.chatDelete.label",
+			description:
+				"Delete a conversation with the assistant together with its messages.",
+			descriptionKey: "operations.chatDelete.description",
 			inputs: [{ name: "chat", accepts: objectOf("assistants.chat") }],
 			invoke: async ({ references }) => {
 				const chat = references.find(

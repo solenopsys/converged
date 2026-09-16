@@ -4,5 +4,11 @@
 	},
 	"dashboard": {
 		"title": "Dashboard"
+	},
+	"operations": {
+		"dashboardOpen": {
+			"label": "Dashboard",
+			"description": "Open the statistics dashboard."
+		}
 	}
 }

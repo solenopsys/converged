@@ -1,0 +1,8 @@
+{
+	"operations": {
+		"open": {
+			"label": "Apri landing page",
+			"description": "Apri la landing page pubblica."
+		}
+	}
+}

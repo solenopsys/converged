@@ -126,7 +126,8 @@
 			"description": "Eine Karte für jemanden, der hier arbeitet. Konsolenzugang gibt sie nicht — dafür ist der Import da."
 		},
 		"member_save": {
-			"label": "Karte speichern"
+			"label": "Karte speichern",
+			"description": "Änderungen an der Karte eines Mitarbeiters speichern."
 		},
 		"member_setRole": {
 			"label": "Rolle ändern",
@@ -141,7 +142,8 @@
 			"description": "Eine Adresse sperren, bevor die Einladung genutzt wurde. Sofort wirksam — das Tor liest die Einladung bei jeder Anfrage."
 		},
 		"shift_create": {
-			"label": "Schicht planen"
+			"label": "Schicht planen",
+			"description": "Eine Person für ein Zeitfenster in eine Schicht einplanen."
 		}
 	},
 	"errors": {

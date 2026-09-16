@@ -1,0 +1,8 @@
+{
+	"operations": {
+		"documentSave": {
+			"label": "Guardar documento Markdown",
+			"description": "Guardar un documento Markdown."
+		}
+	}
+}

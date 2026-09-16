@@ -135,6 +135,14 @@
 		"to_order": {
 			"label": "Crea ordine dalla richiesta",
 			"description": "Mandare questa richiesta in produzione: l'ordine porta l'id della richiesta, la richiesta passa a «in corso» e il passo finisce nel giornale. Quantità, materiale, scadenza e contatto si leggono dalla richiesta se non indicati qui. Un secondo avvio apre l'ordine che esiste già."
+		},
+		"requestCreate": {
+			"label": "Crea richiesta di produzione",
+			"description": "Crea una richiesta da file caricati o da un’esigenza di produzione descritta."
+		},
+		"requestSave": {
+			"label": "Salva richiesta",
+			"description": "Salva le modifiche a una richiesta di produzione."
 		}
 	}
 }

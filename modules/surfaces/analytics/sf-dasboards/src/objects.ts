@@ -32,6 +32,8 @@ export default defineSurface({
 			operator: "open",
 			target: "dashboard.dashboard",
 			label: "Dashboard",
+			labelKey: "operations.dashboardOpen.label",
+			descriptionKey: "operations.dashboardOpen.description",
 			description: "Open the statistics dashboard.",
 			output: objectOf("dashboard.dashboard"),
 			presentOutput: true,

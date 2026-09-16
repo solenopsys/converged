@@ -23,22 +23,24 @@ function subtabTitle(
 		const label = type?.label ?? ref.type;
 		return `${label}[${ref.title ?? ref.id}]`;
 	}
-	return ref.title ?? view.label ?? type?.pluralLabel ?? type?.label ?? ref.type;
+	return (
+		ref.title ?? view.label ?? type?.pluralLabel ?? type?.label ?? ref.type
+	);
 }
 
 referencePresented.watch(({ ref, view, options }) => {
 	const type = objectRegistry.type(ref.type);
 	const View = view.component;
 	if (!View) return;
-	const permanent = options.key === undefined && ref.kind === "set";
+	// A set, filtered or not, is shown in its projection: it reuses the menu's
+	// own item, so presenting it and choosing it from the catalog land on the same tab.
 	const key =
 		options.key ??
-		(permanent
+		(ref.kind === "set"
 			? projectionKey(view.id)
 			: `${ref.kind}:${ref.type}:${selectionKey(ref)}`);
-	// Presenting something is pressing a button inside the tab that owns it, not
-	// opening a tab of its own. The owner has been recorded here all along; it is
-	// the surface, and this is the one line that makes the second level real.
+	// Presenting something opens it inside the surface that owns it, as the
+	// transient tab — never as a tab of its own in the strip.
 	subtabOpened({
 		key,
 		surface: type?.owner ?? ref.type.split(".", 1)[0] ?? "workspace",
@@ -52,7 +54,7 @@ referencePresented.watch(({ ref, view, options }) => {
 		},
 		ref,
 		viewId: view.id,
-		...(permanent ? { permanent: true } : {}),
+		icon: ref.kind === "object" ? "Form" : "Table",
 		...(options.source === undefined ? {} : { source: options.source }),
 	});
 });

@@ -4,5 +4,23 @@
 		"post": "Escribe una publicación...",
 		"reply": "Escribe una respuesta...",
 		"locked": "Este tema está cerrado"
+	},
+	"operations": {
+		"sectionCreate": {
+			"label": "Crear sección",
+			"description": "Añadir una sección al foro."
+		},
+		"sectionDelete": {
+			"label": "Eliminar sección",
+			"description": "Eliminar una sección y todos los temas que contiene."
+		},
+		"topicCreate": {
+			"label": "Nuevo tema",
+			"description": "Abrir un tema en el foro con su primera publicación."
+		},
+		"topicSetFlags": {
+			"label": "Fijar, bloquear o archivar tema",
+			"description": "Marcas de moderación de un tema."
+		}
 	}
 }

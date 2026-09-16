@@ -1,4 +1,4 @@
-import { createEvent, createStore } from "effector";
+import { createEffect, createEvent, createStore, sample } from "effector";
 import { useUnit } from "effector-preact";
 import { useCallback, useEffect, useState } from "preact/hooks";
 import {
@@ -20,15 +20,42 @@ export const $activeLocale = createStore<SupportedLocale>(DEFAULT_LOCALE)
 	.on(localeSetRequested, (_, locale) => locale)
 	.on(
 		localePathHydrated,
-		(_, pathname) => extractLocaleFromPath(pathname) ?? DEFAULT_LOCALE,
+		(_, pathname) =>
+			extractLocaleFromPath(pathname) ?? storedLocale() ?? DEFAULT_LOCALE,
 	);
+
+// The language a person chose on this browser. The console's URL carries no
+// locale, so without this every reload of a signed-in page falls back to the
+// default. A signed-in user also gets it from the account (workspace-layouts).
+const LOCALE_STORAGE_KEY = "front-core:locale";
+
+function localeStorage(): Storage | null {
+	try {
+		return typeof localStorage === "undefined" ? null : localStorage;
+	} catch {
+		// Storage access throws outright when the browser blocks it for the origin.
+		return null;
+	}
+}
+
+function storedLocale(): SupportedLocale | null {
+	const value = localeStorage()?.getItem(LOCALE_STORAGE_KEY);
+	return value && isSupportedLocale(value) ? value : null;
+}
+
+export const rememberLocaleFx = createEffect((locale: SupportedLocale) => {
+	localeStorage()?.setItem(LOCALE_STORAGE_KEY, locale);
+});
+
+sample({ clock: $activeLocale.updates, target: rememberLocaleFx });
 
 export type SurfaceMessages = Record<string, unknown>;
 export type SurfaceLocaleSource = string | SurfaceMessages;
 export type SurfaceLocales = Record<string, SurfaceLocaleSource>;
 
 const localeCatalogRegistered = createEvent<string>();
-const $localeCatalogRevision = createStore<Record<string, number>>({}).on(
+/** Bumps per surface whenever its messages arrive; stores that render labels follow it. */
+export const $localeCatalogRevision = createStore<Record<string, number>>({}).on(
 	localeCatalogRegistered,
 	(revisions, surfaceId) => ({
 		...revisions,
@@ -84,8 +111,10 @@ export class LocaleController {
 		return locale;
 	}
 
+	/** A locale in the path wins (landing pages); else what this browser chose. */
 	hydrateFromPath(pathname: string): SupportedLocale {
-		const locale = extractLocaleFromPath(pathname) ?? DEFAULT_LOCALE;
+		const locale =
+			extractLocaleFromPath(pathname) ?? storedLocale() ?? DEFAULT_LOCALE;
 		this.setLocale(locale);
 		return $activeLocale.getState();
 	}
@@ -106,6 +135,23 @@ export class LocaleController {
 	resetForTests(): void {
 		this.locales = {};
 	}
+}
+
+/**
+ * Registers only the locales a surface does not have yet. The object index
+ * uses it for the few strings it carries: once the module brings its full
+ * catalog, that one wins, and an index loaded later never shadows it.
+ */
+export function registerSurfaceLocaleFallbacks(
+	surfaceId: string,
+	locales: Record<string, SurfaceMessages>,
+): void {
+	const present = LocaleController.getInstance().getLocales(surfaceId) ?? {};
+	const missing = Object.fromEntries(
+		Object.entries(locales).filter(([locale]) => !(locale in present)),
+	);
+	if (Object.keys(missing).length === 0) return;
+	LocaleController.getInstance().setLocales(surfaceId, missing);
 }
 
 export function registerSurfaceLocales(

@@ -3,5 +3,19 @@
 		"cache": {
 			"title": "Static Cache"
 		}
+	},
+	"operations": {
+		"cacheEntryCreate": {
+			"label": "Create SSR cache entry",
+			"description": "Add a server-rendered page to the cache."
+		},
+		"cacheEntrySetStatus": {
+			"label": "Set SSR cache entry status",
+			"description": "Change the status of a cached server-rendered page."
+		},
+		"cacheEntryDelete": {
+			"label": "Delete SSR cache entry",
+			"description": "Remove a server-rendered page from the cache."
+		}
 	}
 }

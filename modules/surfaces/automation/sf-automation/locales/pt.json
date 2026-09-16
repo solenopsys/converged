@@ -1,0 +1,16 @@
+{
+	"operations": {
+		"triggerCreate": {
+			"label": "Novo gatilho",
+			"description": "Adicionar um gatilho que inicia um fluxo de trabalho quando um evento acontece."
+		},
+		"cronCreate": {
+			"label": "Criar agendamento",
+			"description": "Executar um fluxo de trabalho em um agendamento recorrente."
+		},
+		"endpointCreate": {
+			"label": "Criar endpoint de webhook",
+			"description": "Criar um endereço que serviços externos chamam para iniciar um fluxo de trabalho."
+		}
+	}
+}

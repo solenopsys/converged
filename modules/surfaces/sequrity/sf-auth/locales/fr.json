@@ -34,5 +34,15 @@
 		"checkEmail": "Vérifiez votre e-mail pour continuer",
 		"loginFailed": "Échec de la connexion",
 		"tryAgain": "Veuillez réessayer"
+	},
+	"operations": {
+		"sessionLogin": {
+			"label": "Se connecter",
+			"description": "Se connecter à votre compte."
+		},
+		"sessionLogout": {
+			"label": "Se déconnecter",
+			"description": "Se déconnecter de cette session."
+		}
 	}
 }

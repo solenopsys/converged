@@ -34,5 +34,15 @@
 		"checkEmail": "Controlla la tua email per continuare",
 		"loginFailed": "Accesso non riuscito",
 		"tryAgain": "Riprova"
+	},
+	"operations": {
+		"sessionLogin": {
+			"label": "Accedi",
+			"description": "Accedi al tuo account."
+		},
+		"sessionLogout": {
+			"label": "Esci",
+			"description": "Esci da questa sessione."
+		}
 	}
 }

@@ -71,7 +71,8 @@
 			"description": "Mettere un lavoro in coda direttamente. Un lavoro che nasce da una richiesta si crea convertendo la richiesta, così il collegamento esiste."
 		},
 		"save": {
-			"label": "Salva ordine"
+			"label": "Salva ordine",
+			"description": "Salva le modifiche a un ordine."
 		},
 		"updateStatus": {
 			"label": "Cambia stato",

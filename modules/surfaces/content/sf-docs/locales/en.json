@@ -24,5 +24,11 @@
 				"text": "Deployment, payment, licensing, community, and source code."
 			}
 		}
+	},
+	"operations": {
+		"documentOpenHome": {
+			"label": "Open documentation",
+			"description": "Open the start page of the documentation."
+		}
 	}
 }

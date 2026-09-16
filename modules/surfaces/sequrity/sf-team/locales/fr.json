@@ -126,7 +126,8 @@
 			"description": "Une fiche pour quelqu'un qui travaille ici. Cela ne donne pas accès à la console — c'est l'import qui le fait."
 		},
 		"member_save": {
-			"label": "Enregistrer la fiche"
+			"label": "Enregistrer la fiche",
+			"description": "Enregistrer les modifications de la fiche d’un membre de l’équipe."
 		},
 		"member_setRole": {
 			"label": "Changer de rôle",
@@ -141,7 +142,8 @@
 			"description": "Fermer une adresse avant que l'invitation ne serve. Immédiat — la porte lit l'invitation à chaque requête."
 		},
 		"shift_create": {
-			"label": "Planifier un poste"
+			"label": "Planifier un poste",
+			"description": "Affecter une personne à un créneau de travail."
 		}
 	},
 	"errors": {

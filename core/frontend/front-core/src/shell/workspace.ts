@@ -1,43 +1,64 @@
-import { combine, createEvent, createStore, sample } from "effector";
-import { bus } from "front-core/core";
-import type {
-	DomainRef,
-	PresentationSource,
-	SurfaceEntry,
-} from "front-core/object-runtime";
 import {
-	$surfaceConfig,
-	availableSurfaces,
+	combine,
+	createEffect,
+	createEvent,
+	createStore,
+	sample,
+} from "effector";
+import { bus } from "front-core/core";
+import {
+	$availableSurfaces,
+	$objectRegistryRevision,
+	type DomainRef,
 	objectRegistry,
-	onOperationAuthorizationChanged,
+	type PresentationSource,
 	setRef,
-	surfaceDeclared,
 	surfaceRegistered,
 } from "front-core/object-runtime";
 import type { ComponentType } from "preact";
+import { $activeLocale, $localeCatalogRevision } from "../i18n";
+import {
+	type CatalogItem,
+	type Catalogs,
+	createScopedTabSet,
+	createTabSet,
+	type TabEntry,
+	type TabSetState,
+	type TabView,
+} from "../tabs";
 import {
 	$composerPlacement,
 	panelOpened,
 	surfacePresenceChanged,
 } from "./panel";
+import { runCandidate } from "./run-candidate";
+import {
+	defaultMenuItem,
+	OVERVIEW,
+	operationIdOf,
+	projectionLabel,
+	surfaceMenu,
+	viewIdOf,
+} from "./surface-menu";
 
-// The workspace has two levels, and they answer different questions.
+// The workspace is two tabbed places, both following the one rule in `tabs/`:
+// what the user pinned, plus a single transient tab, plus a catalog menu with the
+// rest.
 //
-// A **surface** is a tab: a place in the interface that gathers functionality
-// by meaning. Which ones exist is configuration (`object-runtime/surfaces.ts`),
-// not a consequence of what has been opened.
+// A **surface** is a tab of the top strip: a place that gathers functionality
+// by meaning. The catalog is every surface this session is offered, and it
+// follows the registry, so a solution installed from the chat shows up in the
+// catalog menu the moment it is declared.
 //
-// A **subtab** is a button inside one: a view of that surface, or something the
-// user opened — a row, an object, a selection. Usually none is pressed, and the
-// surface shows its own screen; pressing one is navigation inside the tab, not
-// a new tab.
-//
-// This used to be one flat level. Every presented reference became a top-level
-// tab, so a surface owning seven types and fifteen views (sf-sales) scattered
-// itself across the strip and the interface read as unrelated screens. The
-// owner was recorded on every tab all along, which is what makes the second
-// level derivable rather than something surfaces have to declare twice.
+// Inside the active surface, a **subtab** is one of its projections, a record
+// or selection someone opened, or a command. The surface opens on one of them —
+// its declared default, else its overview — and nothing else appears until
+// the user opens or pins it. A surface pushed out of the strip is forgotten:
+// what was open in it goes, what was pinned in it stays.
 
+export { OVERVIEW, projectionKey } from "./surface-menu";
+
+/** What a subtab renders. Kept apart from the tab itself, which is only a label. */
 export type WorkspaceSubtab = {
 	key: string;
 	/** Id of the surface that owns it — the tab this button lives under. */
@@ -48,348 +69,337 @@ export type WorkspaceSubtab = {
 	title: string;
 	view: ComponentType<Record<string, unknown>>;
 	props: Record<string, unknown>;
-	/** Deferred so an inactive projection does not start loading its data. */
-	prepareProps?: () => Record<string, unknown>;
-	/**
-	 * Declared by the surface and always present, as opposed to opened by
-	 * someone and closable. Only dynamic subtabs are subject to the cap below.
-	 */
-	permanent: boolean;
 };
 
-export type OpenSubtab = Omit<WorkspaceSubtab, "permanent"> & {
-	permanent?: boolean;
+export type OpenSubtab = WorkspaceSubtab & {
+	icon?: string;
 	/** Who opened it; kept for callers that log or branch on provenance. */
 	source?: PresentationSource;
 };
 
-/**
- * Dynamic subtabs of one surface beyond which the oldest is dropped. Opened
- * things accumulate — every row a user clicks is one — and a button bar that
- * grows without limit is the scattering this structure exists to end.
- */
-const DYNAMIC_CAPACITY = 8;
-
-type WorkspaceState = {
-	subtabs: WorkspaceSubtab[];
-	/** Surfaces present in the tab strip, in the order they were mounted. */
-	mounted: string[];
-	activeSurface: string | null;
-	/**
-	 * Per surface, the pressed subtab. A surface present here with `null` — or
-	 * absent entirely — has none pressed, which is the normal state.
-	 */
-	pressed: Record<string, string | null>;
-	/** Runtime pin overrides on top of the configured ones. */
-	pins: Record<string, boolean>;
-};
-
-const initialState: WorkspaceState = {
-	subtabs: [],
-	mounted: [],
-	activeSurface: null,
-	pressed: {},
-	pins: {},
-};
+export type SurfaceTab = TabView;
 
 export const surfaceMounted = createEvent<string>("SURFACE_MOUNTED");
-export const surfaceActivated = createEvent<string>("SURFACE_ACTIVATED");
 export const surfaceClosed = createEvent<string>("SURFACE_CLOSED");
 export const surfacePinToggled = createEvent<string>("SURFACE_PIN_TOGGLED");
-/**
- * Replaces the pin overrides wholesale — with what the environment service
- * remembered for this user, or with nothing when the user changes.
- */
-export const surfacePinsRestored = createEvent<Record<string, boolean>>(
-	"SURFACE_PINS_RESTORED",
-);
 
 export const subtabOpened = createEvent<OpenSubtab>("SUBTAB_OPENED");
 export const subtabActivated = createEvent<string>("SUBTAB_ACTIVATED");
 export const subtabClosed = createEvent<string>("SUBTAB_CLOSED");
-/** Press none: the surface falls back to its own screen. */
+/** Back to the surface's overview. */
 export const subtabReleased = createEvent<string>("SUBTAB_RELEASED");
+/** Navigation home: nothing open anywhere, pins kept. */
 export const workspaceReset = createEvent("WORKSPACE_RESET");
 
-/** A stable identity for a view a surface exposes before anything is opened. */
-export const projectionKey = (viewId: string): string => `projection:${viewId}`;
+// --- the top strip ----------------------------------------------------------
 
-const mount = (state: WorkspaceState, surface: string): string[] =>
-	state.mounted.includes(surface) ? state.mounted : [...state.mounted, surface];
-
-/** Keeps the newest dynamic subtabs of one surface, permanent ones untouched. */
-function capped(
-	subtabs: WorkspaceSubtab[],
-	surface: string,
-): WorkspaceSubtab[] {
-	const dynamic = subtabs.filter(
-		(subtab) => subtab.surface === surface && !subtab.permanent,
-	);
-	if (dynamic.length <= DYNAMIC_CAPACITY) return subtabs;
-	const dropped = new Set(
-		dynamic.slice(0, dynamic.length - DYNAMIC_CAPACITY).map(({ key }) => key),
-	);
-	return subtabs.filter((subtab) => !dropped.has(subtab.key));
-}
-
-/**
- * A set view is a surface capability: it is available before the user opens
- * a record or applies a filter. Object views remain dynamic by definition.
- */
-function projectionsOf(surface: string): WorkspaceSubtab[] {
-	return objectRegistry
-		.allViews()
-		.filter(
-			(view) =>
-				view.owner === surface &&
-				view.loaded &&
-				view.accepts.kind === "set" &&
-				Boolean(view.accepts.type && view.component),
-		)
-		.map((view) => {
-			const typeId = view.accepts.type as string;
-			const type = objectRegistry.type(typeId);
-			const ref = setRef(typeId, { kind: "query" });
-			const props = { reference: ref, bus };
-			return {
-				key: projectionKey(view.id),
-				surface,
-				title: view.label ?? type?.pluralLabel ?? type?.label ?? view.id,
-				view: view.component as ComponentType<Record<string, unknown>>,
-				props,
-				...(view.props
-					? { prepareProps: () => ({ ...props, ...view.props?.(ref) }) }
-					: {}),
-				ref,
-				viewId: view.id,
-				permanent: true,
-			};
-		});
-}
-
-/** Replaces only declared projections, retaining any record or filtered tabs. */
-function registerProjections(
-	state: WorkspaceState,
-	surface: string,
-): WorkspaceState {
-	const projections = projectionsOf(surface);
-	if (projections.length === 0) return state;
-	const keys = new Set(projections.map((projection) => projection.key));
-	return {
-		...state,
-		subtabs: [
-			...projections,
-			...state.subtabs.filter((subtab) => !keys.has(subtab.key)),
-		],
-	};
-}
-
-function activateSubtab(
-	state: WorkspaceState,
-	subtab: WorkspaceSubtab,
-): WorkspaceState {
-	const activated = subtab.prepareProps
-		? { ...subtab, props: subtab.prepareProps(), prepareProps: undefined }
-		: subtab;
-	return {
-		...state,
-		subtabs:
-			activated === subtab
-				? state.subtabs
-				: state.subtabs.map((entry) =>
-						entry.key === subtab.key ? activated : entry,
-					),
-		mounted: mount(state, subtab.surface),
-		activeSurface: subtab.surface,
-		pressed: { ...state.pressed, [subtab.surface]: subtab.key },
-	};
-}
-
-export const $workspace = createStore<WorkspaceState>(initialState, {
-	name: "WORKSPACE",
-})
-	.on(surfaceMounted, (state, surface) =>
-		registerProjections(
-			{ ...state, mounted: mount(state, surface), activeSurface: surface },
-			surface,
-		),
-	)
-	.on(surfaceRegistered, (state, definition) =>
-		state.mounted.includes(definition.id)
-			? registerProjections(state, definition.id)
-			: state,
-	)
-	.on(surfaceActivated, (state, surface) =>
-		state.mounted.includes(surface)
-			? { ...state, activeSurface: surface }
-			: state,
-	)
-	.on(subtabOpened, (state, { source: _source, ...subtab }) => {
-		const next: WorkspaceSubtab = {
-			...subtab,
-			permanent: subtab.permanent ?? false,
-		};
-		const index = state.subtabs.findIndex((entry) => entry.key === next.key);
-		const subtabs =
-			index === -1
-				? [...state.subtabs, next]
-				: state.subtabs.map((entry, position) =>
-						position === index ? next : entry,
-					);
-		return {
-			...state,
-			subtabs: capped(subtabs, next.surface),
-			mounted: mount(state, next.surface),
-			activeSurface: next.surface,
-			pressed: { ...state.pressed, [next.surface]: next.key },
-		};
-	})
-	.on(subtabActivated, (state, key) => {
-		const subtab = state.subtabs.find((entry) => entry.key === key);
-		if (!subtab) return state;
-		return activateSubtab(state, subtab);
-	})
-	.on(subtabReleased, (state, surface) => ({
-		...state,
-		pressed: { ...state.pressed, [surface]: null },
-	}))
-	.on(subtabClosed, (state, key) => {
-		const subtab = state.subtabs.find((entry) => entry.key === key);
-		if (!subtab || subtab.permanent) return state;
-		// Closing a button releases the bar rather than pressing a neighbour: the
-		// surface's own screen is the resting state, not whatever was next to it.
-		return {
-			...state,
-			subtabs: state.subtabs.filter((entry) => entry.key !== key),
-			pressed:
-				state.pressed[subtab.surface] === key
-					? { ...state.pressed, [subtab.surface]: null }
-					: state.pressed,
-		};
-	})
-	.on(surfaceClosed, (state, surface) => {
-		const mounted = state.mounted.filter((id) => id !== surface);
-		const { [surface]: _pressed, ...pressed } = state.pressed;
-		return {
-			...state,
-			subtabs: state.subtabs.filter((entry) => entry.surface !== surface),
-			mounted,
-			pressed,
-			activeSurface:
-				state.activeSurface === surface
-					? (mounted.at(-1) ?? null)
-					: state.activeSurface,
-		};
-	})
-	.on(surfacePinToggled, (state, surface) => ({
-		...state,
-		pins: { ...state.pins, [surface]: !isPinned(state, surface) },
-	}))
-	.on(surfacePinsRestored, (state, pins) => ({ ...state, pins }))
-	// Resetting is navigation — the brand button, a restored URL — and pins are
-	// the user's preference, not a position. Dropping them here would also make
-	// the next toggle save a layout with every other pin missing.
-	.on(workspaceReset, (state) => ({ ...initialState, pins: state.pins }));
-
-export const $surfacePins = $workspace.map((state) => state.pins);
-
-/** Configured pin, overridden by whatever the user did this session. */
-function isPinned(state: WorkspaceState, surface: string): boolean {
-	const override = state.pins[surface];
-	if (override !== undefined) return override;
-	return (
-		availableSurfaces().find((entry) => entry.id === surface)?.pinned ?? false
-	);
-}
-
-export type SurfaceTab = {
-	id: string;
-	label: string;
-	purpose: string;
-	active: boolean;
-	pinned: boolean;
-	/** The pressed subtab, or null when the surface shows its own screen. */
-	pressed: string | null;
-};
-
-// `availableSurfaces()` reads the registry directly, so nothing about it is an
-// effector dependency. Without this the strip would be computed once and never
-// again: a surface declared after start-up, or a configuration arriving from
-// the service, would change the answer and not the screen.
-const surfaceRightsChanged = createEvent("SURFACE_RIGHTS_CHANGED");
-onOperationAuthorizationChanged(() => surfaceRightsChanged());
-
-const $surfaceRevision = createStore(0, { name: "SURFACE_REVISION" })
-	.on(surfaceDeclared, (revision) => revision + 1)
-	.on(surfaceRegistered, (revision) => revision + 1)
-	.on($surfaceConfig, (revision) => revision + 1)
-	// Signing in adds surfaces; signing out removes them.
-	.on(surfaceRightsChanged, (revision) => revision + 1);
-
-/**
- * The tab strip: pinned surfaces, plus whatever has actually been mounted.
- *
- * Being offered and being open are different questions, and only the first one
- * is filtered. A surface that is mounted is on screen — something was presented
- * into it — so dropping it here because it is not currently offered would make
- * the screen unreachable while it is still open. That includes the legacy
- * presenter's `legacy` owner and anything a type declares an owner for without
- * a surface manifest.
- */
-export const $surfaceTabs = combine(
-	$workspace,
-	$surfaceRevision,
-	(state): SurfaceTab[] => {
-		const offered = new Map<string, SurfaceEntry>(
-			availableSurfaces().map((surface) => [surface.id, surface]),
-		);
-		const ids = [
-			...new Set([
-				...[...offered.values()]
-					.filter((surface) => isPinned(state, surface.id))
-					.map(({ id }) => id),
-				...state.mounted,
-			]),
-		];
-		return ids.map((id) => {
-			const surface = offered.get(id);
-			const declared = objectRegistry.surface(id);
-			return {
-				id,
-				label: surface?.label ?? declared?.label ?? id,
-				purpose: surface?.purpose ?? declared?.purpose ?? "",
-				active: state.activeSurface === id,
-				pinned: isPinned(state, id),
-				pressed: state.pressed[id] ?? null,
-			};
-		});
-	},
+const $surfaceCatalog = $availableSurfaces.map((list): CatalogItem[] =>
+	list.map((surface) => ({
+		id: surface.id,
+		label: surface.label,
+		...(surface.purpose ? { description: surface.purpose } : {}),
+		...(surface.pinned ? { pinned: true } : {}),
+	})),
 );
 
-export const $activeSurface = $workspace.map((state) => state.activeSurface);
-
-/** Every subtab of one surface, in the order they were opened. */
-export const subtabsOf = (
-	state: WorkspaceState,
-	surface: string | null,
-): WorkspaceSubtab[] =>
-	surface ? state.subtabs.filter((entry) => entry.surface === surface) : [];
-
-export const $activeSubtabs = $workspace.map((state) =>
-	subtabsOf(state, state.activeSurface),
-);
-
-/** What the stage renders: the pressed subtab, or nothing when none is. */
-export const $pressedSubtab = $workspace.map((state) => {
-	if (!state.activeSurface) return null;
-	const key = state.pressed[state.activeSurface];
-	return state.subtabs.find((entry) => entry.key === key) ?? null;
+export const surfaces = createTabSet({
+	name: "WORKSPACE_SURFACES",
+	$catalog: $surfaceCatalog,
 });
 
-export const $workspaceSubtabs = $workspace.map((state) => state.subtabs);
-export const $workspaceMounted = $workspace.map(
-	(state) => state.activeSurface !== null,
+/**
+ * A surface opened without being offered — the legacy presenter's `legacy`
+ * owner, a type whose owner has no manifest — still needs a name on its tab.
+ */
+const surfaceEntry = (surface: string): TabEntry => ({
+	id: surface,
+	label: objectRegistry.surface(surface)?.label ?? surface,
+});
+
+sample({ clock: surfaceMounted, fn: surfaceEntry, target: surfaces.openEntry });
+sample({ clock: surfacePinToggled, target: surfaces.pinToggled });
+sample({ clock: surfaceClosed, target: surfaces.closed });
+
+export const $activeSurface = surfaces.$active;
+export const $surfaceTabs = surfaces.$tabs;
+export const $workspaceMounted = $activeSurface.map(
+	(surface) => surface !== null,
 );
+
+// --- the bar inside a surface ----------------------------------------------
+
+/**
+ * Menus only for the surfaces on screen. Deriving one reads the whole registry,
+ * and the strip holds a handful of surfaces while the registry holds all of
+ * them.
+ */
+const $menuCatalogs = combine(
+	surfaces.$tabs,
+	$objectRegistryRevision,
+	$availableSurfaces,
+	$activeLocale,
+	$localeCatalogRevision,
+	(tabs): Catalogs =>
+		Object.fromEntries(tabs.map((tab) => [tab.id, surfaceMenu(tab.id)])),
+);
+
+export const menus = createScopedTabSet({
+	name: "WORKSPACE_MENUS",
+	$catalogs: $menuCatalogs,
+	$scope: surfaces.$active,
+	home: OVERVIEW,
+});
+
+// A surface becoming active — from the strip, the catalog menu, the assistant, a
+// restored URL — opens on its default item unless something in it is open.
+sample({
+	clock: surfaces.$active.updates,
+	source: menus.$states,
+	filter: (states, surface): surface is string =>
+		surface !== null && !states[surface]?.active,
+	fn: (_, surface) => ({
+		scope: surface as string,
+		id: defaultMenuItem(surface as string),
+	}),
+	target: menus.open,
+});
+
+sample({ clock: surfaces.evicted, target: menus.scopesForgotten });
+sample({ clock: workspaceReset, target: [surfaces.reset, menus.reset] });
+
+// --- what the subtabs render ------------------------------------------------
+
+type Contents = Readonly<
+	Record<string, Readonly<Record<string, WorkspaceSubtab>>>
+>;
+
+const contentStored = createEvent<WorkspaceSubtab>("SUBTAB_CONTENT_STORED");
+const contentsDropped = createEvent<(surface: string, key: string) => boolean>(
+	"SUBTAB_CONTENTS_DROPPED",
+);
+
+const pinnedIn = (state: TabSetState | undefined, key: string): boolean =>
+	state?.pins[key] === true;
+
+export const $contents = createStore<Contents>(
+	{},
+	{ name: "WORKSPACE_CONTENTS" },
+)
+	.on(contentStored, (contents, subtab) => ({
+		...contents,
+		[subtab.surface]: { ...contents[subtab.surface], [subtab.key]: subtab },
+	}))
+	.on(contentsDropped, (contents, dropped) => {
+		let changed = false;
+		const next: Record<string, Record<string, WorkspaceSubtab>> = {};
+		for (const [surface, subtabs] of Object.entries(contents)) {
+			const kept = Object.fromEntries(
+				Object.entries(subtabs).filter(([key]) => !dropped(surface, key)),
+			);
+			const size = Object.keys(kept).length;
+			if (size !== Object.keys(subtabs).length) changed = true;
+			if (size > 0) next[surface] = kept;
+		}
+		return changed ? next : contents;
+	});
+
+// Content goes with its tab. Eviction is reported explicitly rather than
+// inferred from the state, because a surface opening on its default item and
+// a record being opened into it arrive in the same tick, in either order.
+sample({
+	clock: menus.evicted,
+	fn:
+		({ scope, ids }) =>
+		(surface: string, key: string) =>
+			surface === scope && ids.includes(key),
+	target: contentsDropped,
+});
+// A forgotten surface keeps what is pinned in it, and nothing else.
+sample({
+	clock: surfaces.evicted,
+	source: menus.$states,
+	fn: (states, ids) => (surface: string, key: string) =>
+		ids.includes(surface) && !pinnedIn(states[surface], key),
+	target: contentsDropped,
+});
+sample({
+	clock: workspaceReset,
+	source: menus.$states,
+	fn: (states) => (surface: string, key: string) =>
+		!pinnedIn(states[surface], key),
+	target: contentsDropped,
+});
+
+const $position = combine({
+	surface: surfaces.$active,
+	key: menus.current.$active,
+});
+
+/**
+ * A projection's content is built when it is opened, not when it is listed:
+ * listing costs nothing, and opening is when it may start loading data.
+ */
+function projectionContent(
+	surface: string,
+	key: string,
+): WorkspaceSubtab | undefined {
+	const viewId = viewIdOf(key);
+	const view = viewId ? objectRegistry.view(viewId) : undefined;
+	if (!view?.component || view.accepts.kind !== "set" || !view.accepts.type)
+		return undefined;
+	const ref = setRef(view.accepts.type, { kind: "query" });
+	return {
+		key,
+		surface,
+		title: projectionLabel(view),
+		view: view.component as ComponentType<Record<string, unknown>>,
+		props: { reference: ref, bus, ...(view.props?.(ref) ?? {}) },
+		ref,
+		viewId: view.id,
+	};
+}
+
+const materialized = sample({
+	// Registration is a clock too: a projection opened before its module
+	// arrived has no component yet, and gets one here.
+	clock: [$position.updates, surfaceRegistered],
+	source: { position: $position, contents: $contents },
+	fn: ({ position: { surface, key }, contents }) =>
+		surface && key && !contents[surface]?.[key]
+			? projectionContent(surface, key)
+			: undefined,
+});
+sample({
+	clock: materialized.filterMap((content) => content),
+	target: contentStored,
+});
+
+export const $activeSubtabs = menus.current.$tabs;
+
+/** What the stage renders: the active subtab's content, or null for the overview. */
+export const $pressedSubtab = combine(
+	$position,
+	$contents,
+	({ surface, key }, contents) =>
+		surface && key ? (contents[surface]?.[key] ?? null) : null,
+);
+
+// --- opening, activating, closing subtabs ------------------------------------
+
+sample({
+	clock: subtabOpened,
+	fn: ({ source: _source, icon: _icon, ...subtab }) => subtab,
+	target: contentStored,
+});
+sample({
+	clock: subtabOpened,
+	fn: ({ surface }) => surfaceEntry(surface),
+	target: surfaces.openEntry,
+});
+sample({
+	clock: subtabOpened,
+	fn: ({ surface, key, title, icon }) => ({
+		scope: surface,
+		id: key,
+		entry: { id: key, label: title, ...(icon ? { icon } : {}) },
+	}),
+	target: menus.open,
+});
+
+/**
+ * Keys are unique per surface, and callers hand over only the key. The active
+ * surface is asked first, then whichever surface holds it, then the owner of
+ * the projection it names.
+ */
+function surfaceOfKey(
+	key: string,
+	active: string | null,
+	states: Readonly<Record<string, TabSetState>>,
+	catalogs: Catalogs,
+	contents: Contents,
+): string | null {
+	const holds = (surface: string) =>
+		Boolean(
+			contents[surface]?.[key] ||
+				catalogs[surface]?.some((item) => item.id === key) ||
+				states[surface]?.transient === key ||
+				pinnedIn(states[surface], key),
+		);
+	if (active && holds(active)) return active;
+	const holder = [
+		...new Set([...Object.keys(contents), ...Object.keys(states)]),
+	].find(holds);
+	if (holder) return holder;
+	const viewId = viewIdOf(key);
+	return (viewId && objectRegistry.ownerForView(viewId)) || active;
+}
+
+const $locator = combine({
+	active: surfaces.$active,
+	states: menus.$states,
+	catalogs: $menuCatalogs,
+	contents: $contents,
+});
+
+const located = (clock: typeof subtabActivated) =>
+	sample({
+		clock,
+		source: $locator,
+		fn: ({ active, states, catalogs, contents }, id) => ({
+			scope: surfaceOfKey(id, active, states, catalogs, contents),
+			id,
+		}),
+	}).filterMap(({ scope, id }) => (scope ? { scope, id } : undefined));
+
+const activatedSubtab = located(subtabActivated);
+sample({ clock: activatedSubtab, target: menus.open });
+sample({
+	clock: activatedSubtab,
+	fn: ({ scope }) => surfaceEntry(scope),
+	target: surfaces.openEntry,
+});
+
+sample({ clock: located(subtabClosed), target: menus.close });
+
+sample({
+	clock: subtabReleased,
+	fn: (surface) => ({ scope: surface, id: OVERVIEW }),
+	target: menus.open,
+});
+
+// --- commands ----------------------------------------------------------------
+
+/**
+ * A command in a menu is an operation. It runs the way a click on a resolved
+ * candidate does: a composing operation opens its screen — which lands as the
+ * transient tab — and anything else simply executes.
+ */
+export const runCommandFx = createEffect(async (operationId: string) => {
+	const operation = objectRegistry.operation(operationId);
+	if (!operation)
+		throw new Error(`[workspace] Unknown command: ${operationId}`);
+	return runCandidate(operation.operator, {
+		id: operation.id,
+		kind: "operation",
+		operator: operation.operator,
+		...(operation.target ? { targetType: operation.target } : {}),
+		label: operation.label,
+		owner: operation.owner,
+		score: 0,
+		operation,
+	});
+});
+
+sample({
+	clock: menus.commandChosen.filterMap(({ id }) => operationIdOf(id)),
+	target: runCommandFx,
+});
+
+runCommandFx.failData.watch((error) =>
+	console.error("[workspace] Command failed", error),
+);
+
+// --- the rest of the shell ---------------------------------------------------
 
 sample({
 	clock: $workspaceMounted,

@@ -1,0 +1,16 @@
+{
+	"operations": {
+		"triggerCreate": {
+			"label": "Neuer Auslöser",
+			"description": "Einen Auslöser hinzufügen, der einen Workflow bei einem Ereignis startet."
+		},
+		"cronCreate": {
+			"label": "Zeitplan erstellen",
+			"description": "Einen Workflow nach einem wiederkehrenden Zeitplan ausführen."
+		},
+		"endpointCreate": {
+			"label": "Webhook-Endpunkt erstellen",
+			"description": "Eine Adresse anlegen, über die externe Dienste einen Workflow starten."
+		}
+	}
+}

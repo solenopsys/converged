@@ -1,0 +1,16 @@
+{
+	"operations": {
+		"triggerCreate": {
+			"label": "Nouveau déclencheur",
+			"description": "Ajouter un déclencheur qui lance un workflow lorsqu’un événement survient."
+		},
+		"cronCreate": {
+			"label": "Créer une planification",
+			"description": "Exécuter un workflow selon une planification récurrente."
+		},
+		"endpointCreate": {
+			"label": "Créer un point de terminaison webhook",
+			"description": "Créer une adresse que des services externes appellent pour lancer un workflow."
+		}
+	}
+}

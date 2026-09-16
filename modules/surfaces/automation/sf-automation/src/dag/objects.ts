@@ -174,6 +174,10 @@ export const dagContribution: Pick<
 			operator: "create",
 			target: "dag.trigger",
 			label: "New trigger",
+			labelKey: "operations.triggerCreate.label",
+			description:
+				"Add a trigger that starts a workflow when an event happens.",
+			descriptionKey: "operations.triggerCreate.description",
 			parameters: { type: "object", properties: {} },
 			invoke: () => {
 				openTriggerForm({ trigger: null });

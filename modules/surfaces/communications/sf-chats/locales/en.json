@@ -3,5 +3,23 @@
 	"members": "Members",
 	"composer": {
 		"placeholder": "Write a message..."
+	},
+	"operations": {
+		"chatCreate": {
+			"label": "New room",
+			"description": "Create a chat room and add its first members."
+		},
+		"chatMembers": {
+			"label": "Room members",
+			"description": "Open the membership of a room as its own tab."
+		},
+		"memberAdd": {
+			"label": "Add member",
+			"description": "Add a person to a chat room."
+		},
+		"memberRemove": {
+			"label": "Remove member",
+			"description": "Remove a person from a chat room."
+		}
 	}
 }

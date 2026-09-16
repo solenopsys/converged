@@ -89,5 +89,11 @@
 			"error": "Error",
 			"uploaded": "Done"
 		}
+	},
+	"operations": {
+		"chatDelete": {
+			"label": "Delete chat",
+			"description": "Delete a conversation with the assistant together with its messages."
+		}
 	}
 }

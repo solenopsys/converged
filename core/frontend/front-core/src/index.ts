@@ -237,11 +237,11 @@ export {
 	subtabClosed,
 	subtabOpened,
 	subtabReleased,
-	surfaceActivated,
 	surfaceClosed,
 	surfaceMounted,
 	surfacePinToggled,
 } from "./shell/workspace";
+export * from "./tabs";
 export { upsertSidebarTab } from "./sidebar-tabs";
 export {
 	getTheme,

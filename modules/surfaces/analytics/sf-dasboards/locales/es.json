@@ -4,5 +4,11 @@
 	},
 	"dashboard": {
 		"title": "Panel"
+	},
+	"operations": {
+		"dashboardOpen": {
+			"label": "Panel",
+			"description": "Abrir el panel de estadísticas."
+		}
 	}
 }

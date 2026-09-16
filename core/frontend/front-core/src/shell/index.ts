@@ -1,8 +1,3 @@
-export {
-	ActionMenu,
-	type ActionMenuItem,
-	ActionMenuList,
-} from "./ActionMenu";
 export { AppShell } from "./AppShell";
 export {
 	AppShellFrame,
@@ -39,8 +34,7 @@ export {
 	resetSurfaces,
 	type SurfaceEntry,
 } from "./surface";
-export { TabStrip } from "./TabStrip";
-export { TopBar, type TopBarLink, type TopBarTab } from "./TopBar";
+export { TopBar, type TopBarLink } from "./TopBar";
 export {
 	getTopBarCommands,
 	registerTopBarCommands,
@@ -49,12 +43,10 @@ export {
 } from "./topbar-commands";
 export { LanguageMenu, ThemeToggle, TopBarSettings } from "./TopBarControls";
 export {
-	$workspaceTabViews,
 	registerWorkspaceTabActions,
 	type WorkspaceTabAction,
 	type WorkspaceTabActionDecl,
 	type WorkspaceTabActionProvider,
-	type WorkspaceTabView,
 	workspaceTabActionInvoked,
 } from "./tab-actions";
 export { WorkspaceTopBar } from "./WorkspaceTopBar";
@@ -64,19 +56,30 @@ export {
 	$activeSurface,
 	$pressedSubtab,
 	$surfaceTabs,
-	$workspace,
 	$workspaceMounted,
-	$workspaceSubtabs,
+	menus,
+	OVERVIEW,
+	projectionKey,
+	runCommandFx,
 	subtabActivated,
 	subtabClosed,
 	subtabOpened,
 	subtabReleased,
-	surfaceActivated,
 	surfaceClosed,
 	surfaceMounted,
 	surfacePinToggled,
+	surfaces,
 	workspaceReset,
 } from "./workspace";
+export {
+	menuBarText,
+	navMenuList,
+	navSurfaceList,
+	surfaceBarText,
+	surfaceMenuBar,
+	surfaceStrip,
+} from "./workspace-bars";
+export { startWorkspaceLayouts } from "./workspace-layouts";
 export {
 	bootstrapWorkspaceUrl,
 	isConsolePath,

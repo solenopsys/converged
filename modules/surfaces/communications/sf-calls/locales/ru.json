@@ -55,5 +55,15 @@
 		"loading": "Загрузка…",
 		"lines": "строк",
 		"refresh": "Обновить"
+	},
+	"operations": {
+		"callCreate": {
+			"label": "Начать звонок",
+			"description": "Начать голосовой звонок."
+		},
+		"callExecuteWeb": {
+			"label": "Звонок из браузера",
+			"description": "Начать голосовой звонок прямо из браузера."
+		}
 	}
 }

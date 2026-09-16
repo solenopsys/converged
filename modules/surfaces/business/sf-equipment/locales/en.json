@@ -65,5 +65,31 @@
 		"quantity": "Quantity",
 		"material": "Material",
 		"due": "Due"
+	},
+	"operations": {
+		"machineCreate": {
+			"label": "Register machine",
+			"description": "Add a machine to the floor. Kind is required; everything else can follow."
+		},
+		"machineSave": {
+			"label": "Save machine",
+			"description": "Save changes to a machine’s details."
+		},
+		"machineSetState": {
+			"label": "Set machine state",
+			"description": "Mark a machine as running, idle, in maintenance, in error or offline. Error reports a breakdown: the running slot is released and the order on it is blocked."
+		},
+		"logCreate": {
+			"label": "Log machine event",
+			"description": "Record an event in a machine’s log: a repair, a check or a note."
+		},
+		"slotCreate": {
+			"label": "Book a slot",
+			"description": "Reserve a window on a machine, optionally for an order."
+		},
+		"machineDelete": {
+			"label": "Remove machine",
+			"description": "Remove a machine from the floor."
+		}
 	}
 }

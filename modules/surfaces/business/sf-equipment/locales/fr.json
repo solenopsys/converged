@@ -65,5 +65,31 @@
 		"quantity": "Quantité",
 		"material": "Matériau",
 		"due": "Échéance"
+	},
+	"operations": {
+		"machineCreate": {
+			"label": "Enregistrer une machine",
+			"description": "Ajouter une machine à l’atelier. Seul le type est obligatoire ; le reste peut suivre."
+		},
+		"machineSave": {
+			"label": "Enregistrer la machine",
+			"description": "Enregistrer les modifications des informations d’une machine."
+		},
+		"machineSetState": {
+			"label": "Changer l’état de la machine",
+			"description": "Marquer une machine comme en marche, à l’arrêt, en maintenance, en erreur ou hors ligne. L’erreur signale une panne : le créneau en cours est libéré et la commande associée est bloquée."
+		},
+		"logCreate": {
+			"label": "Consigner un événement",
+			"description": "Consigner un événement dans le journal d’une machine : réparation, contrôle ou note."
+		},
+		"slotCreate": {
+			"label": "Réserver un créneau",
+			"description": "Réserver une plage sur une machine, éventuellement pour une commande."
+		},
+		"machineDelete": {
+			"label": "Retirer la machine",
+			"description": "Retirer une machine de l’atelier."
+		}
 	}
 }

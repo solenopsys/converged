@@ -1,28 +1,20 @@
-import type { ComponentChildren, ComponentType, JSX } from "preact";
+import { useUnit } from "effector-preact";
+import type { ComponentChildren, JSX } from "preact";
+import { useRef } from "preact/hooks";
 import { Check } from "../icons";
-import { usePopover } from "./popover";
+import { useDismiss } from "./dismiss";
+import type { ChoiceMenu } from "./menus";
+import type { ActionItem } from "./tab-bar";
 
-export type ActionMenuItem = {
-	id: string;
-	label: string;
-	icon?: ComponentType<{ size?: number; class?: string }>;
-	danger?: boolean;
-	checked?: boolean;
-};
-
-
-/**
- * The list on its own, so callers that own their trigger (tab context menu,
- * overflow menu) reuse the same chrome without re-implementing it.
- */
-export function ActionMenuList({
+/** The rows of a choice menu, for callers that own the trigger and position. */
+export function ChoiceList({
 	items,
-	onSelect,
+	onChoose,
 	align = "end",
 	style,
 }: {
-	items: ActionMenuItem[];
-	onSelect: (id: string) => void;
+	items: readonly ActionItem[];
+	onChoose: (id: string) => void;
 	align?: "start" | "end";
 	style?: JSX.CSSProperties;
 }) {
@@ -35,7 +27,7 @@ export function ActionMenuList({
 					role="menuitem"
 					class="shell-menu-item"
 					data-danger={item.danger ? "true" : undefined}
-					onClick={() => onSelect(item.id)}
+					onClick={() => onChoose(item.id)}
 				>
 					{item.icon ? <item.icon size={13} class="shell-menu-icon" /> : null}
 					<span>{item.label}</span>
@@ -46,21 +38,28 @@ export function ActionMenuList({
 	);
 }
 
-
-export function ActionMenu({
+/** A trigger and its list, driven by a `createChoiceMenu` model. */
+export function ChoiceMenuButton({
+	model,
 	items,
-	onSelect,
 	trigger,
 	label,
 	align = "end",
 }: {
-	items: ActionMenuItem[];
-	onSelect: (id: string) => void;
+	model: ChoiceMenu;
+	items: readonly ActionItem[];
 	trigger: ComponentChildren;
 	label: string;
 	align?: "start" | "end";
 }) {
-	const { ref, open, setOpen } = usePopover<HTMLDivElement>();
+	const { open, toggled, closed, chosen } = useUnit({
+		open: model.$open,
+		toggled: model.toggled,
+		closed: model.closed,
+		chosen: model.chosen,
+	});
+	const ref = useRef<HTMLDivElement>(null);
+	useDismiss(ref, open, closed);
 
 	if (items.length === 0) return null;
 
@@ -73,19 +72,12 @@ export function ActionMenu({
 				title={label}
 				aria-haspopup="menu"
 				aria-expanded={open}
-				onClick={() => setOpen((value) => !value)}
+				onClick={() => toggled()}
 			>
 				{trigger}
 			</button>
 			{open ? (
-				<ActionMenuList
-					items={items}
-					align={align}
-					onSelect={(id) => {
-						setOpen(false);
-						onSelect(id);
-					}}
-				/>
+				<ChoiceList items={items} align={align} onChoose={chosen} />
 			) : null}
 		</div>
 	);

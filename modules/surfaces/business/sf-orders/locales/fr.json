@@ -71,7 +71,8 @@
 			"description": "Mettre un travail dans la file directement. Un travail issu d'une demande se crée en convertissant la demande, pour que le lien existe."
 		},
 		"save": {
-			"label": "Enregistrer la commande"
+			"label": "Enregistrer la commande",
+			"description": "Enregistrer les modifications d’une commande."
 		},
 		"updateStatus": {
 			"label": "Changer le statut",

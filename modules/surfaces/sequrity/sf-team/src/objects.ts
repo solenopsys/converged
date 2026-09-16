@@ -493,6 +493,8 @@ export default defineSurface({
 			target: "team.member",
 			label: "Save card",
 			labelKey: "operations.member_save.label",
+			description: "Save changes to a staff member’s card.",
+			descriptionKey: "operations.member_save.description",
 			inputs: [{ name: "member", accepts: objectOf("team.member") }],
 			parameters: {
 				type: "object",
@@ -604,6 +606,8 @@ export default defineSurface({
 			target: "team.shift",
 			label: "Schedule a shift",
 			labelKey: "operations.shift_create.label",
+			description: "Put a person on a shift for a time window.",
+			descriptionKey: "operations.shift_create.description",
 			parameters: {
 				type: "object",
 				properties: {

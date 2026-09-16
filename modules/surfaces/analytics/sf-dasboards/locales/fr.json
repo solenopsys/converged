@@ -4,5 +4,11 @@
 	},
 	"dashboard": {
 		"title": "Tableau de bord"
+	},
+	"operations": {
+		"dashboardOpen": {
+			"label": "Tableau de bord",
+			"description": "Ouvrir le tableau de bord des statistiques."
+		}
 	}
 }

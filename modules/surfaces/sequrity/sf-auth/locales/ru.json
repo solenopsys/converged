@@ -34,5 +34,15 @@
 		"checkEmail": "Проверьте почту, чтобы продолжить",
 		"loginFailed": "Ошибка входа",
 		"tryAgain": "Пожалуйста, попробуйте снова"
+	},
+	"operations": {
+		"sessionLogin": {
+			"label": "Войти",
+			"description": "Войти в свою учётную запись."
+		},
+		"sessionLogout": {
+			"label": "Выйти",
+			"description": "Завершить текущий сеанс."
+		}
 	}
 }

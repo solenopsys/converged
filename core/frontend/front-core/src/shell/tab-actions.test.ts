@@ -1,100 +1,97 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { objectRegistry, surfaceConfigured } from "front-core/object-runtime";
-import {
-	$workspaceTabViews,
-	registerWorkspaceTabActions,
-	workspaceTabActionInvoked,
-} from "./tab-actions";
+import { registerWorkspaceTabActions } from "./tab-actions";
 import {
 	$surfaceTabs,
-	subtabOpened,
+	menus,
 	surfaceMounted,
-	surfacePinsRestored,
+	surfacePinToggled,
+	surfaces,
 	workspaceReset,
 } from "./workspace";
+import { surfaceStrip } from "./workspace-bars";
 
-const View = () => null;
-
-objectRegistry.declare("sf-orders", {
-	id: "sf-orders",
-	label: "Orders",
-	purpose: "Test surface orders",
-	types: [],
-	views: [],
-	operations: [],
-});
-objectRegistry.declare("sf-companies", {
-	id: "sf-companies",
-	label: "Companies",
-	purpose: "Test surface companies",
-	types: [],
-	views: [],
-	operations: [],
-});
-
-function open(surface: string, key: string): void {
-	subtabOpened({ key, surface, title: key, view: View, props: {} });
+for (const [id, label] of [
+	["sf-ta-orders", "Orders"],
+	["sf-ta-companies", "Companies"],
+]) {
+	objectRegistry.declare(id, {
+		id,
+		label,
+		purpose: `Test surface ${label}`,
+		types: [],
+		views: [],
+		operations: [
+			{ id: `${id}.probe`, operator: "execute", label, access: "public" },
+		],
+	});
 }
 
 describe("workspace tab actions", () => {
 	beforeEach(() => {
 		workspaceReset();
-		surfacePinsRestored({});
+		surfaces.cleared();
+		menus.cleared();
 		surfaceConfigured({
 			surfaces: [
-				{ id: "sf-orders", order: 1 },
-				{ id: "sf-companies", order: 2 },
+				{ id: "sf-ta-orders", order: 1 },
+				{ id: "sf-ta-companies", order: 2 },
 			],
 		});
 	});
 
-	test("the strip gets a ready-made view of every mounted surface", () => {
-		open("sf-orders", "orders.list");
-		surfaceMounted("sf-companies");
+	test("every tab in the strip gets pin and close", () => {
+		surfaceMounted("sf-ta-orders");
 
-		const views = $workspaceTabViews.getState();
-		expect(views.map((tab) => tab.key)).toEqual(["sf-orders", "sf-companies"]);
-		expect(views[1].active).toBe(true);
-		expect(views[0].actions.map((action) => action.id)).toEqual([
-			"pin",
-			"close",
-		]);
+		expect(
+			surfaceStrip.$actions
+				.getState()
+				["sf-ta-orders"]?.map((action) => action.id),
+		).toEqual(["pin", "close"]);
 	});
 
-	test("pin action toggles the surface and its menu label", () => {
-		open("sf-orders", "orders.list");
-		expect($workspaceTabViews.getState()[0].actions[0].label).toBe("Pin");
+	test("the pin action toggles the surface and its label", () => {
+		surfaceMounted("sf-ta-orders");
+		expect(surfaceStrip.$actions.getState()["sf-ta-orders"]?.[0]?.label).toBe(
+			"Pin",
+		);
 
-		workspaceTabActionInvoked({ key: "sf-orders", actionId: "pin" });
+		surfaceStrip.context.openedAt({ id: "sf-ta-orders", x: 0, y: 0 });
+		surfaceStrip.context.chosen("pin");
 
-		const [tab] = $workspaceTabViews.getState();
-		expect(tab.pinned).toBe(true);
-		expect(tab.actions[0].label).toBe("Unpin");
+		expect($surfaceTabs.getState()[0]?.pinned).toBe(true);
+		expect(surfaceStrip.$actions.getState()["sf-ta-orders"]?.[0]?.label).toBe(
+			"Unpin",
+		);
 	});
 
-	test("closing a surface removes the tab and everything under it", () => {
-		open("sf-orders", "orders.list");
-		open("sf-companies", "companies.list");
+	test("closing a surface removes its tab", () => {
+		surfacePinToggled("sf-ta-orders");
+		surfaceMounted("sf-ta-companies");
 
-		workspaceTabActionInvoked({ key: "sf-orders", actionId: "close" });
+		surfaceStrip.context.openedAt({ id: "sf-ta-orders", x: 0, y: 0 });
+		surfaceStrip.context.chosen("close");
 
 		expect($surfaceTabs.getState().map((tab) => tab.id)).toEqual([
-			"sf-companies",
+			"sf-ta-companies",
 		]);
 	});
 
 	test("a surface can add its own action without touching the strip", () => {
 		let refreshed: string | null = null;
-		registerWorkspaceTabActions("sf-orders", (tab) => [
+		registerWorkspaceTabActions("sf-ta-orders", (tab) => [
 			{ id: "refresh", label: "Обновить", run: () => (refreshed = tab.id) },
 		]);
 
-		open("sf-orders", "orders.list");
-		expect($workspaceTabViews.getState()[0].actions.map((a) => a.id)).toContain(
-			"refresh",
-		);
+		surfaceMounted("sf-ta-orders");
+		expect(
+			surfaceStrip.$actions
+				.getState()
+				["sf-ta-orders"]?.map((action) => action.id),
+		).toContain("refresh");
 
-		workspaceTabActionInvoked({ key: "sf-orders", actionId: "refresh" });
-		expect(refreshed).toBe("sf-orders");
+		surfaceStrip.context.openedAt({ id: "sf-ta-orders", x: 0, y: 0 });
+		surfaceStrip.context.chosen("refresh");
+		expect(refreshed).toBe("sf-ta-orders");
 	});
 });

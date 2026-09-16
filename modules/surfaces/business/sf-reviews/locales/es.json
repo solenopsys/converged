@@ -73,5 +73,31 @@
 		"quantity": "Cantidad",
 		"customer": "Cliente",
 		"gone": "Este pedido ya no está en este espacio de trabajo."
+	},
+	"operations": {
+		"reviewPublish": {
+			"label": "Publicar reseña",
+			"description": "Mostrar una reseña en el sitio. Hasta entonces solo se ve en esta consola."
+		},
+		"reviewReject": {
+			"label": "Rechazar reseña",
+			"description": "No mostrar una reseña en el sitio. Aquí sigue siendo legible."
+		},
+		"reviewReply": {
+			"label": "Responder reseña",
+			"description": "La respuesta de la tienda, que acompaña a la reseña allí donde se muestre."
+		},
+		"reviewCreate": {
+			"label": "Registrar reseña",
+			"description": "Introducir una reseña que la tienda recibió por otra vía: por teléfono, en persona o en una plataforma."
+		},
+		"inviteCreate": {
+			"label": "Pedir una reseña",
+			"description": "Generar un enlace personal de reseña para un pedido y una dirección."
+		},
+		"reviewDelete": {
+			"label": "Eliminar reseña",
+			"description": "Eliminar una reseña de forma permanente."
+		}
 	}
 }

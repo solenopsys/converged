@@ -126,7 +126,8 @@
 			"description": "File a card for somebody who works here. This does not give them console access — use the import for that."
 		},
 		"member_save": {
-			"label": "Save card"
+			"label": "Save card",
+			"description": "Save changes to a staff member’s card."
 		},
 		"member_setRole": {
 			"label": "Change role",
@@ -141,7 +142,8 @@
 			"description": "Shut an address out before it has been used. Immediate — the gate reads the invitation on every request."
 		},
 		"shift_create": {
-			"label": "Schedule a shift"
+			"label": "Schedule a shift",
+			"description": "Put a person on a shift for a time window."
 		}
 	},
 	"errors": {

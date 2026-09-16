@@ -101,6 +101,9 @@ export default defineSurface({
 			operator: "create",
 			target: "calls.call",
 			label: "Start call",
+			labelKey: "operations.callCreate.label",
+			description: "Start a voice call.",
+			descriptionKey: "operations.callCreate.description",
 			output: objectOf("calls.call"),
 			invoke: () => {
 				startNewCallClicked();
@@ -112,6 +115,9 @@ export default defineSurface({
 			operator: "execute",
 			target: "calls.call",
 			label: "Start web call",
+			labelKey: "operations.callExecuteWeb.label",
+			description: "Start a voice call right from the browser.",
+			descriptionKey: "operations.callExecuteWeb.description",
 			parameters: {
 				type: "object",
 				properties: { contextName: { type: "string" } },

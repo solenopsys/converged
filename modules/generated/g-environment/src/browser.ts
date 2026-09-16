@@ -23,10 +23,23 @@ export type SurfaceLayout = {
 	unpinned: string[];
 };
 
+export type ScopedLayout = {
+	scope: string;
+	pinned: string[];
+	unpinned: string[];
+};
+
 export type UserEnvironment = {
 	windows: SavedWindow[];
 	commands: CommandLayout;
 	surfaces: SurfaceLayout;
+	layouts: ScopedLayout[];
+	/**
+	 * Interface language the user chose, e.g. `ru`; empty until they choose one.
+	 * Kept with the account rather than in the console's URL, so it follows the
+	 * person to another machine and a reload does not lose it.
+	 */
+	locale: string;
 	updatedAt: string;
 };
 
@@ -87,6 +100,42 @@ export const metadata: ServiceMetadata = {
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
+    },
+    {
+      "name": "saveLayout",
+      "parameters": [
+        {
+          "name": "scope",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "layout",
+          "type": "SurfaceLayout",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "UserEnvironment",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "saveLocale",
+      "parameters": [
+        {
+          "name": "locale",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "UserEnvironment",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     }
   ],
   "types": [
@@ -106,9 +155,14 @@ export const metadata: ServiceMetadata = {
       "definition": "{\n\tpinned: string[];\n\tunpinned: string[];\n}"
     },
     {
+      "name": "ScopedLayout",
+      "kind": "type",
+      "definition": "{\n\tscope: string;\n\tpinned: string[];\n\tunpinned: string[];\n}"
+    },
+    {
       "name": "UserEnvironment",
       "kind": "type",
-      "definition": "{\n\twindows: SavedWindow[];\n\tcommands: CommandLayout;\n\tsurfaces: SurfaceLayout;\n\tupdatedAt: string;\n}"
+      "definition": "{\n\twindows: SavedWindow[];\n\tcommands: CommandLayout;\n\tsurfaces: SurfaceLayout;\n\tlayouts: ScopedLayout[];\n\t/**\n\t * Interface language the user chose, e.g. `ru`; empty until they choose one.\n\t * Kept with the account rather than in the console's URL, so it follows the\n\t * person to another machine and a reload does not lose it.\n\t */\n\tlocale: string;\n\tupdatedAt: string;\n}"
     }
   ]
 };
@@ -119,6 +173,8 @@ export interface EnvironmentServiceClient {
   saveWindows(windows: SavedWindow[]): Promise<UserEnvironment>;
   saveCommandLayout(layout: CommandLayout): Promise<UserEnvironment>;
   saveSurfaceLayout(layout: SurfaceLayout): Promise<UserEnvironment>;
+  saveLayout(scope: string, layout: SurfaceLayout): Promise<UserEnvironment>;
+  saveLocale(locale: string): Promise<UserEnvironment>;
 }
 
 // Browser factory: frontend builds select this entrypoint automatically.

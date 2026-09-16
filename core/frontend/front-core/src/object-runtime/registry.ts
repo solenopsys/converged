@@ -1,5 +1,6 @@
 import { createDomain } from "effector";
 import { createDomainLogger } from "../../../libraries/effector/effector-logger/logger";
+import { registerSurfaceLocaleFallbacks } from "../i18n";
 import type {
 	CategoryId,
 	ObjectIndexFile,
@@ -33,6 +34,8 @@ export type SurfaceIdentity = {
 	purposeKey?: string;
 	/** Owns operations but is not a tab. */
 	hidden: boolean;
+	/** The surface's own "+" menu, as declared; the shell derives one when absent. */
+	menu?: SurfaceDefinition["menu"];
 	/** False until the module itself has been imported and registered. */
 	loaded: boolean;
 };
@@ -48,7 +51,7 @@ export class ObjectRegistry {
 		owner: string,
 		definition: Pick<
 			SurfaceDefinition,
-			"label" | "labelKey" | "purpose" | "purposeKey" | "hidden"
+			"label" | "labelKey" | "purpose" | "purposeKey" | "hidden" | "menu"
 		>,
 		loaded: boolean,
 	): void {
@@ -59,6 +62,7 @@ export class ObjectRegistry {
 			purpose: definition.purpose,
 			...(definition.purposeKey ? { purposeKey: definition.purposeKey } : {}),
 			hidden: definition.hidden ?? false,
+			...(definition.menu ? { menu: definition.menu } : {}),
 			loaded,
 		});
 	}
@@ -100,6 +104,9 @@ export class ObjectRegistry {
 
 	ingest(index: ObjectIndexFile): void {
 		for (const entry of Object.values(index.modules)) {
+			// Before declaring: the declaration is what makes the shell read labels.
+			if (entry.locales)
+				registerSurfaceLocaleFallbacks(entry.module, entry.locales);
 			this.declare(entry.module, entry.manifest);
 		}
 	}

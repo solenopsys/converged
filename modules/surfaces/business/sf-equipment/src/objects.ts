@@ -340,6 +340,8 @@ export default defineSurface({
 			operator: "create",
 			target: "equipment.machine",
 			label: "Register machine",
+			labelKey: "operations.machineCreate.label",
+			descriptionKey: "operations.machineCreate.description",
 			description:
 				"Add a machine to the floor. Kind is required; everything else can follow.",
 			output: objectOf("equipment.machine"),
@@ -361,6 +363,9 @@ export default defineSurface({
 			operator: "save",
 			target: "equipment.machine",
 			label: "Save machine",
+			labelKey: "operations.machineSave.label",
+			description: "Save changes to a machine’s details.",
+			descriptionKey: "operations.machineSave.description",
 			inputs: [{ name: "machine", accepts: objectOf("equipment.machine") }],
 			parameters: { type: "object", properties: machineProperties },
 			invoke: async ({ references, params }) => {
@@ -383,6 +388,8 @@ export default defineSurface({
 			operator: "execute",
 			target: "equipment.machine",
 			label: "Set machine state",
+			labelKey: "operations.machineSetState.label",
+			descriptionKey: "operations.machineSetState.description",
 			description:
 				"Mark a machine as running, idle, in maintenance, in error or offline. Error reports a breakdown: the running slot is released and the order on it is blocked.",
 			inputs: [{ name: "machine", accepts: objectOf("equipment.machine") }],
@@ -435,6 +442,10 @@ export default defineSurface({
 			operator: "add",
 			target: "equipment.log",
 			label: "Log machine event",
+			labelKey: "operations.logCreate.label",
+			description:
+				"Record an event in a machine’s log: a repair, a check or a note.",
+			descriptionKey: "operations.logCreate.description",
 			inputs: [{ name: "machine", accepts: objectOf("equipment.machine") }],
 			parameters: {
 				type: "object",
@@ -477,6 +488,8 @@ export default defineSurface({
 			operator: "create",
 			target: "equipment.slot",
 			label: "Book a slot",
+			labelKey: "operations.slotCreate.label",
+			descriptionKey: "operations.slotCreate.description",
 			description: "Reserve a window on a machine, optionally for an order",
 			inputs: [{ name: "machine", accepts: objectOf("equipment.machine") }],
 			parameters: {
@@ -509,6 +522,9 @@ export default defineSurface({
 			operator: "delete",
 			target: "equipment.machine",
 			label: "Remove machine",
+			labelKey: "operations.machineDelete.label",
+			description: "Remove a machine from the floor.",
+			descriptionKey: "operations.machineDelete.description",
 			inputs: [{ name: "machine", accepts: objectOf("equipment.machine") }],
 			invoke: async ({ references }) => {
 				const ref = references.find(

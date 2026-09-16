@@ -4,5 +4,11 @@
 	},
 	"dashboard": {
 		"title": "Дашборд"
+	},
+	"operations": {
+		"dashboardOpen": {
+			"label": "Дашборд",
+			"description": "Открыть дашборд со статистикой."
+		}
 	}
 }

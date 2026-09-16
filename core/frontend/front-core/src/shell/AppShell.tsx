@@ -1,6 +1,7 @@
 import { useUnit } from "effector-preact";
 import { installEffectorTrafficLogger } from "front-core/core";
 import {
+	$availableSurfaces,
 	$objectRegistryRevision,
 	executeOperation,
 	objectResolver,
@@ -53,13 +54,8 @@ import {
 } from "./panel";
 import { SurfaceNav } from "./SurfaceNav";
 import { Surface } from "./SurfaceView";
-import {
-	$activeSurface,
-	$pressedSubtab,
-	$surfaceTabs,
-	workspaceReset,
-} from "./workspace";
-import { startWorkspacePins } from "./workspace-pins";
+import { $activeSurface, $pressedSubtab, workspaceReset } from "./workspace";
+import { startWorkspaceLayouts } from "./workspace-layouts";
 import { isConsolePath } from "./workspace-url";
 import "./reference-presenter";
 import "./legacy-widget-presenter";
@@ -327,13 +323,13 @@ export function AppShell({
 	const panelWidth = useUnit($panelWidth);
 	const isResizing = useUnit($panelResizing);
 	const isAuthenticated = useUserStatus();
-	const surfaceTabs = useUnit($surfaceTabs);
+	const offeredSurfaces = useUnit($availableSurfaces);
 	const availableTabs = availableChatPanelTabs({
 		isAuthenticated,
 		isDevelopment: devTraceEnabled,
 		// Nothing to navigate to means no menu. For a guest that is the usual
 		// case: the sections it could reach are the ones it is permitted.
-		hasSurfaces: surfaceTabs.length > 0,
+		hasSurfaces: offeredSurfaces.length > 0,
 	});
 	const activePanelTab = resolveChatPanelTab(panelTab, availableTabs);
 	const magicPrompts = useMemo(
@@ -360,9 +356,9 @@ export function AppShell({
 	// notifications counted while the panel is closed.
 	useEffect(() => startNotifications(), []);
 
-	// Pinned surfaces are the saved workspace: without this they live in the
-	// page and a reload loses them.
-	useEffect(() => startWorkspacePins(), []);
+	// Pins — in the strip, inside surfaces, on the home screen — are the saved
+	// workspace: without this they live in the page and a reload loses them.
+	useEffect(() => startWorkspaceLayouts(), []);
 
 	useEffect(() => {
 		const report = () =>

@@ -135,6 +135,14 @@
 		"to_order": {
 			"label": "Créer une commande depuis la demande",
 			"description": "Mettre cette demande en production : la commande porte l'id de la demande, la demande passe « en cours » et l'étape est journalisée. Quantité, matériau, échéance et contact sont lus sur la demande sauf indication ici. Un second lancement ouvre la commande qui existe déjà."
+		},
+		"requestCreate": {
+			"label": "Créer une demande de fabrication",
+			"description": "Créer une demande à partir de fichiers envoyés ou d’un besoin de fabrication décrit."
+		},
+		"requestSave": {
+			"label": "Enregistrer la demande",
+			"description": "Enregistrer les modifications d’une demande de fabrication."
 		}
 	}
 }

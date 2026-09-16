@@ -89,5 +89,11 @@
 			"error": "Error",
 			"uploaded": "Listo"
 		}
+	},
+	"operations": {
+		"chatDelete": {
+			"label": "Eliminar chat",
+			"description": "Eliminar una conversación con el asistente junto con sus mensajes."
+		}
 	}
 }

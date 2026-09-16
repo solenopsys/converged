@@ -71,7 +71,8 @@
 			"description": "Poner un trabajo en la cola directamente. El trabajo que viene de una solicitud se crea convirtiendo la solicitud, para que exista el vínculo."
 		},
 		"save": {
-			"label": "Guardar pedido"
+			"label": "Guardar pedido",
+			"description": "Guardar los cambios de un pedido."
 		},
 		"updateStatus": {
 			"label": "Cambiar estado",

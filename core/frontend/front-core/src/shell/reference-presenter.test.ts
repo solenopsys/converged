@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import {
+	type ObjectRef,
 	referencePresented,
 	registerSurface,
-	type ObjectRef,
 	type SetRef,
 	type ViewDefinition,
 } from "front-core/object-runtime";
@@ -60,17 +60,17 @@ describe("reference presenter", () => {
 		expect($pressedSubtab.getState()?.props).toMatchObject({ reference });
 		expect($pressedSubtab.getState()?.props.ref).toBeUndefined();
 		expect($pressedSubtab.getState()).toMatchObject({
-			key: "projection:companies.company.table",
-			permanent: true,
+			key: "view:companies.company.table",
 		});
 	});
 
-	test("reuses the permanent button for an unfiltered set", () => {
+	test("a set, filtered or not, lands on its projection's own tab", () => {
+		referencePresented({ ref: reference, view, options: {} });
 		referencePresented({ ref: defaultReference, view, options: {} });
 
 		expect($pressedSubtab.getState()).toMatchObject({
-			key: "projection:companies.company.table",
-			permanent: true,
+			key: "view:companies.company.table",
+			props: { reference: defaultReference },
 		});
 	});
 

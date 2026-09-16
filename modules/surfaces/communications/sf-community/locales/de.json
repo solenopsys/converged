@@ -4,5 +4,23 @@
 		"post": "Beitrag schreiben...",
 		"reply": "Antwort schreiben...",
 		"locked": "Dieses Thema ist geschlossen"
+	},
+	"operations": {
+		"sectionCreate": {
+			"label": "Bereich erstellen",
+			"description": "Einen Forumsbereich hinzufügen."
+		},
+		"sectionDelete": {
+			"label": "Bereich löschen",
+			"description": "Einen Bereich samt allen Themen darin löschen."
+		},
+		"topicCreate": {
+			"label": "Neues Thema",
+			"description": "Ein Forumsthema mit dem ersten Beitrag eröffnen."
+		},
+		"topicSetFlags": {
+			"label": "Thema anheften, sperren oder archivieren",
+			"description": "Moderationsmarkierungen eines Themas."
+		}
 	}
 }
