@@ -2,11 +2,11 @@
 
 ## Purpose
 
-Integrates platform automation with Kubernetes resources through a dedicated client and service contract.
+Stateless Kubernetes operator bridge: applies platform automation intents to cluster resources (deployments, jobs) via a dedicated client. No persistent state; secrets resolve via lm-secrets.
 
 ## Responsibility boundary
 
-The module boundary is defined by its public contracts and implementation directory.
+Owns cluster API translation and apply/status reads; does not own workflow orchestration, scheduling, or secret storage.
 
 ## Direct module dependencies
 

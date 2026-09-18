@@ -13,7 +13,6 @@ import {
 } from "../object-runtime";
 import { ChoiceMenuButton, createChoiceMenu } from "../tabs";
 import { toggleTheme } from "../theme";
-import { TopBarCommands } from "./topbar-commands";
 
 const t = translator(CHAT_MESSAGES_NAMESPACE);
 
@@ -92,7 +91,6 @@ function LoginControl() {
 export function TopBarSettings() {
 	return (
 		<>
-			<TopBarCommands />
 			<LoginControl />
 			<LanguageMenu />
 			<ThemeToggle />

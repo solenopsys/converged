@@ -2,11 +2,11 @@
 
 ## Purpose
 
-Handles sales-domain entities, sales flows, and related metrics preparation.
+Sales pipeline: leads, deals, import (wf-sales-import), and outreach (wf-sales-review-outreach). Prepares sales-side metrics; money settles in billing/finance.
 
 ## Responsibility boundary
 
-Owns sales lifecycle and sales data logic; does not own payment gateway transaction processing.
+Owns sales lifecycle and sales data logic; does not own payment gateway processing, invoicing, or import file parsing.
 
 ## Direct module dependencies
 

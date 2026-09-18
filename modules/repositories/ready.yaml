@@ -13,6 +13,7 @@ modules:
   business/rp-billing: _
   business/rp-equipment: _
   business/rp-events: _
+  business/rp-metering: _
   business/rp-finance: _
   business/rp-orders: _
   business/rp-requests: ready
@@ -24,6 +25,7 @@ modules:
   communications/rp-community: _
   communications/rp-notify: _
   communications/rp-resonus: _
+  communications/rp-support: _
   communications/rp-threads: ready
   content/rp-classifier: _
   content/rp-galery: ready

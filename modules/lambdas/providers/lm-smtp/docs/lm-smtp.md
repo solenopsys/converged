@@ -2,7 +2,16 @@
 
 ## Purpose
 
-Provider adapter for SMTP-based email delivery.
+SMTP leg of the shared notification fan-out: plain provider transport behind the rp-notify contract.
+
+## Ecosystem value
+
+Domain emits a notify intent once via rp-notify → this adapter delivers over SMTP. Swapping or adding email providers never touches domains.
+
+## Non-goals
+
+No channel policy, retries, or templates — that is rp-notify and the calling domain.
+
 
 ## Responsibility boundary
 

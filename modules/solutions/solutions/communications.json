@@ -12,7 +12,8 @@
 		"threads",
 		"community",
 		"chats",
-		"files"
+		"files",
+		"support"
 	],
 	"surfaces": [
 		"community",

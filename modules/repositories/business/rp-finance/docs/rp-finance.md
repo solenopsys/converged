@@ -2,11 +2,11 @@
 
 ## Purpose
 
-Provides finance operations for transactions, period summaries, cashflow, receivables, and payables.
+Financial ledger view: transactions, period summaries, cashflow, receivables, and payables. Aggregates billing and order activity into finance-ready numbers.
 
 ## Responsibility boundary
 
-The module boundary is defined by its public contracts and implementation directory.
+Owns finance aggregation and reporting; does not own payment execution, billing plans, or order lifecycle.
 
 ## Direct module dependencies
 

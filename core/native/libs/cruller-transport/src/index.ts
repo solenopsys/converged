@@ -450,8 +450,6 @@ export class NativeStorageConnectionPool {
 
 // ── Connection ────────────────────────────────────────────────────────────────
 
-let fujinClientSeq = 0;
-
 export class StorageConnection {
   private fd: number = -1;
   /** For Unix: filesystem path. For TCP/fujin: "host:port". Used in error messages. */
@@ -461,7 +459,8 @@ export class StorageConnection {
   private readonly reconnectAttempts: number;
   private readonly poolKey?: string | (() => string | undefined);
   private messaging?: MessagingConnection;
-  private readonly fujinSelfTarget = `storage-client-${process.pid}-${(fujinClientSeq++).toString(36)}`;
+  // pid is 1 in every container, so replicas would share a target.
+  private readonly fujinSelfTarget = `storage-client-${crypto.randomUUID()}`;
 
   /**
    * Connect to storage.

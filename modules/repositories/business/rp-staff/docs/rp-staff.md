@@ -2,11 +2,11 @@
 
 ## Purpose
 
-Manages staff records, roles, and staff-centric domain operations.
+Staff directory and roles: cards linked to shared identities (rp-identity), invited via wf-team-invite. Permissions stay in rp-access.
 
 ## Responsibility boundary
 
-Owns staff domain data and workflows; does not own authentication credential issuance.
+Owns staff records and role assignments; does not own authentication, identity lifecycle, or permission evaluation.
 
 ## Direct module dependencies
 

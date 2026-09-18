@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<title>ui-qa fixture</title>
+		<!--
+			A page with known defects, so the whole pipeline can be exercised
+			without the stack running: `bun run src/cli.ts --url file://…/demo.html`.
+			Every planted defect is named in the class next to it, and the
+			expected findings are listed in the README.
+		-->
+		<style>
+			:root {
+				--hw-unit: 4px;
+				--hw-space-1: var(--hw-unit);
+				--hw-space-2: calc(var(--hw-unit) * 2);
+				--hw-space-3: calc(var(--hw-unit) * 3);
+				--hw-space-4: calc(var(--hw-unit) * 4);
+				--hw-radius-sm: calc(var(--hw-unit) * 1.5);
+				--hw-radius-md: calc(var(--hw-unit) * 2.5);
+				--hw-text-sm: calc(var(--hw-unit) * 3.5);
+				--hw-text-md: calc(var(--hw-unit) * 4);
+				--hw-weight-regular: 400;
+				--hw-weight-semibold: 600;
+				--hw-font-sans: Inter, system-ui, sans-serif;
+				--hw-canvas: #f7f7f5;
+				--hw-ink: #171816;
+				--hw-ink-muted: #888a85;
+				--hw-panel-border: #d0d0cd;
+				--hw-accent: #bf4545;
+				--hw-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+			}
+			body {
+				margin: 0;
+				padding: var(--hw-space-4);
+				background: var(--hw-canvas);
+				color: var(--hw-ink);
+				font-family: var(--hw-font-sans);
+				font-size: var(--hw-text-md);
+				font-weight: var(--hw-weight-regular);
+			}
+			[data-slot="card"] {
+				padding: var(--hw-space-3);
+				border: 1px solid var(--hw-panel-border);
+				border-radius: var(--hw-radius-md);
+				background: var(--hw-canvas);
+				margin-bottom: var(--hw-space-2);
+			}
+			[data-slot="title"] {
+				font-size: var(--hw-text-md);
+				font-weight: var(--hw-weight-semibold);
+				color: var(--hw-ink);
+			}
+			[data-slot="hint"] {
+				font-size: var(--hw-text-sm);
+				color: var(--hw-ink-muted);
+			}
+			[data-slot="badge"] {
+				display: inline-block;
+				padding: var(--hw-space-1) var(--hw-space-2);
+				border-radius: var(--hw-radius-sm);
+				background: var(--hw-accent);
+				color: #ffffff;
+				font-size: var(--hw-text-sm);
+				font-weight: var(--hw-weight-semibold);
+			}
+
+			/* Planted: padding off the 4px grid and off the scale. */
+			.defect-spacing {
+				padding: 13px;
+			}
+			/* Planted: radius that is not a token. */
+			.defect-radius {
+				border-radius: 7px;
+			}
+			/* Planted: font-size, weight and family outside the system. */
+			.defect-type {
+				font-size: 15px;
+				font-weight: 300;
+				font-family: Georgia, serif;
+			}
+			/* Planted: a red that is not the palette red. */
+			.defect-color {
+				color: #d02020;
+			}
+			/* Planted: an interactive element below the touch target. */
+			.defect-target {
+				width: 18px;
+				height: 18px;
+				padding: 0;
+				border: 0;
+				background: var(--hw-accent);
+				border-radius: var(--hw-radius-sm);
+			}
+			/* Planted: content clipped inside a fixed-width box. */
+			.defect-overflow {
+				width: 120px;
+				overflow: hidden;
+				white-space: nowrap;
+			}
+			/* Planted: an element reaching past the right edge. */
+			.defect-viewport {
+				position: relative;
+				width: 2200px;
+			}
+			/* Planted: one card in a group with a different padding. */
+			.defect-sibling {
+				padding: var(--hw-space-4);
+			}
+			/* Planted: a third look for the same badge. */
+			.defect-badge-alt {
+				background: #2a78d6;
+			}
+			.defect-badge-alt2 {
+				background: #1f6b2e;
+				padding: 6px 9px;
+			}
+		</style>
+	</head>
+	<body>
+		<section data-slot="panel">
+			<div data-slot="card">
+				<div data-slot="title">Compliant card</div>
+				<div data-slot="hint">Everything here comes from a token.</div>
+				<span data-slot="badge">ready</span>
+			</div>
+
+			<div data-slot="card" class="defect-spacing defect-radius">
+				<div data-slot="title" class="defect-type">Off-system card</div>
+				<div data-slot="hint" class="defect-color">
+					Hand-picked size, weight, family and colour.
+				</div>
+				<span data-slot="badge" class="defect-badge-alt">review</span>
+			</div>
+
+			<div data-slot="card" class="defect-overflow">
+				<div data-slot="title">Clipped title that does not fit its box</div>
+			</div>
+
+			<div data-slot="card" class="defect-viewport">
+				<div data-slot="hint">Wider than any phone.</div>
+				<span data-slot="badge" class="defect-badge-alt2">third look</span>
+			</div>
+		</section>
+
+		<section data-slot="list">
+			<div data-slot="row">
+				<span data-slot="hint">row one</span>
+			</div>
+			<div data-slot="row">
+				<span data-slot="hint">row two</span>
+			</div>
+			<div data-slot="row" class="defect-sibling">
+				<span data-slot="hint">row three</span>
+			</div>
+			<button type="button" data-slot="action" class="defect-target" aria-label="Add"></button>
+		</section>
+	</body>
+</html>

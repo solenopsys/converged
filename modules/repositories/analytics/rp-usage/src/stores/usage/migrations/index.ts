@@ -1,3 +1,4 @@
 import createUsage from "./createUsage";
+import createUsageSolutions from "./createUsageSolutions";
 
-export default [createUsage];
+export default [createUsage, createUsageSolutions];

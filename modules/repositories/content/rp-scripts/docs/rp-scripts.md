@@ -2,11 +2,11 @@
 
 ## Purpose
 
-Provides storage operations for script files, including reading, saving, hashing, and deletion.
+Versioned script/text assets with content hashing: read, save, hash, delete. Used by automation and content pipelines needing stable script references.
 
 ## Responsibility boundary
 
-The module boundary is defined by its public contracts and implementation directory.
+Owns script asset storage and hashing; does not own workflow execution or content rendering.
 
 ## Direct module dependencies
 

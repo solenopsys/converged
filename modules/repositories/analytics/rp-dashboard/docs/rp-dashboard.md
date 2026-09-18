@@ -2,11 +2,11 @@
 
 ## Purpose
 
-Provides dashboard data and analytical views for platform metrics.
+Curated analytical views over platform metrics: reads pre-aggregated counters and usage (rp-counters, rp-usage) and serves dashboard-ready shapes to surfaces. No raw-event scanning.
 
 ## Responsibility boundary
 
-The module boundary is defined by its public contracts and implementation directory.
+Owns dashboard composition and view queries; does not own raw event journaling, counter collection, or per-surface rendering.
 
 ## Direct module dependencies
 

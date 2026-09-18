@@ -2,11 +2,11 @@
 
 ## Purpose
 
-Stores and retrieves environment configuration associated with platform users.
+Per-user environment configuration: settings and workspace state scoped to identity. Consumed by surfaces to personalize without forking identity records.
 
 ## Responsibility boundary
 
-The module boundary is defined by its public contracts and implementation directory.
+Owns environment config CRUD scoped to users; does not own identity lifecycle, auth, or permissions.
 
 ## Direct module dependencies
 

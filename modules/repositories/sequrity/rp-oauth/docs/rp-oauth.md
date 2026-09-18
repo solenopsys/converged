@@ -2,11 +2,11 @@
 
 ## Purpose
 
-Implements OAuth-specific authorization flows and provider handshakes.
+OAuth grant flows and token exchange with third-party providers. Terminates in rp-auth sessions; permissions stay in rp-access.
 
 ## Responsibility boundary
 
-Owns OAuth grant flow handling and token exchange; does not own non-OAuth authentication methods.
+Owns OAuth grant handling and token exchange; does not own non-OAuth login, sessions, or authorization policy.
 
 ## Direct module dependencies
 

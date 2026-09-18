@@ -2,11 +2,11 @@
 
 ## Purpose
 
-Provides communication configuration for managed phone numbers and LLM gate settings.
+Telephony configuration: managed phone numbers and LLM gate settings for voice paths. Runtime behavior consumes these; calls themselves live in rp-calls.
 
 ## Responsibility boundary
 
-The module boundary is defined by its public contracts and implementation directory.
+Owns number/voice-gate configuration; does not own call sessions, audio storage, or model inference.
 
 ## Direct module dependencies
 

@@ -1,0 +1,13 @@
+{
+	"name": "ui-qa",
+	"version": "0.0.0",
+	"type": "module",
+	"private": true,
+	"module": "src/index.ts",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"dependencies": {
+		"@playwright/test": "^1.63.0"
+	}
+}

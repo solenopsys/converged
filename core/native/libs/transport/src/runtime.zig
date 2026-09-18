@@ -160,7 +160,9 @@ pub const Runtime = struct {
 
     pub fn init(allocator: std.mem.Allocator, config: Config) !Runtime {
         if (config.target.len == 0) return error.TargetRequired;
-        var peer = try endpoint.Peer.initWithIdentity(config.endpoint, config.target, config.limits);
+        // No fixed routing id: a ROUTER silently parks a second connection
+        // with an identity it already holds and never reads it again.
+        var peer = try endpoint.Peer.init(config.endpoint, config.limits);
         errdefer peer.deinit();
         try peer.setRecvTimeoutMs(config.recv_timeout_ms);
         try peer.setSendTimeoutMs(config.send_timeout_ms);
@@ -875,4 +877,48 @@ test "router reset re-registers the connection target without application help" 
     try std.testing.expectEqualStrings("register", replay_env.method);
     try std.testing.expectEqualStrings("ptah", replay_env.from.target);
     try std.testing.expectEqualStrings("{}", replay.payload());
+}
+
+/// Pumps the runtime and returns the next packet that carries an envelope,
+/// skipping ROUTER_NOTIFY disconnects. Null once the deadline passes.
+fn nextPacket(router: *endpoint.Router, runtime: *Runtime, deadline_ns: i128) !?endpoint.Incoming {
+    while (Runtime.nowNs() < deadline_ns) {
+        _ = try runtime.poll();
+        var packet = (try router.recvNonBlocking()) orelse continue;
+        if (packet.envelopeBytes().len > 0) return packet;
+        packet.deinit();
+    }
+    return null;
+}
+
+test "replacement connection for a live target is delivered once the old one closes" {
+    var endpoint_buffer: [128]u8 = undefined;
+    const address = try std.fmt.bufPrintZ(&endpoint_buffer, "ipc:///tmp/transport-runtime-replace-{d}.sock", .{std.c.getpid()});
+    const limits = endpoint.Limits{ .max_envelope_bytes = 4096, .max_payload_bytes = 1 << 20 };
+    var router = try endpoint.Router.init(address, limits);
+    defer router.deinit();
+    try router.setRecvTimeoutMs(2_000);
+
+    var old = try Runtime.init(std.testing.allocator, .{ .endpoint = address, .target = "storage", .limits = limits });
+    var old_closed = false;
+    defer if (!old_closed) old.deinit();
+    var old_registration = (try router.recv()) orelse return error.TestTimeout;
+    old_registration.deinit();
+
+    // A rolling update: the new process connects while the old one still is.
+    var replacement = try Runtime.init(std.testing.allocator, .{ .endpoint = address, .target = "storage", .limits = limits });
+    defer replacement.deinit();
+    const settled = Runtime.nowNs() + 300 * std.time.ns_per_ms;
+    while (try nextPacket(&router, &replacement, settled)) |packet| {
+        var drained = packet;
+        drained.deinit();
+    }
+
+    old.deinit();
+    old_closed = true;
+
+    var packet = (try nextPacket(&router, &replacement, Runtime.nowNs() + 2 * std.time.ns_per_s)) orelse
+        return error.TestTimeout;
+    defer packet.deinit();
+    try std.testing.expectEqualStrings("storage", (try packet.parseEnvelope()).from.target);
 }

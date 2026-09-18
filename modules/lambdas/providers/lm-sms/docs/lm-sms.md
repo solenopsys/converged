@@ -2,7 +2,16 @@
 
 ## Purpose
 
-Provider adapter for SMS delivery channels.
+SMS leg of the shared notification fan-out: provider transport behind the rp-notify contract.
+
+## Ecosystem value
+
+Urgent pings (incidents, invite codes, status changes) reach phones while other channels carry the long form. Same intent API as email/push.
+
+## Non-goals
+
+No campaign or segmentation rules — the calling domain decides.
+
 
 ## Responsibility boundary
 

@@ -2,11 +2,11 @@
 
 ## Purpose
 
-Provides the service contract for creating, updating, listing, and tracking business orders.
+Order lifecycle: creation, updates, listing, and tracking. Files attach by fileId (rp-files), discussion hangs off a threadId (rp-threads), completion can trigger review invites.
 
 ## Responsibility boundary
 
-The module boundary is defined by its public contracts and implementation directory.
+Owns order records and status transitions; does not own file storage, messaging, or review mechanics.
 
 ## Direct module dependencies
 

@@ -2,11 +2,11 @@
 
 ## Purpose
 
-Provides the service contract for static content and SSR cache metadata.
+Static-content and SSR-cache metadata: what is published and what can be served from cache. Content bytes flow through rp-files/rp-store.
 
 ## Responsibility boundary
 
-The module boundary is defined by its public contracts and implementation directory.
+Owns static publishing metadata and cache descriptors; does not own byte storage or page composition.
 
 ## Direct module dependencies
 

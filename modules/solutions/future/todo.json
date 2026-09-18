@@ -16,11 +16,10 @@
       "environment",
       "equipment",
       "events",
-
+      "metering",
       "functions",
       "notify",
       "orders",
-
       "resonus",
       "reviews",
       "sales",
@@ -28,7 +27,6 @@
       "sheduller",
       "staff",
       "static",
-
       "webhooks"
     ],
     "lambdas": [
@@ -44,16 +42,12 @@
       "community",
       "dag",
       "dasboards",
-
       "dumps",
       "functions",
       "orders",
-
       "sheduller",
       "static",
-
       "webhooks"
     ]
-
   }
 }

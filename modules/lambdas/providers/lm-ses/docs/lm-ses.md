@@ -2,7 +2,16 @@
 
 ## Purpose
 
-Provider adapter for AWS SES email delivery.
+SES leg of the shared notification fan-out: AWS email transport behind the rp-notify contract.
+
+## Ecosystem value
+
+Bulk and transactional mail (review invites, order updates, team invites) flow through one SES integration. Credentials resolve via lm-secrets.
+
+## Non-goals
+
+No channel policy or templates — that is rp-notify and the calling domain.
+
 
 ## Responsibility boundary
 

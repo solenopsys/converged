@@ -3,7 +3,7 @@ import { createRtClient, type ServiceMetadata } from "nrpc";
 
 export type UsageEventInput = {
   function: string;
-  user: string;
+  user?: string;
   date?: string;
 };
 
@@ -73,6 +73,24 @@ export type UsageStatistic = {
 };
 
 export type UsageStatisticKey = "title";
+
+export type UsageSolutionLink = {
+  solution: string;
+  function: string;
+};
+
+export type UsageBySolutionParams = {
+  solution?: string;
+  dateFrom?: string;
+  dateTo?: string;
+};
+
+export type UsageBySolutionItem = {
+  solution: string;
+  total: number;
+  users: number;
+  lastUsedAt?: string;
+};
 
 export type PaginatedResult<T> = {
   items: T[];
@@ -203,13 +221,85 @@ const metadata: ServiceMetadata = {
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
+    },
+    {
+      "name": "linkFunctions",
+      "parameters": [
+        {
+          "name": "solution",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "functions",
+          "type": "string",
+          "optional": false,
+          "isArray": true
+        }
+      ],
+      "returnType": "any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "unlinkFunction",
+      "parameters": [
+        {
+          "name": "solution",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "func",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "boolean",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "listSolutionFunctions",
+      "parameters": [
+        {
+          "name": "solution",
+          "type": "string",
+          "optional": true,
+          "isArray": false
+        }
+      ],
+      "returnType": "UsageSolutionLink",
+      "isAsync": true,
+      "returnTypeIsArray": true,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "getUsageBySolution",
+      "parameters": [
+        {
+          "name": "params",
+          "type": "UsageBySolutionParams",
+          "optional": true,
+          "isArray": false
+        }
+      ],
+      "returnType": "UsageBySolutionItem",
+      "isAsync": true,
+      "returnTypeIsArray": true,
+      "isAsyncIterable": false
     }
   ],
   "types": [
     {
       "name": "UsageEventInput",
       "kind": "type",
-      "definition": "{\n  function: string;\n  user: string;\n  date?: string;\n}"
+      "definition": "{\n  function: string;\n  user?: string;\n  date?: string;\n}"
     },
     {
       "name": "UsageEvent",
@@ -272,6 +362,21 @@ const metadata: ServiceMetadata = {
       "definition": "\"title\""
     },
     {
+      "name": "UsageSolutionLink",
+      "kind": "type",
+      "definition": "{\n  solution: string;\n  function: string;\n}"
+    },
+    {
+      "name": "UsageBySolutionParams",
+      "kind": "type",
+      "definition": "{\n  solution?: string;\n  dateFrom?: string;\n  dateTo?: string;\n}"
+    },
+    {
+      "name": "UsageBySolutionItem",
+      "kind": "type",
+      "definition": "{\n  solution: string;\n  total: number;\n  users: number;\n  lastUsedAt?: string;\n}"
+    },
+    {
       "name": "PaginatedResult",
       "kind": "type",
       "typeParameters": "<T>",
@@ -290,6 +395,10 @@ export interface UsageServiceRtClient {
   getUsageDaily(params?: UsageStatsParams): UsageDailyStatsItem[];
   getUsageByFunction(params?: UsageStatsParams): UsageFunctionStatsItem[];
   getStatistic(keys?: UsageStatisticKey[]): UsageStatistic;
+  linkFunctions(solution: string, functions: string[]): any;
+  unlinkFunction(solution: string, func: string): boolean;
+  listSolutionFunctions(solution?: string): UsageSolutionLink[];
+  getUsageBySolution(params?: UsageBySolutionParams): UsageBySolutionItem[];
 }
 
 export function createUsageServiceRtClient(): UsageServiceRtClient {

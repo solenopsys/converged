@@ -1,0 +1,16 @@
+{
+	"name": "solution-verify",
+	"version": "0.0.0",
+	"type": "module",
+	"private": true,
+	"module": "src/index.ts",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"dependencies": {
+		"@playwright/test": "^1.63.0",
+		"back-core": "workspace:*",
+		"g-auth": "workspace:*",
+		"g-identity": "workspace:*"
+	}
+}
