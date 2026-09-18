@@ -54,36 +54,29 @@ function setPathValue(root: JsonValue, path: string, value: string): void {
 	node[segments[segments.length - 1]] = value;
 }
 
-function localeName(locale: string): string {
-	return (
-		new Intl.DisplayNames(["en"], { type: "language" }).of(locale) ?? locale
-	);
-}
-
 type Client = {
 	provider: ResolvedProvider;
 	tally: Tally;
 };
 
-function instructionsFor(locale: string): string {
-	return (
-		`Translate every item from English to ${localeName(locale)} (${locale}). ` +
-		"Preserve the exact document format. For JSON, keep every key, type, array order, ID, slug, URL, path, icon and code value; translate only human-readable string values. " +
-		"For Markdown, preserve heading levels, links, URLs, placeholders, inline code and fenced code. Return every input id exactly once."
-	);
-}
-
-async function requestBatch(
+/**
+ * One source file, all its locales, one request. Returns job id →
+ * locale → translated text. A job whose locale is missing from the
+ * answer fails the whole file: partial multi-locale answers are not
+ * reassembled.
+ */
+async function requestFile(
 	jobs: Job[],
-	locale: string,
 	client: Client,
-): Promise<Map<string, string>> {
+): Promise<Map<string, Map<string, string>>> {
 	const { provider } = client;
 	client.tally.requests += 1;
 	const response = await fetch(provider.endpoint, {
 		method: "POST",
 		headers: provider.headers,
-		body: JSON.stringify(provider.body(jobs, instructionsFor(locale))),
+		body: JSON.stringify(provider.body(jobs)),
+		// No timeout before = a stuck model looked like a hung run.
+		signal: AbortSignal.timeout(180_000),
 	});
 	const body = (await response.json()) as Record<string, unknown>;
 	if (!response.ok) {
@@ -96,12 +89,77 @@ async function requestBatch(
 		);
 	}
 	const parsed = JSON.parse(provider.outputText(body)) as {
-		items?: Array<{ id?: string; translation?: string }>;
+		items?: Array<{ id?: string; translations?: Record<string, string> }>;
 	};
-	const translations = new Map(
-		(parsed.items ?? []).map((item) => [item.id ?? "", item.translation ?? ""]),
+	const byId = new Map(
+		(parsed.items ?? []).map((item) => [item.id ?? "", item.translations ?? {}]),
 	);
+	const translations = new Map<string, Map<string, string>>();
 	for (const job of jobs) {
+		const perLocale = byId.get(job.id);
+		const text = perLocale?.[job.locale];
+		if (typeof text !== "string" || text.length === 0) {
+			throw new Error(
+				`${provider.label} response omitted translation for ${job.id} (${job.locale})`,
+			);
+		}
+		if (!translations.has(job.id)) translations.set(job.id, new Map());
+		translations.get(job.id)?.set(job.locale, text);
+	}
+	return translations;
+}
+
+type StringItem = { job: Job; path: string; text: string };
+
+/**
+ * The model occasionally drops items from large responses. Instead of
+ * aborting the whole run on the first gap, retry the missing subset (each
+ * retry is a smaller request) and keep the source text for whatever never
+ * comes back — a few untranslated strings beat zero translated files.
+ *
+ * Transport failures are handled a layer down by `withRetry`; this loop is
+ * only about incomplete but well-formed answers.
+ */
+/**
+ * Single-locale batch for the string-level route: one request, one
+ * locale, job id → translated string. Kept separate from `requestFile`
+ * because string batches mix many files and stay per-locale.
+ */
+async function requestBatch(
+	batch: Job[],
+	locale: string,
+	client: Client,
+): Promise<Map<string, string>> {
+	const { provider } = client;
+	client.tally.requests += 1;
+	const response = await fetch(provider.endpoint, {
+		method: "POST",
+		headers: provider.headers,
+		body: JSON.stringify(
+			provider.body(
+				batch.map((job) => ({ ...job, locale })),
+			),
+		),
+	});
+	const body = (await response.json()) as Record<string, unknown>;
+	if (!response.ok) {
+		const error = body.error as { message?: string } | undefined;
+		throw new HttpError(
+			response.status,
+			`${provider.label} ${response.status}: ${error?.message ?? "request failed"}`,
+		);
+	}
+	const parsed = JSON.parse(provider.outputText(body)) as {
+		items?: Array<{ id?: string; translations?: Record<string, string> }>;
+	};
+	const translations = new Map<string, string>();
+	for (const item of parsed.items ?? []) {
+		const text = item.translations?.[locale];
+		if (typeof text === "string" && text.length > 0) {
+			translations.set(item.id ?? "", text);
+		}
+	}
+	for (const job of batch) {
 		if (!translations.get(job.id)) {
 			throw new Error(
 				`${provider.label} response omitted translation id ${job.id}`,
@@ -110,8 +168,6 @@ async function requestBatch(
 	}
 	return translations;
 }
-
-type StringItem = { job: Job; path: string; text: string };
 
 /**
  * The model occasionally drops items from large responses. Instead of
@@ -456,55 +512,51 @@ export async function translateProject(
 		);
 	}
 
-	// Whole-file batches from every locale share one pool. Six locales of one
-	// small project used to run strictly one after another even though the
-	// requests are independent; this is where most of the wall clock goes.
-	const batches: Array<{ locale: string; jobs: Job[] }> = [];
-	for (const [locale, jobs] of byLocale) {
-		for (const batch of chunks(
-			jobs.filter((job) => routeFor(job) === "whole-file"),
-		)) {
-			batches.push({ locale, jobs: batch });
-		}
+	// Parallelism is per source file: one file (all its locales) is one
+	// pool task, one request. Different files fly concurrently; inside
+	// a file there is nothing sequential — the model returns every
+	// locale in a single answer.
+	const byFile = new Map<string, Job[]>();
+	for (const job of queue) {
+		if (routeFor(job) !== "whole-file") continue;
+		byFile.set(job.file, [...(byFile.get(job.file) ?? []), job]);
 	}
-	if (batches.length > 0) {
+	const files = [...byFile.entries()];
+	if (files.length > 0) {
 		console.log(
-			`  ${config.name}: ${batches.length} file batches ` +
-				`(${Math.min(concurrency, batches.length)} at a time)`,
+			`  ${config.name}: ${files.length} files (${Math.min(concurrency, files.length)} at a time)`,
 		);
 		let done = 0;
-		const answers = await pool(batches, concurrency, async (batch) => {
+		const answers = await pool(files, concurrency, async ([file, jobs]) => {
 			const started = Date.now();
-			const translations = await withRetry(
-				() => requestBatch(batch.jobs, batch.locale, client),
-				{
-					onRetry: (n, delay) => {
-						tally.retries += 1;
-						console.log(
-							`    ${batch.locale}: retry ${n} in ${delay}ms (transport/rate limit)`,
-						);
-					},
+			console.log(`    ${config.name} ${file} → translating (${jobs.length} locales)…`);
+			const translations = await withRetry(() => requestFile(jobs, client), {
+				onRetry: (n, delay) => {
+					tally.retries += 1;
+					console.log(
+						`    ${file}: retry ${n} in ${delay}ms (transport/rate limit)`,
+					);
 				},
-			);
+			});
 			done += 1;
+			const ms = Date.now() - started;
 			console.log(
-				`    ${config.name}/${batch.locale} batch ${done}/${batches.length} ` +
-					`(${batch.jobs.length} files, ${Date.now() - started}ms)`,
+				`    ${config.name} ${file} done (${ms}ms, ${done}/${files.length})`,
 			);
-			return { batch, translations, ms: Date.now() - started };
+			return { jobs, translations, ms };
 		});
 
 		// Writes happen after the network, on one thread, in input order — so
 		// a run is reproducible and the index never sees a partial batch.
 		for (const answer of answers) {
-			for (const job of answer.batch.jobs) {
-				const content = answer.translations.get(job.id) as string;
+			for (const job of answer.jobs) {
+				const content = answer.translations.get(job.id)?.get(job.locale) as string;
 				if (
 					saveWholeFile(
 						config,
 						job,
 						content,
-						answer.batch.locale,
+						job.locale,
 						store,
 						client,
 						run,

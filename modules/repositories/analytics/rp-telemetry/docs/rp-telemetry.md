@@ -15,22 +15,16 @@ by the reader, not the store.
 
 ## Ecosystem value
 
-Single health picture across the platform:
+One numeric sample journal:
 
-- Every `rp-*`/`lm-*` reports the same way — new services are observable
-  without new pipelines.
-- `wf-equipment-incident` and ops dashboards correlate service health with
-  equipment logs (`rp-logs`) on one timeline.
-- Separates "is the system healthy" (here) from "what happened" (`rp-logs`)
-  and "how much was used" (`rp-usage`).
+- Any producer writes (device, parameter, value, unit, time) rows into hot/cold stores.
+- One timeline for numbers of any origin — equipment sensors or anything else.
 
 ## Non-goals
 
-- Not product analytics or business counters — that is `rp-counters` /
-  `rp-usage`.
-- Not the operational log tape — that is `rp-logs`.
+- Not text log storage.
+- Not usage records.
 - Not alerting policy or incident resolution.
-
 ## Responsibility boundary
 
 Owns telemetry event intake and normalization; does not own product

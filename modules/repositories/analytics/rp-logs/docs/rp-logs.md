@@ -17,19 +17,16 @@ aggregation or alerting inside — just recording the fact.
 One stream reused by everyone:
 
 - Services: operational logs with no per-`rp-*` storage of their own.
-- Equipment: machine/device logs — same API, different source.
-- Automation: `rp-dag` writes workflow-run execution trees here; schedule
-  history (`rp-sheduller`) and webhook attempts are read from here.
-- Audit and incident review (`wf-equipment-incident`): one query shows the
-  event chain over time instead of logs scattered across five services.
+- Equipment: machine/device logs — same API, different source, from 3D
+  printers to any module or external system.
+- Any producer writes "what happened" into one place instead of growing
+  its own log store; audit and review read one timeline.
 
 ## Non-goals
 
-- Not counters or aggregates — that is `rp-counters`.
-- Not health signals or product metrics — that is `rp-telemetry`,
-  `rp-usage`.
+- Not counters or aggregates.
+- Not numeric samples or usage records.
 - Not distributed-call tracing or alerting.
-
 ## Responsibility boundary
 
 Owns log ingestion and retrieval APIs; does not own business metrics,

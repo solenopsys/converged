@@ -1,0 +1,25 @@
+{
+	"title": "Billing",
+	"summary": "What a client consumed, what they were charged, the invoice that says so, and taking the money for it.",
+	"keywords": [
+		"billing",
+		"invoice",
+		"payment",
+		"metering",
+		"charges",
+		"consumption"
+	],
+	"repositories": [
+		"billing",
+		"metering",
+		"invoices"
+	],
+	"lambdas": [],
+	"surfaces": [],
+	"dependencies": [
+		"security"
+	],
+	"workflows": [
+		"payment-settle"
+	]
+}

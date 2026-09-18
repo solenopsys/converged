@@ -35,6 +35,7 @@ const RECORDED_HEADERS = [
 	"x-request-id",
 	"x-webhook-signature",
 	"x-hub-signature-256",
+	"x-signature",
 	"x-github-event",
 	"x-amz-sns-message-type",
 ];
@@ -55,7 +56,8 @@ function jsonResponse(body: unknown, status = 200): Response {
 function recordedHeaders(context: RouteContext): Record<string, string> {
 	const kept: Record<string, string> = {};
 	for (const [key, value] of Object.entries(context.headers)) {
-		if (RECORDED_HEADERS.includes(key.toLowerCase())) kept[key.toLowerCase()] = value;
+		if (RECORDED_HEADERS.includes(key.toLowerCase()))
+			kept[key.toLowerCase()] = value;
 	}
 	return kept;
 }
@@ -116,7 +118,9 @@ function record(
 		});
 }
 
-export default function webhooksGatewayPlugin(config: PluginConfig = {} as PluginConfig) {
+export default function webhooksGatewayPlugin(
+	config: PluginConfig = {} as PluginConfig,
+) {
 	const cache = (config as { cache?: Cache }).cache;
 
 	return (app: ServerApp) => {
@@ -185,7 +189,10 @@ export default function webhooksGatewayPlugin(config: PluginConfig = {} as Plugi
 				record(endpoint, context, body, 202);
 				return jsonResponse({ ok: true, eventId: published.id }, 202);
 			} catch (error) {
-				console.error(`[webhooks-gateway] publish ${endpoint.topic} failed:`, error);
+				console.error(
+					`[webhooks-gateway] publish ${endpoint.topic} failed:`,
+					error,
+				);
 				record(endpoint, context, body, 503, String(error));
 				return jsonResponse({ error: "unavailable" }, 503);
 			}

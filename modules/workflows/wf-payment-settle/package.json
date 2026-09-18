@@ -1,0 +1,12 @@
+{
+	"name": "wf-payment-settle",
+	"version": "0.0.0",
+	"type": "module",
+	"private": true,
+	"module": "index.ts",
+	"dependencies": {
+		"dag-core": "workspace:*",
+		"g-invoices": "workspace:*",
+		"g-lemonsqueezy": "workspace:*"
+	}
+}

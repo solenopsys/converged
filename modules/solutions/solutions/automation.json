@@ -8,15 +8,7 @@
 		"webhooks",
 		"integration"
 	],
-	"repositories": [
-		"dag",
-		"sheduller",
-		"webhooks"
-	],
-	"surfaces": [
-		"automation"
-	],
-	"dependencies": [
-		"security"
-	]
+	"repositories": ["dag", "sheduller", "webhooks"],
+	"surfaces": ["automation"],
+	"dependencies": ["security"]
 }

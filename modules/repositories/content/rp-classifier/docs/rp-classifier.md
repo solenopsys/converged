@@ -14,20 +14,15 @@ vs noise). Labels are advice; the business decision stays with the caller.
 
 ## Ecosystem value
 
-Single routing brain for intakes:
+Single taxonomy shelf:
 
-- File intake (`wf-files-process`): which uploads are production models.
-- Requests (`wf-request-analyze`): what the request is about before staging.
-- Dialogues (`wf-dialogue-summary`): noise classification for chat/call
-  transcripts.
-- Any new intake reuses the same labels instead of training its own.
+- Tree nodes and key mappings behind one API.
+- Any intake resolves labels from the same tree instead of its own dictionaries.
 
 ## Non-goals
 
-- Not ingestion or file storage — that is `rp-files` / `rp-store`.
-- Not structured shaping — that is `rp-struct`.
-- Not model conversion or analysis — that is `lm-modelconvertor` / `wf-*`.
-
+- Not file bytes or conversion.
+- Not JSON document storage.
 ## Responsibility boundary
 
 Owns classification logic and label assignment; does not own source

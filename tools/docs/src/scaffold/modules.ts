@@ -41,9 +41,9 @@ const MODULE_PURPOSES: Record<string, string> = {
 	"rp-functions":
 		"Provides the registry and search surface for callable AI function definitions and their embeddings.",
 	"rp-counters":
-		"Provides the service contract for collecting and querying analytical counters.",
+		"Stores per-tenant external analytics counter configs (tracking ids, head snippets) for SSR injection.",
 	"rp-dashboard":
-		"Provides dashboard data and analytical views for platform metrics.",
+		"Stores personal dashboard indicator pins: which widgets a user pinned, their order and display metadata.",
 	"lm-kubernetes":
 		"Integrates platform automation with Kubernetes resources through a dedicated client and service contract.",
 	"sf-orders":

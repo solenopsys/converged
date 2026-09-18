@@ -5,37 +5,26 @@
 The single file abstraction of the ecosystem: any module that needs
 "files" comes here instead of growing its own table of names and paths.
 Keeps metadata, collections, and chunk lists; the bytes themselves live in
-`rp-store`.
+block storage, reached through a store service client.
 
 ## Mental model
 
 File = record (name, extension, collection, owner) + ordered list of chunk
-references in `rp-store`. Classification (`detectType`), materialization,
+references in block storage. Classification (`detectType`), materialization,
 and persist operate on metadata — bytes are lifted only when really needed
 (model staging, download serving).
 
 ## Ecosystem value
 
-The entry point of the whole file intake:
+The entry point of file intake:
 
-- Requests and orders: attachments, drawings, models — no byte copying
-  between domains, just binding a fileId to an entity.
-- Production: `wf-files-process` → `wf-file-unpack` → `wf-file-analyze`
-  carry only fileIds and metadata; ZIPs unpack into new files right here,
-  slicing artifacts and GLB previews persist here too.
-- Content: galleries, markdown attachments, static — names and collection
-  organization with no knowledge of object storage.
-- Any extension works out of the box: type is decided by metadata, not by
-  a hardcoded format list.
+- Files, chunks, collections and metadata behind one API; chunk bytes delegated to block storage.
+- Any domain binds an opaque file id to its entity instead of copying bytes around.
 
 ## Non-goals
 
-- Stores no bytes — that is `rp-store`.
-- No unpacking, conversion, or slicing — that is `lm-compressors`,
-  `lm-modelconvertor`, processors (opencamlib/curaengine).
-- No business semantics: what a file means for an order or request is
-  decided by the calling domain.
-
+- Not raw block storage — chunk bytes live in the block store.
+- Not archive unpacking or model conversion.
 ## Responsibility boundary
 
 Owns file records, collections and chunk-list lifecycle; does not own
@@ -43,7 +32,8 @@ object storage implementation details or byte transformations.
 
 ## Direct module dependencies
 
-- `rp-store` — the content-addressed block store every file's bytes live in.
+- None — chunk bytes go through a store service client, which is a transport
+  call like any external consumer makes, not a module-to-module link.
   rp-files keeps names, collections and the chunk list; it stores no data.
 
 ## Solution membership

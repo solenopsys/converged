@@ -13,6 +13,7 @@ modules:
   business/rp-billing: _
   business/rp-equipment: _
   business/rp-events: _
+  business/rp-invoices: _
   business/rp-metering: _
   business/rp-finance: _
   business/rp-orders: _

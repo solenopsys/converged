@@ -16,19 +16,14 @@ profile. Auth proves the identity, access checks it, domains reference it.
 
 One "who" for the platform:
 
-- `rp-staff`, `rp-chats`, `rp-orders`, `rp-requests` — all link the same
-  profile, so renaming or deactivating hits everywhere at once.
-- Team invites and onboarding (`wf-team-invite`) create the identity once;
-  roles and permissions attach later via `rp-access`.
-- AI contexts and threads resolve authors against one registry instead of
-  per-module user tables.
+- User records, auth-method links and invites in one place.
+- Any domain stores an opaque user id and reads attributes on demand instead of forking profiles.
 
 ## Non-goals
 
-- Not login or sessions — that is `rp-auth`.
-- Not permissions — that is `rp-access`.
-- Not org structure or staffing semantics — that is `rp-staff`.
-
+- Not login or sessions.
+- Not permissions.
+- Not org structure or staffing semantics.
 ## Responsibility boundary
 
 Owns identity records and identity lifecycle state; does not own

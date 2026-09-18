@@ -15,28 +15,15 @@ identical chunk uploaded twice is stored once.
 
 ## Ecosystem value
 
-The foundation every other storage builds on:
+Content-addressed byte foundation:
 
-- `rp-files` keeps names, collections, and chunk lists — the bytes live here.
-- Call audio records (`rp-calls`): a conversation is easier to keep as a
-  block stream than as a file — slicing, streaming, cutting the middle
-  without rewriting a file.
-- Production artifacts: staged model bytes, GLB previews, slicing/CAM
-  results, `lm-compressors` cache while unpacking ZIPs.
-- Any future module that needs "bytes without file semantics" comes here
-  instead of inventing its own storage.
-
-Key pipeline invariant: workflows (`wf-file-unpack`, `wf-file-analyze`,
-`wf-request-analyze`) never hold bytes in memory — they carry only metadata
-and `CacheRef` references between `rp-files`, `rp-store`, and
-`lm-compressors`. Bytes flow store ↔ lambda directly.
+- Opaque byte blobs keyed by hash, stored once, referenced anywhere.
+- Any producer persists bytes without its own binary storage.
 
 ## Non-goals
 
-- No file names, extensions, or collections — that is `rp-files`.
-- No business semantics: whose order, request, or call it is.
-- No transcoding, unpacking, or conversion — that is `lm-*`.
-
+- Not file metadata or collections.
+- Not staged cache entries.
 ## Responsibility boundary
 
 Owns block put/get by content reference and chunk lifecycle; does not own

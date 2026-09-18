@@ -10,24 +10,10 @@
 		"slicing",
 		"quote"
 	],
-	"repositories": [
-		"dag",
-		"files",
-		"store",
-		"requests"
-	],
-	"lambdas": [
-		"compressors",
-		"modelconvertor"
-	],
-	"surfaces": [
-		"requests",
-		"files"
-	],
-	"processors": [
-		"curaengine",
-		"opencamlib"
-	],
+	"repositories": ["dag", "files", "store", "requests"],
+	"lambdas": ["compressors", "modelconvertor"],
+	"surfaces": ["requests", "files"],
+	"processors": ["curaengine", "opencamlib"],
 	"workflows": [
 		"files-process",
 		"file-unpack",

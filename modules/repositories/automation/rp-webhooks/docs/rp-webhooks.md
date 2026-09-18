@@ -9,26 +9,21 @@ inward. No domain exposes its own callback URL scheme.
 ## Mental model
 
 External system POSTs → webhook validates signature and shape → normalized
-event lands on the bus (`rp-events`) or fires a `rp-dag` trigger.
+event is recorded as a delivery and routed to the configured topic.
 Delivery attempts and validation live here; business reaction lives
 downstream.
 
 ## Ecosystem value
 
-One integration point for outsiders:
+One ingress for external callbacks:
 
-- Payment callbacks, carrier tracking, telephony hooks — same validation
-  and retry story.
-- New integrations add a webhook route, not a new server.
-- Domains stay decoupled: they subscribe to normalized events instead of
-  parsing provider payloads.
+- Endpoint configs and delivery records behind one API.
+- Any external system gets the same endpoint shape instead of per-integration plumbing.
 
 ## Non-goals
 
-- No business processing of the target system — the owning domain decides.
-- No outbound delivery policy — that is `rp-notify`.
-- No workflow execution — that is the runtime + `rp-dag`.
-
+- Not workflow execution.
+- Not event publishing or notification sending.
 ## Responsibility boundary
 
 Owns webhook transport, validation, and delivery attempts; does not own

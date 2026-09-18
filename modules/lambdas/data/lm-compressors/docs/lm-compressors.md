@@ -15,21 +15,15 @@ what a file means and never stores anything.
 
 ## Ecosystem value
 
-One place where bytes are touched:
+One place where archive bytes are touched:
 
-- `wf-file-unpack`: the `files.getChunks` / `store.getWithMeta` /
-  `compressors.unpack` sequence — archives become staged entries.
-- `wf-file-analyze` / `wf-request-analyze`: model staging before preview
-  and slicing estimates.
-- Any future archive or compression format lands here once and upgrades
-  every intake at once.
+- Compressed chunks in, staged entries out — one unpack shape for any caller.
+- Any future archive or compression format lands here once and upgrades every intake at once.
 
 ## Non-goals
 
-- No file records or chunk lifecycle — that is `rp-files` / `rp-store`.
-- No classification or analysis — that is `rp-classifier` / `wf-*`.
-- No business semantics.
-
+- Not file storage or classification.
+- Not model conversion or preview rendering.
 ## Responsibility boundary
 
 Owns byte assembly, decompression, archive parsing, output chunking, and

@@ -81,9 +81,10 @@ function retryable(error: unknown): boolean {
 	if (error instanceof HttpError) {
 		return error.status === 408 || error.status === 429 || error.status >= 500;
 	}
-	// Sockets die on their own schedule; a dropped connection is always worth
-	// one more try.
-	return error instanceof TypeError || error instanceof Error;
+	// Only transport-level failures are worth another try. Model-level
+	// failures (empty answer, bad JSON, omitted ids) are deterministic:
+	// retrying them burns minutes per file while looking hung.
+	return error instanceof TypeError;
 }
 
 /**

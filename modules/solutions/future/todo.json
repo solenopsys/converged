@@ -1,53 +1,51 @@
 {
-  "apiVersion": "ptah.io/v1alpha1",
-  "kind": "Solution",
-  "metadata": {
-    "name": "converged"
-  },
-  "spec": {
-    "platform": "converged",
-    "repositories": [
-      "billing",
-      "classifier",
-      "community",
-      "dag",
-      "dashboard",
-      "dumps",
-      "environment",
-      "equipment",
-      "events",
-      "metering",
-      "functions",
-      "notify",
-      "orders",
-      "resonus",
-      "reviews",
-      "sales",
-      "scripts",
-      "sheduller",
-      "staff",
-      "static",
-      "webhooks"
-    ],
-    "lambdas": [
-      "modelconvertor",
-      "push",
-      "secrets",
-      "ses",
-      "sms",
-      "smtp"
-    ],
-    "surfaces": [
-      "classifier",
-      "community",
-      "dag",
-      "dasboards",
-      "dumps",
-      "functions",
-      "orders",
-      "sheduller",
-      "static",
-      "webhooks"
-    ]
-  }
+	"apiVersion": "ptah.io/v1alpha1",
+	"kind": "Solution",
+	"metadata": {
+		"name": "converged"
+	},
+	"spec": {
+		"platform": "converged",
+		"repositories": [
+			"classifier",
+			"community",
+			"dag",
+			"dashboard",
+			"dumps",
+			"environment",
+			"equipment",
+			"events",
+			"functions",
+			"notify",
+			"orders",
+			"resonus",
+			"reviews",
+			"sales",
+			"scripts",
+			"sheduller",
+			"staff",
+			"static",
+			"webhooks"
+		],
+		"lambdas": [
+			"modelconvertor",
+			"push",
+			"secrets",
+			"ses",
+			"sms",
+			"smtp"
+		],
+		"surfaces": [
+			"classifier",
+			"community",
+			"dag",
+			"dasboards",
+			"dumps",
+			"functions",
+			"orders",
+			"sheduller",
+			"static",
+			"webhooks"
+		]
+	}
 }

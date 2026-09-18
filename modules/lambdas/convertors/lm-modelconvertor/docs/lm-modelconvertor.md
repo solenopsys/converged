@@ -14,20 +14,16 @@ transformation: no storage, no estimates, no business decisions.
 
 ## Ecosystem value
 
-One conversion point for production:
+One conversion point for production models:
 
-- `wf-file-analyze` / `wf-files-analyze` / `wf-request-analyze` all get GLB
-  previews from here — same output shape everywhere.
-- New formats and converter versions land once and upgrade every analysis
-  path.
+- A staged file in, converted outputs as cache refs out — same shape for any caller.
+- New formats and converter versions land once and upgrade every analysis path.
 - Keeps heavy native deps out of workflows and repositories.
 
 ## Non-goals
 
-- No model training or serving.
-- No slicing/CAM estimates — that is opencamlib/curaengine processors.
-- No file persistence — that is `rp-files`.
-
+- Not file storage or intake orchestration.
+- Not preview rendering or slicing estimates.
 ## Responsibility boundary
 
 Owns conversion/transformation routines; does not own upstream model

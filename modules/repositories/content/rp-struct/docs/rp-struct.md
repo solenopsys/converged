@@ -14,20 +14,15 @@ without re-parsing the source.
 
 ## Ecosystem value
 
-One shape language for content:
+One typeless JSON shelf:
 
-- Docs, landings, product cards: authored once, rendered everywhere.
-- AI pipelines: contexts and summaries consume structured blocks instead of
-  raw strings.
-- New surfaces plug in by rendering existing blocks — no per-channel
-  re-modeling.
+- JSON documents behind one file API.
+- Any producer stores structured blobs without its own file handling.
 
 ## Non-goals
 
-- Not final rendering — that is surfaces / `rp-markdown`.
-- Not classification — that is `rp-classifier`.
-- Not binary transcoding.
-
+- Not taxonomy or labeling.
+- Not markdown rendering.
 ## Responsibility boundary
 
 Owns structure modeling and schema-level shaping; does not own final

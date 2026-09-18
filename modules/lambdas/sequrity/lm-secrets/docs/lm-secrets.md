@@ -16,17 +16,14 @@ the contract.
 
 One vault door for all:
 
-- Provider credentials (SMTP, SMS, SES, push), OAuth client secrets,
-  integration tokens — same get/set/delete shape.
-- `rp-notify` and all `lm-*` provider adapters resolve credentials here
-  instead of hardcoding them.
-- Rotation and revocation are platform-wide, not per-service hunts.
+- Provider credentials, integration tokens, OAuth secrets — same get/set/delete shape.
+- Any consumer keeps secrets out of code and config; rotation happens in one place.
+- New integrations need no new secret plumbing.
 
 ## Non-goals
 
-- Not identity or permissions — that is `rp-identity` / `rp-access`.
-- Not session issuance — that is `rp-auth`.
-
+- Not authentication or permission checks.
+- Not user identity records.
 ## Responsibility boundary
 
 Owns storing, retrieving, and deleting named secret values; does not own

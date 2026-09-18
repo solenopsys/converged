@@ -1,0 +1,112 @@
+{
+	"surface": {
+		"label": "Support",
+		"purpose": "Report something broken, ask for something missing, and vote on what the club should build next"
+	},
+	"menu": {
+		"support": "Support",
+		"mine": "My tickets",
+		"features": "Features",
+		"queue": "Queue",
+		"overview": "Overview"
+	},
+	"type": {
+		"bug": "Bug",
+		"feature": "Feature"
+	},
+	"status": {
+		"open": "Open",
+		"planned": "Planned",
+		"in_progress": "In progress",
+		"done": "Done",
+		"rejected": "Rejected"
+	},
+	"systemMessage": {
+		"open": "Status set to open.",
+		"planned": "The 4IR team has taken this on.",
+		"in_progress": "Work has started.",
+		"done": "This is done.",
+		"rejected": "This was rejected."
+	},
+	"tabs": {
+		"all": "All",
+		"open": "Open",
+		"planned": "Planned"
+	},
+	"columns": {
+		"number": "#",
+		"title": "Title",
+		"type": "Type",
+		"status": "Status",
+		"votes": "Likes",
+		"created": "Opened",
+		"search": "Search"
+	},
+	"stats": {
+		"mine": "My tickets",
+		"mineOpen": "{count} still open",
+		"mineOpenShort": "Waiting on",
+		"features": "Features",
+		"planned": "Planned",
+		"plannedHint": "Taken on by the 4IR team",
+		"queue": "Open bugs"
+	},
+	"overview": {
+		"loading": "Loading…",
+		"rating": "What the club wants most",
+		"noFeatures": "Nobody has asked for anything yet",
+		"mine": "My tickets",
+		"noneMine": "You have not opened any tickets",
+		"queue": "Queue",
+		"queueEmpty": "No open bugs"
+	},
+	"detail": {
+		"loading": "Loading…",
+		"like": "Like",
+		"notFound": "Not available",
+		"notFoundHint": "This ticket does not exist, or it is a bug belonging to somebody else."
+	},
+	"composer": {
+		"reply": "Add to this ticket…"
+	},
+	"types": {
+		"ticket": {
+			"label": "Ticket",
+			"description": "Something broken or something missing, with a number, a type and the whole conversation about it"
+		},
+		"feature": {
+			"label": "Feature",
+			"description": "What the club is asking for, ordered by how many members want it"
+		},
+		"queue": {
+			"label": "Queue item",
+			"description": "Open bugs. The 4IR team sees every one; anybody else sees their own"
+		}
+	},
+	"operations": {
+		"create": {
+			"label": "Open a ticket",
+			"description": "Report something broken or ask for something missing. Describe it in your own words; the description becomes the first message in the ticket's thread."
+		},
+		"findSimilar": {
+			"label": "Find a feature like this",
+			"description": "Look for features that already ask for this. Use before opening a feature ticket: if one comes back, offer to like it instead of filing a duplicate.",
+			"done": "Similar features"
+		},
+		"vote": {
+			"label": "Like",
+			"description": "Add your like to a feature. One person, one like."
+		},
+		"unvote": {
+			"label": "Take back a like",
+			"description": "Remove your like from a feature."
+		},
+		"setStatus": {
+			"label": "Set status",
+			"description": "Move a ticket along. The 4IR team only."
+		}
+	},
+	"errors": {
+		"titleRequired": "A ticket needs a title"
+	}
+}

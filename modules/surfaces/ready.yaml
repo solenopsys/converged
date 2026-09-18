@@ -14,6 +14,7 @@ modules:
   communications/sf-calls: ready
   communications/sf-chats: _
   communications/sf-community: _
+  communications/sf-support: _
   communications/sf-threads: ready
   content/sf-classifier: _
   content/sf-docs: _

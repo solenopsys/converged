@@ -1,25 +1,8 @@
 {
 	"title": "Access and identity",
 	"summary": "Accounts, sign-in, permissions, each user's saved workspace, and the mail layer — sender, letter templates and delivery journal — every other solution authenticates and writes through.",
-	"keywords": [
-		"auth",
-		"login",
-		"accounts",
-		"permissions",
-		"identity",
-		"email"
-	],
-	"repositories": [
-		"access",
-		"auth",
-		"identity",
-		"environment",
-		"notify"
-	],
-	"lambdas": [
-		"ses"
-	],
-	"surfaces": [
-		"auth"
-	]
+	"keywords": ["auth", "login", "accounts", "permissions", "identity", "email"],
+	"repositories": ["access", "auth", "identity", "environment", "notify"],
+	"lambdas": ["ses"],
+	"surfaces": ["auth"]
 }

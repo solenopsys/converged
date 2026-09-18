@@ -21,9 +21,7 @@
 						}
 					}
 				},
-				"required": [
-					"fileIds"
-				]
+				"required": ["fileIds"]
 			}
 		},
 		{
@@ -39,9 +37,7 @@
 						"type": "string"
 					}
 				},
-				"required": [
-					"fileId"
-				]
+				"required": ["fileId"]
 			}
 		},
 		{
@@ -114,9 +110,7 @@
 						"type": "string"
 					}
 				},
-				"required": [
-					"requestId"
-				]
+				"required": ["requestId"]
 			}
 		},
 		{
@@ -138,20 +132,14 @@
 					},
 					"severity": {
 						"type": "string",
-						"enum": [
-							"warning",
-							"error",
-							"critical"
-						]
+						"enum": ["warning", "error", "critical"]
 					},
 					"dryRun": {
 						"type": "boolean",
 						"description": "Show what would be cancelled and blocked without changing anything"
 					}
 				},
-				"required": [
-					"equipmentId"
-				]
+				"required": ["equipmentId"]
 			}
 		},
 		{
@@ -179,10 +167,7 @@
 					},
 					"transport": {
 						"type": "string",
-						"enum": [
-							"ses",
-							"smtp"
-						],
+						"enum": ["ses", "smtp"],
 						"description": "Which relay this deployment runs; defaults to ses"
 					}
 				}
@@ -216,10 +201,7 @@
 					},
 					"transport": {
 						"type": "string",
-						"enum": [
-							"ses",
-							"smtp"
-						],
+						"enum": ["ses", "smtp"],
 						"description": "Which relay this deployment runs; defaults to ses"
 					}
 				}
@@ -247,11 +229,7 @@
 					},
 					"preset": {
 						"type": "string",
-						"enum": [
-							"manager",
-							"operator",
-							"viewer"
-						],
+						"enum": ["manager", "operator", "viewer"],
 						"description": "Role for everyone in this list"
 					},
 					"tags": {
@@ -282,10 +260,7 @@
 					},
 					"transport": {
 						"type": "string",
-						"enum": [
-							"ses",
-							"smtp"
-						],
+						"enum": ["ses", "smtp"],
 						"description": "Which relay this deployment runs; defaults to ses"
 					}
 				}

@@ -1,26 +1,8 @@
 {
 	"title": "Communications",
 	"summary": "Community spaces, chats, threads and the files shared in them.",
-	"keywords": [
-		"community",
-		"chat",
-		"threads",
-		"messages",
-		"files"
-	],
-	"repositories": [
-		"threads",
-		"community",
-		"chats",
-		"files",
-		"support"
-	],
-	"surfaces": [
-		"community",
-		"chats",
-		"threads"
-	],
-	"dependencies": [
-		"security"
-	]
+	"keywords": ["community", "chat", "threads", "messages", "files"],
+	"repositories": ["threads", "community", "chats", "files", "support"],
+	"surfaces": ["community", "chats", "threads", "support"],
+	"dependencies": ["security"]
 }

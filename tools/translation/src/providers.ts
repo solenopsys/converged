@@ -25,13 +25,18 @@ export type ResolvedProvider = {
 	endpoint: string;
 	model: string;
 	headers: Record<string, string>;
-	/** Request body for one batch of jobs and the shared instructions. */
-	body: (jobs: Job[], instructions: string) => unknown;
+	/** Request body for one source file (all its locale jobs at once).
+	 * The system block is the shared constant; the target locales ride
+	 * inside the user message so one request returns every translation. */
+	body: (jobs: Job[]) => unknown;
 	/** The model's answer text, from whichever envelope the provider uses. */
 	outputText: (response: Json) => string;
 };
 
-/** The JSON both providers are asked to return. */
+/** The JSON both providers are asked to return: one file, all locales.
+ * Kept as documentation for the local validator; it is NOT sent as a
+ * strict schema because dynamic locale keys are rejected by some
+ * providers (Meta 400 on OpenRouter). */
 const TRANSLATION_SCHEMA = {
 	type: "object",
 	properties: {
@@ -41,9 +46,12 @@ const TRANSLATION_SCHEMA = {
 				type: "object",
 				properties: {
 					id: { type: "string" },
-					translation: { type: "string" },
+					translations: {
+						type: "object",
+						additionalProperties: { type: "string" },
+					},
 				},
-				required: ["id", "translation"],
+				required: ["id", "translations"],
 				additionalProperties: false,
 			},
 		},
@@ -54,6 +62,7 @@ const TRANSLATION_SCHEMA = {
 
 function batchInput(jobs: Job[]): string {
 	return JSON.stringify({
+		locales: [...new Set(jobs.map((job) => job.locale))],
 		items: jobs.map(({ id, type, content }) => ({ id, type, content })),
 	});
 }
@@ -99,6 +108,26 @@ function openrouterOutputText(body: Json): string {
 }
 
 /**
+ * Shared instructions, identical for every request of a run. Kept
+ * locale-independent on purpose: prompt caches key on the prefix, so the
+ * target locales travel inside the user message (which changes anyway)
+ * while this system block stays a cache hit.
+ *
+ * The answer shape is pinned by example, not by schema: strict schemas
+ * with dynamic locale keys are rejected by some providers (Meta 400),
+ * while free `json_object` lets the model invent its own envelope —
+ * so the instruction shows the exact JSON to return.
+ */
+export const SHARED_INSTRUCTIONS =
+	"Translate every item from English into each requested locale. " +
+	"Preserve the exact document format. For JSON, keep every key, type, array order, ID, slug, URL, path, icon and code value; translate only human-readable string values. " +
+	"For Markdown, preserve heading levels, links, URLs, placeholders, inline code and fenced code. " +
+	'Return ONLY this JSON, no prose: {"items": [{"id": "<input id>", "translations": {"<locale>": "<translated full document>"}}]}. ' +
+	'Example: input {"locales": ["ru", "de"], "items": [{"id": "f", "type": "markdown", "content": "# Hello"}]} ' +
+	'→ {"items": [{"id": "f", "translations": {"ru": "# Привет", "de": "# Hallo"}}]}. ' +
+	"Return every input id exactly once, with a translation for every requested locale.";
+
+/**
  * Which provider a run uses, from the environment.
  *
  * `DOCS_TRANSLATION_PROVIDER` selects it (default `openai`);
@@ -138,20 +167,16 @@ export function resolveProvider(env = process.env): ResolvedProvider {
 					: {}),
 				...(env.OPENROUTER_TITLE ? { "X-Title": env.OPENROUTER_TITLE } : {}),
 			},
-			body: (jobs, instructions) => ({
+			body: (jobs) => ({
 				model,
 				messages: [
-					{ role: "system", content: instructions },
+					{ role: "system", content: SHARED_INSTRUCTIONS },
 					{ role: "user", content: batchInput(jobs) },
 				],
-				response_format: {
-					type: "json_schema",
-					json_schema: {
-						name: "document_translations",
-						strict: true,
-						schema: TRANSLATION_SCHEMA,
-					},
-				},
+				// No json_schema here on purpose: strict schemas with
+				// dynamic locale keys are rejected by some providers
+				// (Meta 400). The answer is parsed and validated locally.
+				response_format: { type: "json_object" },
 			}),
 			outputText: openrouterOutputText,
 		};
@@ -175,19 +200,14 @@ export function resolveProvider(env = process.env): ResolvedProvider {
 			Authorization: `Bearer ${apiKey}`,
 			"Content-Type": "application/json",
 		},
-		body: (jobs, instructions) => ({
+		body: (jobs) => ({
 			model,
 			store: false,
-			instructions,
+			instructions: SHARED_INSTRUCTIONS,
 			input: batchInput(jobs),
-			text: {
-				format: {
-					type: "json_schema",
-					name: "document_translations",
-					strict: true,
-					schema: TRANSLATION_SCHEMA,
-				},
-			},
+			// No structured-output schema here: dynamic locale keys are
+			// rejected by some providers (Meta 400). Validated locally.
+			text: { format: { type: "json_object" } },
 		}),
 		outputText: openaiOutputText,
 	};

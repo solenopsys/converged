@@ -14,19 +14,15 @@ This module stores and lists entries; it never executes anything itself.
 
 ## Ecosystem value
 
-One clock for all recurring work:
+One clock for recurring work:
 
-- Review chases (`wf-order-review-request` / followup), sales outreach,
-  digest summaries — all scheduled the same way.
-- History gives a single audit of "what ran last night" across domains.
-- New recurring jobs need only a cron row — no new timer infrastructure.
+- Cron rows, run history and stats behind one API.
+- Any recurring job needs only a cron row — no new timer infrastructure.
 
 ## Non-goals
 
-- No workflow execution, timers, retries, or dispatch — that is the runtime
-  + `rp-dag`.
-- No business decisions about what should run — the owning domain decides.
-
+- Not workflow definition or execution.
+- Not one-shot triggers — only recurring schedules.
 ## Responsibility boundary
 
 Owns CRUD/list/stats for cron entries and history records; does not

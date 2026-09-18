@@ -1,2 +1,2 @@
 export { default as webhooksGatewayPlugin } from "./plugin";
-export { verifyDelivery, type VerificationOutcome } from "./verify";
+export { type VerificationOutcome, verifyDelivery } from "./verify";

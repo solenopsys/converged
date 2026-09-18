@@ -40,7 +40,8 @@ function timingSafeEqual(left: string, right: string): boolean {
 	const b = new TextEncoder().encode(right);
 	if (a.length !== b.length) return false;
 	let difference = 0;
-	for (let index = 0; index < a.length; index++) difference |= a[index] ^ b[index];
+	for (let index = 0; index < a.length; index++)
+		difference |= a[index] ^ b[index];
 	return difference === 0;
 }
 
@@ -79,7 +80,8 @@ export async function verifyDelivery(
 	// Fail closed. A configuration that asks for a check it cannot perform is a
 	// mistake, and treating it as "no check" is how an endpoint quietly becomes
 	// public.
-	if (!secret) return { ok: false, reason: "endpoint has no secret configured" };
+	if (!secret)
+		return { ok: false, reason: "endpoint has no secret configured" };
 
 	if (mode === "secret") {
 		const presented = presentedToken(headers);
@@ -89,11 +91,21 @@ export async function verifyDelivery(
 			: { ok: false, reason: "token mismatch" };
 	}
 
-	const presented = header(headers, "x-webhook-signature")
-		?? header(headers, "x-hub-signature-256");
+	// Three spellings of the same thing, because producers do not agree on one:
+	// our own, GitHub's, and `x-signature` — which is what Lemon Squeezy sends.
+	// All three carry a hex sha256 over the body, which is what is computed
+	// below; a producer using a different algorithm needs its own mode, not
+	// another name here.
+	const presented =
+		header(headers, "x-webhook-signature") ??
+		header(headers, "x-hub-signature-256") ??
+		header(headers, "x-signature");
 	if (!presented) return { ok: false, reason: "missing signature" };
 	const expected = await hmacHex(secret, body);
-	const offered = presented.replace(/^sha256=/i, "").trim().toLowerCase();
+	const offered = presented
+		.replace(/^sha256=/i, "")
+		.trim()
+		.toLowerCase();
 	return timingSafeEqual(offered, expected)
 		? { ok: true }
 		: { ok: false, reason: "signature mismatch" };

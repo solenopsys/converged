@@ -16,21 +16,13 @@ All messages, ordering, and context live in the thread. Creating an entity
 
 One dialogue format everywhere:
 
-- `rp-chats`: a room holds a `threadId` — the conversation moves with the
-  room, membership changes never touch messages.
-- `rp-community`: a forum topic holds a `threadId` — discussion under the
-  topic with no duplicated message tables.
-- Calls, requests, orders: comments and correspondence attach via the same
-  `threadId` — dialogue belongs to the entity, not vice versa.
-- AI: dialogue summaries (`wf-dialogue-summary`) and the assistant read the
-  same thread instead of one adapter per chat.
+- Threads and ordered messages behind one API, keyed by opaque thread id.
+- Any entity attaches a discussion without its own message tables.
 
 ## Non-goals
 
-- No rooms, roles, or forum sections — that is `rp-chats`, `rp-community`.
-- No transport: email/SMS/push delivery is `rp-notify` + `lm-*`.
-- Calls nobody: thread registration is the calling repository's duty.
-
+- Not chat rooms or forum topics — only the message threads behind them.
+- Not notification delivery or dialogue summaries.
 ## Responsibility boundary
 
 Owns thread lifecycle, message ordering and thread-level metadata; does

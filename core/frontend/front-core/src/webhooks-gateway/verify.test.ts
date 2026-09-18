@@ -11,7 +11,11 @@ async function signature(body: string): Promise<string> {
 		false,
 		["sign"],
 	);
-	const raw = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(body));
+	const raw = await crypto.subtle.sign(
+		"HMAC",
+		key,
+		new TextEncoder().encode(body),
+	);
 	return Array.from(new Uint8Array(raw))
 		.map((byte) => byte.toString(16).padStart(2, "0"))
 		.join("");
@@ -19,28 +23,77 @@ async function signature(body: string): Promise<string> {
 
 describe("webhook delivery verification", () => {
 	test("a shared token is accepted from either header", async () => {
-		expect(await verifyDelivery("secret", secret, { "x-webhook-token": secret }, "")).toEqual({ ok: true });
-		expect(await verifyDelivery("secret", secret, { authorization: `Bearer ${secret}` }, "")).toEqual({ ok: true });
-		expect(await verifyDelivery("secret", secret, { Authorization: `Bearer ${secret}` }, "")).toEqual({ ok: true });
+		expect(
+			await verifyDelivery("secret", secret, { "x-webhook-token": secret }, ""),
+		).toEqual({ ok: true });
+		expect(
+			await verifyDelivery(
+				"secret",
+				secret,
+				{ authorization: `Bearer ${secret}` },
+				"",
+			),
+		).toEqual({ ok: true });
+		expect(
+			await verifyDelivery(
+				"secret",
+				secret,
+				{ Authorization: `Bearer ${secret}` },
+				"",
+			),
+		).toEqual({ ok: true });
 	});
 
 	test("a wrong or missing token is refused with a reason", async () => {
 		expect((await verifyDelivery("secret", secret, {}, "")).ok).toBe(false);
-		const wrong = await verifyDelivery("secret", secret, { "x-webhook-token": "nope!" }, "");
+		const wrong = await verifyDelivery(
+			"secret",
+			secret,
+			{ "x-webhook-token": "nope!" },
+			"",
+		);
 		expect(wrong).toEqual({ ok: false, reason: "token mismatch" });
 	});
 
 	test("an hmac covers the exact body, so a replay against another one fails", async () => {
 		const body = '{"amount":10}';
-		const headers = { "x-webhook-signature": `sha256=${await signature(body)}` };
-		expect(await verifyDelivery("hmac", secret, headers, body)).toEqual({ ok: true });
-		expect((await verifyDelivery("hmac", secret, headers, '{"amount":1000}')).ok).toBe(false);
+		const headers = {
+			"x-webhook-signature": `sha256=${await signature(body)}`,
+		};
+		expect(await verifyDelivery("hmac", secret, headers, body)).toEqual({
+			ok: true,
+		});
+		expect(
+			(await verifyDelivery("hmac", secret, headers, '{"amount":1000}')).ok,
+		).toBe(false);
+	});
+
+	// Lemon Squeezy signs with the same algorithm under a different header name,
+	// and unprefixed. Without this the endpoint refuses every real delivery with
+	// "missing signature".
+	test("an hmac is recognised under x-signature too", async () => {
+		const body = '{"meta":{"event_name":"order_created"}}';
+		const headers = { "x-signature": await signature(body) };
+		expect(await verifyDelivery("hmac", secret, headers, body)).toEqual({
+			ok: true,
+		});
 	});
 
 	test("an endpoint that asks for a check it cannot perform fails closed", async () => {
 		// The dangerous reading would be "no secret, no check, let it through".
-		expect((await verifyDelivery("secret", undefined, { "x-webhook-token": "x" }, "")).ok).toBe(false);
+		expect(
+			(
+				await verifyDelivery(
+					"secret",
+					undefined,
+					{ "x-webhook-token": "x" },
+					"",
+				)
+			).ok,
+		).toBe(false);
 		expect((await verifyDelivery("hmac", undefined, {}, "")).ok).toBe(false);
-		expect(await verifyDelivery("none", undefined, {}, "")).toEqual({ ok: true });
+		expect(await verifyDelivery("none", undefined, {}, "")).toEqual({
+			ok: true,
+		});
 	});
 });

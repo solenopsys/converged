@@ -16,18 +16,13 @@ the same source consistently.
 
 Single text backbone:
 
-- Docs, community posts, chat messages, review templates — same dialect
-  everywhere.
-- `rp-struct` blocks render through here on their way to surfaces.
-- AI outputs (summaries, assistant replies) reuse the same rendering
-  instead of raw-text dumps.
+- Markdown files plus JSON conversion behind one API.
+- Any producer stores human text the same way instead of its own file handling.
 
 ## Non-goals
 
-- Not structure modeling — that is `rp-struct`.
-- Not media transcoding or file conversion.
-- Not final page composition — that is surfaces.
-
+- Not typed block storage.
+- Not HTML rendering.
 ## Responsibility boundary
 
 Owns markdown conversion/parsing behavior; does not own rich media

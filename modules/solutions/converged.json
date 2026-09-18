@@ -10,7 +10,8 @@
 		"analitycs",
 		"automation",
 		"communications",
-		"production"
+		"production",
+		"billing"
 	],
 	"containers": [
 		"ui",

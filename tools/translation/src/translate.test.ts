@@ -62,8 +62,7 @@ test("translates actionable files and writes the locale target", async () => {
 					items: [
 						{
 							id: "docs:guide.md:ru",
-							translation: "# Руководство\n\nРусский текст.\n",
-						},
+							translations: { ru: "# Руководство\n\nРусский текст.\n" } },
 					],
 				}),
 			}),
@@ -122,8 +121,7 @@ test("openrouter provider sends chat completions and reads its answer", async ()
 								items: [
 									{
 										id: "docs:guide.md:ru",
-										translation: "# Руководство\n\nРусский текст.\n",
-									},
+										translations: { ru: "# Руководство\n\nРусский текст.\n" } },
 								],
 							}),
 						},
@@ -162,8 +160,10 @@ test("openrouter provider sends chat completions and reads its answer", async ()
 	expect(url).toBe("https://openrouter.ai/api/v1/chat/completions");
 	expect(auth).toBe("Bearer or-key");
 	expect(requestBody.model).toBe("test-translation-model");
-	const messages = requestBody.messages as Array<{ role: string }>;
+	const messages = requestBody.messages as Array<{ role: string; content: string }>;
 	expect(messages.map((message) => message.role)).toEqual(["system", "user"]);
+	const userPayload = JSON.parse(messages[1]?.content ?? "{}") as { locales?: string[] };
+	expect(userPayload.locales).toEqual(["ru"]);
 	expect(readFileSync(join(root, "cache", "ru", "guide.md"), "utf8")).toBe(
 		"# Руководство\n\nРусский текст.\n",
 	);
@@ -182,8 +182,7 @@ test("skips invalid translated JSON without overwriting the target", async () =>
 					items: [
 						{
 							id: "docs:config.json:ru",
-							translation: '{"title":"Незакрытая строка}',
-						},
+							translations: { ru: '{"title":"Незакрытая строка}' } },
 					],
 				}),
 			}),
@@ -231,7 +230,7 @@ test("skips translated JSON with missing source fields", async () => {
 			JSON.stringify({
 				output_text: JSON.stringify({
 					items: [
-						{ id: "docs:config.json:ru", translation: '{"title":"Перевод"}' },
+						{ id: "docs:config.json:ru", translations: { ru: '{"title":"Перевод"}' } },
 					],
 				}),
 			}),
@@ -331,8 +330,7 @@ test("skips a linked identical target, requeues an unlinked copy", async () => {
 					items: [
 						{
 							id: "docs:guide.md:ru",
-							translation: "# Руководство\n\nРусский текст.\n",
-						},
+							translations: { ru: "# Руководство\n\nРусский текст.\n" } },
 					],
 				}),
 			}),
@@ -397,17 +395,17 @@ test("large JSON goes string-by-string and keeps structure", async () => {
 		const body = JSON.parse(String(init?.body)) as {
 			input: string;
 		};
-		const items = JSON.parse(body.input).items as Array<{
+		const items = (JSON.parse(body.input) as { items: Array<{
 			id: string;
 			content: string;
-		}>;
+		}> }).items;
 		seen.push(...items.map((item) => item.content));
 		return new Response(
 			JSON.stringify({
 				output_text: JSON.stringify({
 					items: items.map((item) => ({
 						id: item.id,
-						translation: `RU:${item.content}`,
+						translations: { ru: `RU:${item.content}` },
 					})),
 				}),
 			}),
@@ -453,10 +451,10 @@ test("large JSON goes string-by-string and keeps structure", async () => {
 });
 
 /**
- * Concurrency is the point of the pool, so it is asserted directly: six
- * locales of small files used to be six strictly sequential requests.
+ * One file (all locales) is one request and one pool task: files fly
+ * concurrently, each returning every locale in a single answer.
  */
-test("batches from every locale share one pool and stay within the limit", async () => {
+test("each file translates all locales in one request, files in parallel", async () => {
 	const locales = ["ru", "de", "es", "fr", "it", "pt"];
 	for (let i = 0; i < 12; i += 1) {
 		writeFileSync(join(root, "docs", `doc-${i}.md`), `# Doc ${i}\n`);
@@ -470,9 +468,11 @@ test("batches from every locale share one pool and stay within the limit", async
 		peak = Math.max(peak, live);
 		requests += 1;
 		const body = JSON.parse(String(init?.body)) as { input: string };
-		const { items } = JSON.parse(body.input) as {
+		const parsed = JSON.parse(body.input) as {
+			locales: string[];
 			items: Array<{ id: string; content: string }>;
 		};
+		const { items, locales: want } = parsed;
 		await Bun.sleep(5);
 		live -= 1;
 		return new Response(
@@ -480,7 +480,9 @@ test("batches from every locale share one pool and stay within the limit", async
 				output_text: JSON.stringify({
 					items: items.map((item) => ({
 						id: item.id,
-						translation: `${item.content}translated\n`,
+						translations: Object.fromEntries(
+							want.map((locale) => [locale, `${item.content}translated-${locale}\n`]),
+						),
 					})),
 				}),
 			}),
@@ -521,14 +523,15 @@ test("batches from every locale share one pool and stay within the limit", async
 	);
 
 	expect(translated).toBe(72);
-	// 12 files over 6 locales, batched by 8: two batches per locale.
+	// 12 files, one multi-locale request each; the pool runs files
+	// concurrently.
 	expect(requests).toBe(12);
 	expect(peak).toBe(3);
 	expect(peak).toBeLessThanOrEqual(3);
 	expect(tally.requests).toBe(12);
 	expect(tally.translated).toBe(72);
 	expect(readFileSync(join(root, "cache", "pt", "doc-0.md"), "utf8")).toBe(
-		"# Doc 0\ntranslated\n",
+		"# Doc 0\ntranslated-pt\n",
 	);
 	store.close();
 });
@@ -550,7 +553,7 @@ test("a rate limit is waited out rather than failing the run", async () => {
 		return new Response(
 			JSON.stringify({
 				output_text: JSON.stringify({
-					items: items.map((item) => ({ id: item.id, translation: "ok\n" })),
+					items: items.map((item) => ({ id: item.id, translations: { [item.id.split(":").pop() as string]: "ok\n" } })),
 				}),
 			}),
 			{ status: 200, headers: { "Content-Type": "application/json" } },

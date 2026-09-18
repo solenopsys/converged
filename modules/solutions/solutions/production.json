@@ -10,19 +10,8 @@
 		"reviews",
 		"staff"
 	],
-	"repositories": [
-		"orders",
-		"equipment",
-		"events",
-		"reviews",
-		"staff"
-	],
-	"surfaces": [
-		"orders",
-		"equipment",
-		"reviews",
-		"team"
-	],
+	"repositories": ["orders", "equipment", "events", "reviews", "staff"],
+	"surfaces": ["orders", "equipment", "reviews", "team"],
 	"workflows": [
 		"request-to-order",
 		"equipment-incident",
@@ -30,9 +19,5 @@
 		"order-review-followup",
 		"team-invite"
 	],
-	"dependencies": [
-		"security",
-		"analitycs",
-		"requests"
-	]
+	"dependencies": ["security", "analitycs", "requests"]
 }

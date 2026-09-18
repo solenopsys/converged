@@ -30,12 +30,17 @@ spec:
     - webhooks
     - community
     - chats
+    - support
+    - billing
+    - metering
+    - invoices
     - orders
     - equipment
     - events
     - reviews
     - staff
   lambdas:
+    - lemonsqueezy
     - ses
     - compressors
     - modelconvertor
@@ -54,6 +59,7 @@ spec:
     - automation
     - community
     - chats
+    - support
     - orders
     - equipment
     - reviews
@@ -229,6 +235,25 @@ spec:
               - ses
               - smtp
             description: Which relay this deployment runs; defaults to ses
+    - id: payment-settle
+      name: wf-payment-settle
+      script: workflows/wf-payment-settle.js
+      brief: Settle an invoice from a payment webhook
+      description: Turn a verified delivery from the payment provider into a paid
+        invoice. The UI webhooks gateway checks the signature and publishes the
+        parsed body; this reads it, finds the invoice by the id carried through
+        the checkout, and marks it paid once. Re-running is safe — the provider's
+        own reference is unique, so a retried delivery settles nothing twice.
+      parameters:
+        type: object
+        properties:
+          body:
+            type: object
+            description: The bus event payload from the webhooks gateway
+          dryRun:
+            type: boolean
+        required:
+          - body
     - id: team-invite
       name: wf-team-invite
       script: workflows/wf-team-invite.js

@@ -2,38 +2,33 @@
 
 ## Purpose
 
-The shared analytical counter store: any module increments named counters
-instead of growing its own stats tables. Pre-aggregated numbers, cheap to
-read, ready for dashboards and billing.
+Per-tenant configuration of external analytics counters: stores tracking
+ids (GA4, GTM, Yandex Metrika, Meta Pixel) or a custom head snippet, so SSR
+can inject the right scripts per tenant.
 
 ## Mental model
 
-Producer increments a counter (name, dimensions, time bucket) → the store
-keeps running totals. Consumer reads totals per bucket without scanning raw
-events. Raw facts live in `rp-logs`/`rp-events`; here only the sums.
+Operator saves a counter (type, tracking id or snippet, enabled flag) → the
+store keeps the config. SSR reads enabled counters for the current tenant
+and renders the matching tags. No numbers are collected here, only the
+counter settings.
 
 ## Ecosystem value
 
-One numbers backend for everyone:
+One place for analytics wiring:
 
-- Product analytics: feature usage, request/order volumes per period.
-- `rp-dashboard` renders platform metrics from here instead of querying
-  every domain.
-- `rp-usage`/`rp-billing`: consumption totals feed quotas and invoicing
-  without re-counting raw events.
-- Any new module gets dashboards and stats on day one — just emit counters.
+- External counters (GA4, GTM, Metrika, Pixel) and custom snippets are
+  configured per tenant instead of being hardcoded per landing.
 
 ## Non-goals
 
-- Not raw event storage — that is `rp-events` / `rp-logs`.
-- Not health signals — that is `rp-telemetry`.
-- Not per-feature consumption semantics or invoicing — that is `rp-usage` /
-  `rp-billing`.
-
+- Not raw event storage.
+- Not numeric sample journals.
+- Not usage records or invoicing.
 ## Responsibility boundary
 
-Owns counter collection, bucketing, and querying; does not own raw event
-journaling or billing execution.
+Owns counter configs (type, tracking id or snippet, enabled flag); does not
+collect metrics, aggregate usage, or do billing.
 
 ## Direct module dependencies
 

@@ -2,11 +2,14 @@
 
 ## Purpose
 
-Curated analytical views over platform metrics: reads pre-aggregated counters and usage (rp-counters, rp-usage) and serves dashboard-ready shapes to surfaces. No raw-event scanning.
+Personal dashboard pin storage: remembers which indicator widgets a user
+pinned, their order and display metadata. No metrics are computed here,
+only the arrangement of the user's own screen.
 
 ## Responsibility boundary
 
-Owns dashboard composition and view queries; does not own raw event journaling, counter collection, or per-surface rendering.
+Owns pin rows (widget, title, source, position) with per-user visibility;
+does not own metrics, counters, or widget rendering.
 
 ## Direct module dependencies
 

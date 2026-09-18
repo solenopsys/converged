@@ -667,6 +667,22 @@
       ]
     },
     {
+      "owner": "rp-invoices",
+      "path": "modules/repositories/business/rp-invoices/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/business/rp-invoices/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-invoices",
+              "file": "modules/repositories/business/rp-invoices/docs/rp-invoices.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "owner": "rp-logs",
       "path": "modules/repositories/analytics/rp-logs/docs",
       "sections": [
@@ -693,6 +709,22 @@
             {
               "slug": "rp-markdown",
               "file": "modules/repositories/content/rp-markdown/docs/rp-markdown.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "rp-metering",
+      "path": "modules/repositories/business/rp-metering/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/business/rp-metering/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-metering",
+              "file": "modules/repositories/business/rp-metering/docs/rp-metering.md"
             }
           ]
         }
@@ -901,6 +933,22 @@
             {
               "slug": "rp-struct",
               "file": "modules/repositories/content/rp-struct/docs/rp-struct.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "rp-support",
+      "path": "modules/repositories/communications/rp-support/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/communications/rp-support/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-support",
+              "file": "modules/repositories/communications/rp-support/docs/rp-support.md"
             }
           ]
         }
@@ -1339,6 +1387,22 @@
       ]
     },
     {
+      "owner": "sf-support",
+      "path": "modules/surfaces/communications/sf-support/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/surfaces/communications/sf-support/docs/index.json",
+          "articles": [
+            {
+              "slug": "sf-support",
+              "file": "modules/surfaces/communications/sf-support/docs/sf-support.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "owner": "sf-team",
       "path": "modules/surfaces/sequrity/sf-team/docs",
       "sections": [
@@ -1525,6 +1589,22 @@
             {
               "slug": "wf-order-review-request",
               "file": "modules/workflows/wf-order-review-request/docs/wf-order-review-request.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "wf-payment-settle",
+      "path": "modules/workflows/wf-payment-settle/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/workflows/wf-payment-settle/docs/index.json",
+          "articles": [
+            {
+              "slug": "wf-payment-settle",
+              "file": "modules/workflows/wf-payment-settle/docs/wf-payment-settle.md"
             }
           ]
         }

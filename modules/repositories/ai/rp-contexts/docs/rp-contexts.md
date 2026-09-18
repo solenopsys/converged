@@ -14,20 +14,15 @@ Storage and retrieval live here; prompt engineering lives with the editors.
 
 ## Ecosystem value
 
-One knowledge shelf for all AI paths:
+One knowledge shelf for AI paths:
 
-- Assistant (`rp-assistant`), request analysis, dialogue summaries — all
-  resolve the same named contexts.
-- Multilingual surfaces get language variants from one place.
-- Updating a prompt upgrades every consumer at once — no per-workflow
-  string edits.
+- Named contexts with language variants behind one API.
+- Any AI path resolves the same named context instead of its own prompt copies.
 
 ## Non-goals
 
-- Not dialogue state or chat behavior — that is `rp-assistant` /
-  `rp-threads`.
-- Not model provider infrastructure.
-
+- Not chat history or dialogue threads.
+- Not prompt execution — only stored context texts.
 ## Responsibility boundary
 
 Owns storage and retrieval of named AI contexts and language variants;

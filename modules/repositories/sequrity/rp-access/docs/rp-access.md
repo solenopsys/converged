@@ -15,21 +15,15 @@ could call `deleteTopic`.
 
 ## Ecosystem value
 
-Single trust root for the platform:
+Single trust root for decisions:
 
-- All repositories delegate auth decisions here — adding a role or scope
-  upgrades every module at once.
-- `rp-auth` proves who you are, `rp-identity` says what you are, this module
-  decides what you may do — clean split, no overlaps.
-- Moderation, multi-tenancy, per-object visibility (e.g. published vs draft
-  reviews) all read from the same tree.
+- Permission tree, presets, tags and issued tokens live in one place.
+- Any service checks the same tree instead of growing its own policy tables.
 
 ## Non-goals
 
-- Not identity proofing or login — that is `rp-auth` / `rp-oauth`.
-- Not identity profiles — that is `rp-identity`.
-- Not secret storage — that is `lm-secrets`.
-
+- Not login or session issuance.
+- Not secret storage.
 ## Responsibility boundary
 
 Owns authorization policy evaluation and access scopes; does not own

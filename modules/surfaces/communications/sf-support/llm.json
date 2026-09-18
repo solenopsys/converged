@@ -1,0 +1,56 @@
+{
+	"actions": {
+		"support.ticket.findSimilar": {
+			"brief": "Find features that already ask for this",
+			"description": "Search the feature rating for wishes like the one described. ALWAYS call this before opening a feature ticket. If it answers with anything, show the member the closest match and offer to like it instead of filing a duplicate — a split rating is worse than a missing row. Answers with the set of similar features.",
+			"category": "support",
+			"exposure": "llm",
+			"priority": "primary",
+			"parameters": {
+				"type": "object",
+				"properties": { "title": { "type": "string" } },
+				"required": ["title"]
+			}
+		},
+		"support.ticket.create": {
+			"brief": "Open a bug or a feature ticket",
+			"description": "File a ticket from what the member described. Work out the type yourself: `bug` if something is broken, `feature` if something is missing. Write the title the way people say it out loud, and put the full description in `body` — it becomes the first message in the ticket's thread. For a feature, call support.ticket.findSimilar first and only create if nothing fits.",
+			"category": "support",
+			"exposure": "llm",
+			"priority": "primary",
+			"parameters": {
+				"type": "object",
+				"properties": {
+					"type": { "type": "string", "enum": ["bug", "feature"] },
+					"title": { "type": "string" },
+					"body": { "type": "string" }
+				},
+				"required": ["type", "title"]
+			}
+		},
+		"support.ticket.vote": {
+			"brief": "Like a feature",
+			"description": "Add the member's like to a feature — this is what to do when findSimilar turned up what they were about to ask for. One person, one like; liking twice changes nothing. Needs a ticket in context.",
+			"category": "support",
+			"exposure": "llm",
+			"priority": "primary"
+		},
+		"support.ticket.setStatus": {
+			"brief": "Move a ticket along",
+			"description": "Set a ticket's status. The 4IR team only — the service refuses anybody else, so do not offer this to a member. `planned` is how the team says it is taking a feature on; there is no priority field. Needs a ticket in context.",
+			"category": "support",
+			"exposure": "llm",
+			"priority": "normal",
+			"parameters": {
+				"type": "object",
+				"properties": {
+					"status": {
+						"type": "string",
+						"enum": ["open", "planned", "in_progress", "done", "rejected"]
+					}
+				},
+				"required": ["status"]
+			}
+		}
+	}
+}
