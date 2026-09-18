@@ -161,22 +161,24 @@ export default class DagServiceImpl implements DagService {
 					(proxy && digests[workflow.script]
 						? `${proxy}/${digests[workflow.script]}`
 						: undefined);
-				const parameters = asParameters(workflow.parameters);
-				return [
-					{
-						id: typeof workflow.id === "string" ? workflow.id : workflow.name,
-						name: workflow.name,
-						script: workflow.script,
-						...(typeof workflow.brief === "string"
-							? { brief: workflow.brief }
-							: {}),
-						...(typeof workflow.description === "string"
-							? { description: workflow.description }
-							: {}),
-						...(parameters ? { parameters } : {}),
-						...(sourceUrl ? { sourceUrl } : {}),
-					},
-				];
+			const parameters = asParameters(workflow.parameters);
+			const paramsExample = asParamsExample(workflow.paramsExample);
+			return [
+				{
+					id: typeof workflow.id === "string" ? workflow.id : workflow.name,
+					name: workflow.name,
+					script: workflow.script,
+					...(typeof workflow.brief === "string"
+						? { brief: workflow.brief }
+						: {}),
+					...(typeof workflow.description === "string"
+						? { description: workflow.description }
+						: {}),
+					...(parameters ? { parameters } : {}),
+					...(paramsExample ? { paramsExample } : {}),
+					...(sourceUrl ? { sourceUrl } : {}),
+				},
+			];
 			}),
 		};
 	}
@@ -560,6 +562,12 @@ function asParameters(
 			? { required: parameters.required as string[] }
 			: {}),
 	};
+}
+
+function asParamsExample(value: unknown): Record<string, unknown> | undefined {
+	if (!value || typeof value !== "object" || Array.isArray(value))
+		return undefined;
+	return value as Record<string, unknown>;
 }
 
 function parseStringMap(raw: string | undefined): Record<string, string> {

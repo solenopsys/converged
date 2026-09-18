@@ -140,7 +140,7 @@ export const dagContribution: Pick<
 			accepts: objectOf("dag.workflow"),
 			component: RunWorkflowView,
 			props: (ref) => {
-				if (ref.kind === "object") openRunForm({ script: ref.id });
+				if (ref.kind === "object") void openRunFormFromCatalog(ref.id);
 				return {};
 			},
 		},
@@ -203,4 +203,29 @@ async function loadTrigger(id: string): Promise<void> {
 	});
 	const trigger = (result.items?.[0] as WorkflowTrigger) ?? null;
 	openTriggerForm({ trigger });
+}
+
+/**
+ * The table row carries the whole descriptor; the run form wants it too, so
+ * the detail screen shows brief, description and the example params instead
+ * of a bare script path and an empty "{}". The ref id is the script path.
+ */
+async function openRunFormFromCatalog(script: string): Promise<void> {
+	const result = await dagService.listWorkflows({
+		offset: 0,
+		limit: 1,
+		filter: { script: { eq: script } },
+	});
+	const row = (result.items?.[0] as Record<string, any> | undefined) ?? {};
+	openRunForm({
+		script,
+		...(typeof row.name === "string" ? { name: row.name } : {}),
+		...(typeof row.brief === "string" ? { brief: row.brief } : {}),
+		...(typeof row.description === "string"
+			? { description: row.description }
+			: {}),
+		...(row.paramsExample && typeof row.paramsExample === "object"
+			? { paramsExample: row.paramsExample as Record<string, unknown> }
+			: {}),
+	});
 }

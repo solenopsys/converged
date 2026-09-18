@@ -4,6 +4,7 @@ import { openExecution } from "../domain-executions";
 import {
 	$lastRun,
 	$runForm,
+	fillExampleClicked,
 	paramsChanged,
 	runClicked,
 	runFormClosed,
@@ -14,7 +15,9 @@ import {
  * Start a workflow by hand.
  *
  * Parameters are typed as JSON for the same reason a trigger's are: the shape
- * belongs to the workflow, and a text field is always in step with it.
+ * belongs to the workflow, and a text field is always in step with it. The
+ * Solution descriptor's brief/description say what the run does, and its
+ * paramsExample prefills the field so an empty "{}" is never the start.
  */
 export function RunWorkflowView() {
 	const form = useUnit($runForm);
@@ -30,11 +33,32 @@ export function RunWorkflowView() {
 		<div className="flex h-full min-h-0 flex-col gap-4 p-4">
 			<div>
 				<Label>Workflow</Label>
-				<div className="font-mono text-sm">{form.script}</div>
+				{form.name && <div className="text-sm font-medium">{form.name}</div>}
+				<div className="font-mono text-sm text-muted-foreground">
+					{form.script}
+				</div>
+				{form.brief && <div className="mt-1 text-sm">{form.brief}</div>}
+				{form.description && (
+					<div className="mt-1 text-sm text-muted-foreground">
+						{form.description}
+					</div>
+				)}
 			</div>
 
 			<div className="flex min-h-0 flex-1 flex-col gap-1">
-				<Label>Parameters</Label>
+				<div className="flex items-center justify-between">
+					<Label>Parameters</Label>
+					{form.paramsExample && (
+						<Button
+							variant="outline"
+							size="sm"
+							disabled={running}
+							onClick={() => fillExampleClicked()}
+						>
+							Fill example
+						</Button>
+					)}
+				</div>
 				<Textarea
 					className="min-h-40 flex-1 font-mono text-sm"
 					value={form.params}

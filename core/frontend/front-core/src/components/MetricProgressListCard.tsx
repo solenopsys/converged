@@ -87,7 +87,7 @@ export function MetricProgressListCard({
 										<Progress value={progress} className="h-2 rounded-sm" />
 										<div className="w-12 text-right font-mono text-xs">{formatProgress(progress)}</div>
 									</div>
-									<div className="flex min-w-0 flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+									<div className="flex min-w-0 flex-col gap-y-1 text-[11px] text-muted-foreground">
 										{(item.metrics ?? []).map((metric) => (
 											<span key={metric.key} className="inline-flex items-center gap-1" title={metric.label}>
 												{metric.color ? (

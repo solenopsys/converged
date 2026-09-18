@@ -20,6 +20,8 @@ export type MappingEntry = {
 	brief?: string;
 	description?: string;
 	parameters?: Record<string, unknown>;
+	/** Valid example params, prefilled in the admin run form. */
+	paramsExample?: Record<string, unknown>;
 };
 
 export type ResolvedSolution = {
@@ -126,7 +128,7 @@ export function mappingsFrom(
 			if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
 				throw new Error(`[dev] ${path}.${group} contains an invalid entry`);
 			}
-			const { id, name, script, brief, description, parameters } =
+			const { id, name, script, brief, description, parameters, paramsExample } =
 				entry as JsonObject;
 			if (typeof name !== "string" || typeof script !== "string") {
 				throw new Error(
@@ -155,6 +157,9 @@ export function mappingsFrom(
 				...(typeof description === "string" ? { description } : {}),
 				...(parameters
 					? { parameters: parameters as Record<string, unknown> }
+					: {}),
+				...(paramsExample && typeof paramsExample === "object" && !Array.isArray(paramsExample)
+					? { paramsExample: paramsExample as Record<string, unknown> }
 					: {}),
 			});
 		}

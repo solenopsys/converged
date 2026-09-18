@@ -90,12 +90,22 @@ export function collectStatisticSections(): StatisticSection[] {
 	}
 
 	return [...sections.values()]
-		.map((section) => ({
-			...section,
-			widgets: [...section.widgets].sort((left, right) =>
-				left.typeId.localeCompare(right.typeId),
-			),
-		}))
+		.map((section) => {
+			// A componentless statistic type is the service's own whole screen,
+			// kept as the fallback for a service that is not split into blocks.
+			// Once the service publishes blocks, that screen is a duplicate of
+			// them, so the blocks win and the screen steps aside.
+			const blocks = section.widgets.filter(
+				(widget) => widget.statistic?.component,
+			);
+			const widgets = blocks.length > 0 ? blocks : section.widgets;
+			return {
+				...section,
+				widgets: [...widgets].sort((left, right) =>
+					left.typeId.localeCompare(right.typeId),
+				),
+			};
+		})
 		.sort((left, right) => left.label.localeCompare(right.label));
 }
 

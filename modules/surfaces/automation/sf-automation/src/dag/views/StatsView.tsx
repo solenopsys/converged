@@ -81,25 +81,31 @@ export const StatsView = () => {
 		>
 			<ScrollArea className="min-h-0 flex-1">
 				<DashboardLayout>
-					{statItems.map((item) => (
-						<StatisticCard
-							key={item.key}
-							title={item.label}
-							value={String(item.value)}
-							icon={item.icon}
+					<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+						{statItems.map((item) => (
+							<StatisticCard
+								key={item.key}
+								title={item.label}
+								value={String(item.value)}
+								icon={item.icon}
+							/>
+						))}
+					</div>
+					<div className="h-[320px]">
+						<ExecutionDailyLineChart
+							data={stats.daily ?? []}
+							title="Runs per day"
+							description="Last 30 days"
 						/>
-					))}
-					<ExecutionDailyLineChart
-						data={stats.daily ?? []}
-						title="Runs per day"
-						description="Last 30 days"
-					/>
-					<ExecutionStatusPieChart title="By status" data={statusData} />
-					<ExecutionWorkflowBarChart
-						title="By workflow"
-						description="Busiest ten"
-						data={workflowData}
-					/>
+					</div>
+					<div className="grid gap-4 xl:grid-cols-2">
+						<ExecutionStatusPieChart title="By status" data={statusData} />
+						<ExecutionWorkflowBarChart
+							title="By workflow"
+							description="Busiest ten"
+							data={workflowData}
+						/>
+					</div>
 				</DashboardLayout>
 			</ScrollArea>
 		</HeaderPanelLayout>

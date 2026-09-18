@@ -3,6 +3,7 @@ import { invokeAction } from "front-core/core";
 import { translator } from "i18n";
 import { useEffect } from "preact/hooks";
 import { CHAT_MESSAGES_NAMESPACE } from "../chat/i18n";
+import { ContentContainer } from "../components/ContentContainer";
 import { ChevronDown, ChevronRight, Plus, RotateCcw, X } from "../icons";
 import { cn } from "../lib/utils";
 import { CatalogMenu } from "../tabs";
@@ -243,7 +244,7 @@ export function StatisticsDashboard() {
 	const addLabel = t("statistics.addSection");
 
 	return (
-		<div className="flex flex-col gap-3 p-4">
+		<ContentContainer className="flex flex-col gap-3 p-4">
 			<div className="home-toolbar">
 				<CatalogMenu
 					model={homeMenu}
@@ -278,6 +279,6 @@ export function StatisticsDashboard() {
 					/>
 				))
 			)}
-		</div>
+		</ContentContainer>
 	);
 }

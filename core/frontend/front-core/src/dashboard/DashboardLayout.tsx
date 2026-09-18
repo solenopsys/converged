@@ -1,4 +1,5 @@
 import type { ReactNode } from "preact/compat";
+import { ContentContainer } from "../components/ContentContainer";
 import { DashboardPinScope } from "./DashboardPinScope";
 
 export function DashboardLayout({
@@ -10,7 +11,9 @@ export function DashboardLayout({
 }) {
 	return (
 		<DashboardPinScope scopeId={pinScopeId}>
-			<div className="flex flex-col gap-4">{children}</div>
+			<ContentContainer className="flex flex-col gap-4">
+				{children}
+			</ContentContainer>
 		</DashboardPinScope>
 	);
 }

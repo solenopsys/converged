@@ -86,6 +86,7 @@ export type {
 	HeaderTab,
 	SelectionAction,
 } from "./components/HeaderPanel";
+export { ContentContainer } from "./components/ContentContainer";
 export { HeaderPanel } from "./components/HeaderPanel";
 export { HeaderPanelLayout } from "./components/HeaderPanelLayout";
 export { JsonRenderer } from "./components/json-renderer";

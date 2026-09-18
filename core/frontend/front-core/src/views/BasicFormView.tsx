@@ -7,7 +7,14 @@ import { Textarea } from "../components/ui/textarea";
 import { Label } from "../components/ui/label";
 import { Button } from "../components/ui/button";
 import { Checkbox } from "../components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { ContentContainer } from "../components/ContentContainer";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "../components/ui/select";
 import { type FieldConfig, validateFormData } from "../table/fields";
 
 const FIELD_TYPES = {
@@ -48,9 +55,17 @@ export interface RelatedSectionConfig {
 	parentKey?: string;
 	tableId?: string;
 	emptyMessage?: string;
-	load: (params: { parent: any; parentId: any }) => Promise<{ items?: any[]; totalCount?: number } | any[]>;
+	load: (params: {
+		parent: any;
+		parentId: any;
+	}) => Promise<{ items?: any[]; totalCount?: number } | any[]>;
 	onRowClick?: (row: any, parent: any) => void;
-	renderItem?: (params: { item: any; parent: any; index: number; onClick: () => void }) => React.ReactNode;
+	renderItem?: (params: {
+		item: any;
+		parent: any;
+		index: number;
+		onClick: () => void;
+	}) => React.ReactNode;
 }
 
 const formatRelatedValue = (value: any) => {
@@ -61,7 +76,13 @@ const formatRelatedValue = (value: any) => {
 	return String(value);
 };
 
-const RelatedSection = ({ section, entity }: { section: RelatedSectionConfig; entity: any }) => {
+const RelatedSection = ({
+	section,
+	entity,
+}: {
+	section: RelatedSectionConfig;
+	entity: any;
+}) => {
 	const parentKey = section.parentKey ?? "id";
 	const parentId = entity?.[parentKey];
 	const [items, setItems] = useState<any[]>([]);
@@ -104,9 +125,13 @@ const RelatedSection = ({ section, entity }: { section: RelatedSectionConfig; en
 			{error ? (
 				<div className="px-6 pb-4 text-sm text-destructive">{error}</div>
 			) : loading ? (
-				<div className="px-6 pb-4 text-sm text-muted-foreground">Loading...</div>
+				<div className="px-6 pb-4 text-sm text-muted-foreground">
+					Loading...
+				</div>
 			) : items.length === 0 ? (
-				<div className="px-6 pb-4 text-sm text-muted-foreground">{section.emptyMessage ?? "No related records"}</div>
+				<div className="px-6 pb-4 text-sm text-muted-foreground">
+					{section.emptyMessage ?? "No related records"}
+				</div>
 			) : (
 				<div className="flex flex-col gap-2 px-3 pb-4">
 					{items.map((item, index) => {
@@ -114,11 +139,17 @@ const RelatedSection = ({ section, entity }: { section: RelatedSectionConfig; en
 						const onClick = () => section.onRowClick?.(item, entity);
 
 						if (section.renderItem) {
-							return <React.Fragment key={key}>{section.renderItem({ item, parent: entity, index, onClick })}</React.Fragment>;
+							return (
+								<React.Fragment key={key}>
+									{section.renderItem({ item, parent: entity, index, onClick })}
+								</React.Fragment>
+							);
 						}
 
 						const titleColumn = section.columns[0];
-						const detailColumns = section.columns.slice(1).filter((column) => column.id !== "createdAt");
+						const detailColumns = section.columns
+							.slice(1)
+							.filter((column) => column.id !== "createdAt");
 						const titleValue = titleColumn ? item?.[titleColumn.id] : key;
 
 						return (
@@ -128,14 +159,20 @@ const RelatedSection = ({ section, entity }: { section: RelatedSectionConfig; en
 								className="w-full rounded-md border bg-background px-4 py-3 text-left hover:bg-accent"
 								onClick={onClick}
 							>
-								<div className="mb-2 truncate text-sm font-semibold">{formatRelatedValue(titleValue)}</div>
+								<div className="mb-2 truncate text-sm font-semibold">
+									{formatRelatedValue(titleValue)}
+								</div>
 								<div className="grid grid-cols-[120px_1fr] gap-x-3 gap-y-1 text-sm">
 									{detailColumns.map((column) => {
 										const rendered = column.render?.(item?.[column.id], item);
 										return (
 											<React.Fragment key={column.id}>
-												<span className="text-muted-foreground">{column.title}</span>
-												<span className="min-w-0 break-words">{rendered ?? formatRelatedValue(item?.[column.id])}</span>
+												<span className="text-muted-foreground">
+													{column.title}
+												</span>
+												<span className="min-w-0 break-words">
+													{rendered ?? formatRelatedValue(item?.[column.id])}
+												</span>
 											</React.Fragment>
 										);
 									})}
@@ -183,7 +220,11 @@ export const BasicFormView: React.FC<BasicFormViewProps> = ({
 			} else {
 				val = "";
 			}
-			if (field.type === FIELD_TYPES.TEXTAREA && val !== null && typeof val === "object") {
+			if (
+				field.type === FIELD_TYPES.TEXTAREA &&
+				val !== null &&
+				typeof val === "object"
+			) {
 				val = JSON.stringify(val, null, 2);
 			}
 			initial[field.id] = val;
@@ -200,7 +241,11 @@ export const BasicFormView: React.FC<BasicFormViewProps> = ({
 			const updated: Record<string, any> = {};
 			fields.forEach((field) => {
 				let val = entity[field.id] ?? field.defaultValue ?? "";
-				if (field.type === FIELD_TYPES.TEXTAREA && val !== null && typeof val === "object") {
+				if (
+					field.type === FIELD_TYPES.TEXTAREA &&
+					val !== null &&
+					typeof val === "object"
+				) {
 					val = JSON.stringify(val, null, 2);
 				}
 				updated[field.id] = val;
@@ -263,7 +308,8 @@ export const BasicFormView: React.FC<BasicFormViewProps> = ({
 				<div key={field.id} className="space-y-2">
 					<Label className="text-sm font-medium">{field.title}</Label>
 					<div className="text-sm text-muted-foreground">
-						{field.type === FIELD_TYPES.DATE || field.type === FIELD_TYPES.DATETIME
+						{field.type === FIELD_TYPES.DATE ||
+						field.type === FIELD_TYPES.DATETIME
 							? value
 								? new Date(value).toLocaleString()
 								: "-"
@@ -288,18 +334,27 @@ export const BasicFormView: React.FC<BasicFormViewProps> = ({
 					<div key={field.id} className="space-y-2">
 						<Label htmlFor={field.id}>
 							{field.title}
-							{field.required && <span className="text-destructive ml-1">*</span>}
+							{field.required && (
+								<span className="text-destructive ml-1">*</span>
+							)}
 						</Label>
 						<Input
 							{...commonProps}
 							type={field.type === FIELD_TYPES.NUMBER ? "number" : field.type}
 							value={value}
 							onChange={(e) =>
-								handleChange(field.id, field.type === FIELD_TYPES.NUMBER ? Number(e.target.value) : e.target.value)
+								handleChange(
+									field.id,
+									field.type === FIELD_TYPES.NUMBER
+										? Number(e.target.value)
+										: e.target.value,
+								)
 							}
 							placeholder={field.placeholder}
 						/>
-						{field.helpText && !error && <p className="text-xs text-muted-foreground">{field.helpText}</p>}
+						{field.helpText && !error && (
+							<p className="text-xs text-muted-foreground">{field.helpText}</p>
+						)}
 						{error && <p className="text-xs text-destructive">{error}</p>}
 					</div>
 				);
@@ -309,7 +364,9 @@ export const BasicFormView: React.FC<BasicFormViewProps> = ({
 					<div key={field.id} className="space-y-2">
 						<Label htmlFor={field.id}>
 							{field.title}
-							{field.required && <span className="text-destructive ml-1">*</span>}
+							{field.required && (
+								<span className="text-destructive ml-1">*</span>
+							)}
 						</Label>
 						<Textarea
 							{...commonProps}
@@ -318,7 +375,9 @@ export const BasicFormView: React.FC<BasicFormViewProps> = ({
 							placeholder={field.placeholder}
 							rows={field.rows || 3}
 						/>
-						{field.helpText && !error && <p className="text-xs text-muted-foreground">{field.helpText}</p>}
+						{field.helpText && !error && (
+							<p className="text-xs text-muted-foreground">{field.helpText}</p>
+						)}
 						{error && <p className="text-xs text-destructive">{error}</p>}
 					</div>
 				);
@@ -328,11 +387,19 @@ export const BasicFormView: React.FC<BasicFormViewProps> = ({
 					<div key={field.id} className="space-y-2">
 						<Label htmlFor={field.id}>
 							{field.title}
-							{field.required && <span className="text-destructive ml-1">*</span>}
+							{field.required && (
+								<span className="text-destructive ml-1">*</span>
+							)}
 						</Label>
-						<Select value={String(value)} onValueChange={(val) => handleChange(field.id, val)} disabled={commonProps.disabled}>
+						<Select
+							value={String(value)}
+							onValueChange={(val) => handleChange(field.id, val)}
+							disabled={commonProps.disabled}
+						>
 							<SelectTrigger aria-invalid={isInvalid}>
-								<SelectValue placeholder={field.placeholder || `Select ${field.title}`} />
+								<SelectValue
+									placeholder={field.placeholder || `Select ${field.title}`}
+								/>
 							</SelectTrigger>
 							<SelectContent>
 								{field.options?.map((option) => (
@@ -342,7 +409,9 @@ export const BasicFormView: React.FC<BasicFormViewProps> = ({
 								))}
 							</SelectContent>
 						</Select>
-						{field.helpText && !error && <p className="text-xs text-muted-foreground">{field.helpText}</p>}
+						{field.helpText && !error && (
+							<p className="text-xs text-muted-foreground">{field.helpText}</p>
+						)}
 						{error && <p className="text-xs text-destructive">{error}</p>}
 					</div>
 				);
@@ -353,15 +422,21 @@ export const BasicFormView: React.FC<BasicFormViewProps> = ({
 					<div key={field.id} className="space-y-2">
 						<Label htmlFor={field.id}>
 							{field.title}
-							{field.required && <span className="text-destructive ml-1">*</span>}
+							{field.required && (
+								<span className="text-destructive ml-1">*</span>
+							)}
 						</Label>
 						<Input
 							{...commonProps}
-							type={field.type === FIELD_TYPES.DATETIME ? "datetime-local" : "date"}
+							type={
+								field.type === FIELD_TYPES.DATETIME ? "datetime-local" : "date"
+							}
 							value={value}
 							onChange={(e) => handleChange(field.id, e.target.value)}
 						/>
-						{field.helpText && !error && <p className="text-xs text-muted-foreground">{field.helpText}</p>}
+						{field.helpText && !error && (
+							<p className="text-xs text-muted-foreground">{field.helpText}</p>
+						)}
 						{error && <p className="text-xs text-destructive">{error}</p>}
 					</div>
 				);
@@ -369,10 +444,16 @@ export const BasicFormView: React.FC<BasicFormViewProps> = ({
 			case FIELD_TYPES.BOOLEAN:
 				return (
 					<div key={field.id} className="flex items-center space-x-2">
-						<Checkbox {...commonProps} checked={!!value} onCheckedChange={(checked) => handleChange(field.id, checked)} />
+						<Checkbox
+							{...commonProps}
+							checked={!!value}
+							onCheckedChange={(checked) => handleChange(field.id, checked)}
+						/>
 						<Label htmlFor={field.id} className="cursor-pointer">
 							{field.title}
-							{field.required && <span className="text-destructive ml-1">*</span>}
+							{field.required && (
+								<span className="text-destructive ml-1">*</span>
+							)}
 						</Label>
 						{error && <p className="text-xs text-destructive ml-2">{error}</p>}
 					</div>
@@ -388,18 +469,29 @@ export const BasicFormView: React.FC<BasicFormViewProps> = ({
 	};
 
 	return (
-		<div className="flex flex-col h-full">
+		<ContentContainer size="form" className="flex h-full flex-col">
 			<div className="px-6 py-4 border-b">
 				<h2 className="text-lg font-semibold">{title}</h2>
-				{subtitle && <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>}
+				{subtitle && (
+					<p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
+				)}
 			</div>
 
-			<form onSubmit={handleSubmit} className="flex flex-1 min-h-0 flex-col overflow-auto">
-				<div className="shrink-0 px-6 py-4 space-y-4">{fields.map(renderField)}</div>
+			<form
+				onSubmit={handleSubmit}
+				className="flex flex-1 min-h-0 flex-col overflow-auto"
+			>
+				<div className="shrink-0 px-6 py-4 space-y-4">
+					{fields.map(renderField)}
+				</div>
 				{relatedSections.length > 0 && entity && (
 					<div className="flex min-h-0 flex-1 flex-col pb-4">
 						{relatedSections.map((section) => (
-							<RelatedSection key={section.id} section={section} entity={entity} />
+							<RelatedSection
+								key={section.id}
+								section={section}
+								entity={entity}
+							/>
 						))}
 					</div>
 				)}
@@ -408,15 +500,24 @@ export const BasicFormView: React.FC<BasicFormViewProps> = ({
 			<div className="border-t px-6 py-4">
 				<div className="flex justify-end gap-3">
 					{(onCancel || onClose) && (
-						<Button type="button" variant="outline" onClick={handleCancel} disabled={isSubmitting || loading}>
+						<Button
+							type="button"
+							variant="outline"
+							onClick={handleCancel}
+							disabled={isSubmitting || loading}
+						>
 							{cancelButtonText}
 						</Button>
 					)}
-					<Button type="submit" onClick={handleSubmit} disabled={isSubmitting || loading}>
+					<Button
+						type="submit"
+						onClick={handleSubmit}
+						disabled={isSubmitting || loading}
+					>
 						{isSubmitting ? "Saving..." : saveButtonText}
 					</Button>
 				</div>
 			</div>
-		</div>
+		</ContentContainer>
 	);
 };

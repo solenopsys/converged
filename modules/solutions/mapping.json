@@ -3,7 +3,47 @@
 		{
 			"id": "dialogue-summary",
 			"name": "wf-dialogue-summary",
-			"script": "workflows/wf-dialogue-summary.js"
+			"script": "workflows/wf-dialogue-summary.js",
+			"brief": "Summarize unprocessed chats and calls",
+			"description": "Pull chats and calls still flagged processed=false, build a transcript of each dialogue and ask the LLM for a title, description and flud flag, then write the summary back. One bad dialogue lands in errors and the batch carries on.",
+			"parameters": {
+				"type": "object",
+				"properties": {
+					"provider": {
+						"type": "string",
+						"description": "LLM provider for the summary pass"
+					},
+					"model": {
+						"type": "string",
+						"description": "LLM model for the summary pass"
+					},
+					"maxMessageChars": {
+						"type": "number",
+						"description": "How much of one message to keep in the transcript"
+					},
+					"limit": {
+						"type": "number",
+						"description": "How many unprocessed dialogues to take per run"
+					},
+					"maxTokens": {
+						"type": "number",
+						"description": "Token budget for one summary call"
+					},
+					"dryRun": {
+						"type": "boolean",
+						"description": "Render summaries and change nothing"
+					}
+				},
+				"required": [
+					"provider",
+					"model"
+				]
+			},
+			"paramsExample": {
+				"provider": "openai",
+				"model": "gpt-4o-mini",
+				"limit": 10
+			}
 		},
 		{
 			"id": "files-process",
@@ -21,7 +61,14 @@
 						}
 					}
 				},
-				"required": ["fileIds"]
+				"required": [
+					"fileIds"
+				]
+			},
+			"paramsExample": {
+				"fileIds": [
+					"<file-id>"
+				]
 			}
 		},
 		{
@@ -37,23 +84,122 @@
 						"type": "string"
 					}
 				},
-				"required": ["fileId"]
+				"required": [
+					"fileId"
+				]
+			},
+			"paramsExample": {
+				"fileId": "<file-id>"
 			}
 		},
 		{
 			"id": "file-analyze",
 			"name": "wf-file-analyze",
-			"script": "workflows/wf-file-analyze.js"
+			"script": "workflows/wf-file-analyze.js",
+			"brief": "Analyze one uploaded file",
+			"description": "Stage one file, detect its type, convert it to a preview where possible and estimate production parameters. Skips files that are not production models.",
+			"parameters": {
+				"type": "object",
+				"properties": {
+					"fileId": {
+						"type": "string",
+						"description": "The file to analyze"
+					},
+					"collectionId": {
+						"type": "string",
+						"description": "Attach the result to this file collection"
+					},
+					"owner": {
+						"type": "string"
+					},
+					"processId": {
+						"type": "string"
+					},
+					"options": {
+						"type": "object",
+						"description": "Analyze options: target cnc|print|generic, includeGcode, convertPreview"
+					}
+				},
+				"required": [
+					"fileId"
+				]
+			},
+			"paramsExample": {
+				"fileId": "<file-id>"
+			}
 		},
 		{
 			"id": "files-analyze",
 			"name": "wf-files-analyze",
-			"script": "workflows/wf-files-analyze.js"
+			"script": "workflows/wf-files-analyze.js",
+			"brief": "Analyze a batch of uploaded files",
+			"description": "Run the single-file analysis over every production model in the batch and report per-file estimates and errors.",
+			"parameters": {
+				"type": "object",
+				"properties": {
+					"fileIds": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						},
+						"description": "The files to analyze"
+					},
+					"collectionId": {
+						"type": "string",
+						"description": "Attach results to this file collection"
+					},
+					"owner": {
+						"type": "string"
+					},
+					"processId": {
+						"type": "string"
+					},
+					"options": {
+						"type": "object",
+						"description": "Analyze options: target cnc|print|generic, includeGcode, convertPreview"
+					}
+				},
+				"required": [
+					"fileIds"
+				]
+			},
+			"paramsExample": {
+				"fileIds": [
+					"<file-id>"
+				]
+			}
 		},
 		{
 			"id": "request-analyze",
 			"name": "wf-request-analyze",
-			"script": "workflows/wf-request-analyze.js"
+			"script": "workflows/wf-request-analyze.js",
+			"brief": "Analyze the models of a request",
+			"description": "Read the request's files, analyze every production model in it and attach the estimates back to the request.",
+			"parameters": {
+				"type": "object",
+				"properties": {
+					"requestId": {
+						"type": "string",
+						"description": "The request whose files to analyze"
+					},
+					"owner": {
+						"type": "string"
+					},
+					"processId": {
+						"type": "string"
+					},
+					"options": {
+						"type": "object",
+						"description": "Analyze options: target cnc|print|generic, includeGcode, convertPreview"
+					}
+				},
+				"required": [
+					"requestId"
+				]
+			},
+			"paramsExample": {
+				"requestId": "<request-id>"
+			}
 		},
 		{
 			"id": "request-to-order",
@@ -110,7 +256,12 @@
 						"type": "string"
 					}
 				},
-				"required": ["requestId"]
+				"required": [
+					"requestId"
+				]
+			},
+			"paramsExample": {
+				"requestId": "<request-id>"
 			}
 		},
 		{
@@ -132,14 +283,26 @@
 					},
 					"severity": {
 						"type": "string",
-						"enum": ["warning", "error", "critical"]
+						"enum": [
+							"warning",
+							"error",
+							"critical"
+						]
 					},
 					"dryRun": {
 						"type": "boolean",
 						"description": "Show what would be cancelled and blocked without changing anything"
 					}
 				},
-				"required": ["equipmentId"]
+				"required": [
+					"equipmentId"
+				]
+			},
+			"paramsExample": {
+				"equipmentId": "<equipment-id>",
+				"description": "Spindle stopped mid-cut, error E-41 on the panel",
+				"severity": "error",
+				"dryRun": true
 			}
 		},
 		{
@@ -167,10 +330,16 @@
 					},
 					"transport": {
 						"type": "string",
-						"enum": ["ses", "smtp"],
+						"enum": [
+							"ses",
+							"smtp"
+						],
 						"description": "Which relay this deployment runs; defaults to ses"
 					}
 				}
+			},
+			"paramsExample": {
+				"dryRun": true
 			}
 		},
 		{
@@ -201,10 +370,16 @@
 					},
 					"transport": {
 						"type": "string",
-						"enum": ["ses", "smtp"],
+						"enum": [
+							"ses",
+							"smtp"
+						],
 						"description": "Which relay this deployment runs; defaults to ses"
 					}
 				}
+			},
+			"paramsExample": {
+				"dryRun": true
 			}
 		},
 		{
@@ -229,7 +404,11 @@
 					},
 					"preset": {
 						"type": "string",
-						"enum": ["manager", "operator", "viewer"],
+						"enum": [
+							"manager",
+							"operator",
+							"viewer"
+						],
 						"description": "Role for everyone in this list"
 					},
 					"tags": {
@@ -260,10 +439,138 @@
 					},
 					"transport": {
 						"type": "string",
-						"enum": ["ses", "smtp"],
+						"enum": [
+							"ses",
+							"smtp"
+						],
 						"description": "Which relay this deployment runs; defaults to ses"
 					}
 				}
+			},
+			"paramsExample": {
+				"rawText": "Anna Ops <anna@example.com>\nIvan CNC <ivan@example.com>",
+				"preset": "operator",
+				"dryRun": true
+			}
+		},
+		{
+			"id": "payment-settle",
+			"name": "wf-payment-settle",
+			"script": "workflows/wf-payment-settle.js",
+			"brief": "Settle an invoice from a payment webhook",
+			"description": "Turn a verified delivery from the payment provider into a paid invoice. The UI webhooks gateway checks the signature and publishes the parsed body; this reads it, finds the invoice by the id carried through the checkout, and marks it paid once. Re-running is safe — the provider's own reference is unique, so a retried delivery settles nothing twice.",
+			"parameters": {
+				"type": "object",
+				"properties": {
+					"body": {
+						"type": "object",
+						"description": "The bus event payload from the webhooks gateway"
+					},
+					"dryRun": {
+						"type": "boolean"
+					}
+				},
+				"required": [
+					"body"
+				]
+			},
+			"paramsExample": {
+				"body": {
+					"endpoint": "<endpoint-slug>",
+					"provider": "lemonsqueezy",
+					"body": {}
+				},
+				"dryRun": true
+			}
+		},
+		{
+			"id": "sales-import",
+			"name": "wf-sales-import",
+			"script": "workflows/wf-sales-import.js",
+			"brief": "Import a sales lead list",
+			"description": "Turn uploaded lead lists (xlsx/csv/json/free text) and pasted text into sales leads with contacts. The LLM gets first pass; whatever it fails to produce falls back to deterministic parsers. Re-importing the same file is harmless — duplicates are skipped, not failed.",
+			"parameters": {
+				"type": "object",
+				"properties": {
+					"fileIds": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						},
+						"description": "Uploaded xlsx/csv/json/text lists"
+					},
+					"rawText": {
+						"type": "string",
+						"description": "The pasted list itself"
+					},
+					"tags": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						}
+					},
+					"provider": {
+						"type": "string",
+						"description": "LLM provider for the extract pass; without provider+model only parsers run"
+					},
+					"model": {
+						"type": "string"
+					},
+					"defaultLang": {
+						"type": "string"
+					},
+					"dryRun": {
+						"type": "boolean"
+					}
+				}
+			},
+			"paramsExample": {
+				"rawText": "Acme Corp, Anna <anna@acme.example>, +1 555 0100",
+				"dryRun": true
+			}
+		},
+		{
+			"id": "sales-review-outreach",
+			"name": "wf-sales-review-outreach",
+			"script": "workflows/wf-sales-review-outreach.js",
+			"brief": "Send one sales review outreach mail",
+			"description": "Take the next lead that finished an order and was never asked for a review, render the review request from the notify template and send it, recording the trail. One mail per run; dryRun renders the mail and stops before sending.",
+			"parameters": {
+				"type": "object",
+				"properties": {
+					"lang": {
+						"type": "string",
+						"description": "Which lead queue to take from; also the letter's language"
+					},
+					"from": {
+						"type": "string",
+						"description": "Envelope sender; omit to use the deployment's configured address"
+					},
+					"transport": {
+						"type": "string",
+						"enum": [
+							"ses",
+							"smtp"
+						],
+						"description": "Which relay this deployment runs; defaults to ses"
+					},
+					"reviewUrl": {
+						"type": "string"
+					},
+					"googleMapsReviewUrl": {
+						"type": "string"
+					},
+					"dryRun": {
+						"type": "boolean"
+					}
+				},
+				"required": [
+					"lang"
+				]
+			},
+			"paramsExample": {
+				"lang": "en",
+				"dryRun": true
 			}
 		}
 	]

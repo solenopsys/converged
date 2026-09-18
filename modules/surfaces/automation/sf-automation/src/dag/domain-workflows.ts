@@ -19,15 +19,25 @@ export const $workflowsStore = createInfiniteTableStore(
 
 export type RunForm = {
 	script: string;
+	name?: string;
+	brief?: string;
+	description?: string;
+	/** Valid example params from the Solution descriptor, prefilled below. */
+	paramsExample?: Record<string, unknown>;
 	/** Raw JSON, exactly as typed. It is parsed when the run is submitted and
 	 *  not before, so a half-written object does not fight the person typing. */
 	params: string;
 	error: string | null;
 };
 
-export const openRunForm = domain.createEvent<{ script: string }>(
-	"OPEN_RUN_FORM",
-);
+export const openRunForm = domain.createEvent<{
+	script: string;
+	name?: string;
+	brief?: string;
+	description?: string;
+	paramsExample?: Record<string, unknown>;
+}>("OPEN_RUN_FORM");
+export const fillExampleClicked = domain.createEvent("RUN_FILL_EXAMPLE");
 export const paramsChanged = domain.createEvent<string>("RUN_PARAMS_CHANGED");
 export const runClicked = domain.createEvent("RUN_CLICKED");
 export const runFormClosed = domain.createEvent("RUN_FORM_CLOSED");
@@ -53,7 +63,24 @@ export const runWorkflowFx = domain.createEffect<
 
 export const $runForm = domain
 	.createStore<RunForm | null>(null)
-	.on(openRunForm, (_, { script }) => ({ script, params: "{}", error: null }))
+	.on(openRunForm, (_, { script, name, brief, description, paramsExample }) => ({
+		script,
+		name,
+		brief,
+		description,
+		paramsExample,
+		params: paramsExample ? JSON.stringify(paramsExample, null, 2) : "{}",
+		error: null,
+	}))
+	.on(fillExampleClicked, (form) =>
+		form?.paramsExample
+			? {
+					...form,
+					params: JSON.stringify(form.paramsExample, null, 2),
+					error: null,
+				}
+			: form,
+	)
 	.on(paramsChanged, (form, params) =>
 		form ? { ...form, params, error: null } : form,
 	)

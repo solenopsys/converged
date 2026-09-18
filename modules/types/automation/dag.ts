@@ -60,6 +60,8 @@ export type AvailableWorkflow = {
 		properties: Record<string, unknown>;
 		required?: string[];
 	};
+	/** Valid example params, prefilled in the admin run form. */
+	paramsExample?: Record<string, unknown>;
 	/** Internal Ptah-proxy URL for the runtime; UI clients must ignore it. */
 	sourceUrl?: string;
 };

@@ -42,7 +42,9 @@ function SurfaceStatistics({ surface }: { surface: string }) {
 					class={
 						mounted.size === "full"
 							? "surface-statistic-full"
-							: "surface-statistic-tile"
+							: mounted.size === "lg"
+								? "surface-statistic-wide"
+								: "surface-statistic-tile"
 					}
 				>
 					<StatisticActionsProvider

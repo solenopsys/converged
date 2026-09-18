@@ -22,15 +22,28 @@
 }
 
 .surface-home-statistics {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
+  gap: var(--hw-space-4);
+  align-items: start;
   min-height: 0;
 }
 
 .surface-statistic-full {
+  grid-column: 1 / -1;
   min-height: 0;
 }
 
+.surface-statistic-wide,
 .surface-statistic-tile {
   min-height: 10rem;
+}
+
+@container (min-width: 48rem) {
+  .surface-statistic-wide {
+    grid-column: span 2;
+    grid-row: span 2;
+  }
 }
 
 .surface-content {

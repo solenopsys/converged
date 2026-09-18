@@ -52,6 +52,8 @@ export type AvailableWorkflow = {
 		properties: Record<string, unknown>;
 		required?: string[];
 	};
+	/** Valid example params, prefilled in the admin run form. */
+	paramsExample?: Record<string, unknown>;
 	/** Internal Ptah-proxy URL for the runtime; UI clients must ignore it. */
 	sourceUrl?: string;
 };
@@ -400,7 +402,7 @@ export const metadata: ServiceMetadata = {
     {
       "name": "AvailableWorkflow",
       "kind": "type",
-      "definition": "{\n\tid: string;\n\tname: string;\n\tscript: string;\n\tbrief?: string;\n\tdescription?: string;\n\tparameters?: {\n\t\ttype: \"object\";\n\t\tproperties: Record<string, unknown>;\n\t\trequired?: string[];\n\t};\n\t/** Internal Ptah-proxy URL for the runtime; UI clients must ignore it. */\n\tsourceUrl?: string;\n}"
+      "definition": "{\n\tid: string;\n\tname: string;\n\tscript: string;\n\tbrief?: string;\n\tdescription?: string;\n\tparameters?: {\n\t\ttype: \"object\";\n\t\tproperties: Record<string, unknown>;\n\t\trequired?: string[];\n\t};\n\t/** Valid example params, prefilled in the admin run form. */\n\tparamsExample?: Record<string, unknown>;\n\t/** Internal Ptah-proxy URL for the runtime; UI clients must ignore it. */\n\tsourceUrl?: string;\n}"
     },
     {
       "name": "WorkflowTrigger",

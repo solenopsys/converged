@@ -14,6 +14,7 @@ import {
 const TotalChart = () => null;
 const LegacyStatsScreen = () => null;
 const CompaniesReadout = () => null;
+const WarehouseStatsScreen = () => null;
 
 beforeAll(() => {
 	// A surface split into blocks: one type per chart.
@@ -67,6 +68,40 @@ beforeAll(() => {
 				id: "logs.statistic.dashboard",
 				accepts: setOf("logs.statistic"),
 				component: LegacyStatsScreen,
+			},
+		],
+		operations: [],
+	});
+
+	// A surface that is split into blocks but still keeps its old whole screen.
+	registerSurface({
+		id: "sf-warehouse",
+		label: "Warehouse",
+		purpose: "Test surface warehouse",
+		types: [
+			{
+				id: "warehouse.statistic.summary",
+				label: "Warehouse",
+				categories: [Category.Statistic],
+				statistic: { role: "summary", component: CompaniesReadout },
+			},
+			{
+				id: "warehouse.statistic.stock",
+				label: "Stock",
+				categories: [Category.Statistic],
+				statistic: { component: TotalChart },
+			},
+			{
+				id: "warehouse.statistic",
+				label: "Overview",
+				categories: [Category.Statistic],
+			},
+		],
+		views: [
+			{
+				id: "warehouse.statistic.dashboard",
+				accepts: setOf("warehouse.statistic"),
+				component: WarehouseStatsScreen,
 			},
 		],
 		operations: [],
@@ -146,6 +181,16 @@ describe("statistic catalog", () => {
 			type: "logs.statistic",
 			selection: { kind: "query" },
 		});
+	});
+
+	test("drops the whole-service screen once the service has blocks", () => {
+		const warehouse = collectStatisticSections().find(
+			(section) => section.owner === "sf-warehouse",
+		);
+
+		expect(warehouse?.widgets.map((widget) => widget.typeId)).toEqual([
+			"warehouse.statistic.stock",
+		]);
 	});
 
 	test("mounts nothing until the owning surface is imported", () => {

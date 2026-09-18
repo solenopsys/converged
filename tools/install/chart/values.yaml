@@ -266,6 +266,7 @@ solutions:
       - webhooks
       - community
       - chats
+      - support
       # The production floor: orders, the machines that run them, and the
       # event log the two write into.
       - orders
@@ -276,6 +277,9 @@ solutions:
       - reviews
       # The team: staff cards, shifts and absences.
       - staff
+      - billing
+      - metering
+      - invoices
     lambdas:
       - ses
       - compressors
@@ -297,6 +301,7 @@ solutions:
       - automation
       - community
       - chats
+      - support
       - orders
       - equipment
       - reviews
@@ -312,6 +317,12 @@ solutions:
     # brief/description/parameters are what publishes a workflow to the chat
     # catalog; the two internal ones are deliberately left without them, so the
     # assistant cannot call what only a parent workflow or rp-requests starts.
+    # Resolved form of modules/solutions/mapping.json filtered by the
+    # solution fragments. Every script a workflow reaches through rt.sub must
+    # be listed too: centimanus resolves a delegation through this same list
+    # (rp-dag listAvailableWorkflows), so an unlisted child fails the parent
+    # with WorkflowNotFound. brief/description/parameters publish a workflow to
+    # the chat catalog; paramsExample prefills the admin run form.
     workflows:
       - id: files-process
         name: wf-files-process
@@ -328,6 +339,9 @@ solutions:
                 type: string
           required:
             - fileIds
+        paramsExample:
+          fileIds:
+            - <file-id>
       - id: file-unpack
         name: wf-file-unpack
         script: workflows/wf-file-unpack.js
@@ -340,25 +354,99 @@ solutions:
               type: string
           required:
             - fileId
+        paramsExample:
+          fileId: <file-id>
       - id: file-analyze
         name: wf-file-analyze
         script: workflows/wf-file-analyze.js
+        brief: Analyze one uploaded file
+        description: Stage one file, detect its type, convert it to a preview where
+          possible and estimate production parameters. Skips files that are not
+          production models.
+        parameters:
+          type: object
+          properties:
+            fileId:
+              type: string
+              description: The file to analyze
+            collectionId:
+              type: string
+              description: Attach the result to this file collection
+            owner:
+              type: string
+            processId:
+              type: string
+            options:
+              type: object
+              description: "Analyze options: target cnc|print|generic, includeGcode,
+                convertPreview"
+          required:
+            - fileId
+        paramsExample:
+          fileId: <file-id>
       - id: files-analyze
         name: wf-files-analyze
         script: workflows/wf-files-analyze.js
+        brief: Analyze a batch of uploaded files
+        description: Run the single-file analysis over every production model in the
+          batch and report per-file estimates and errors.
+        parameters:
+          type: object
+          properties:
+            fileIds:
+              type: array
+              items:
+                type: string
+              description: The files to analyze
+            collectionId:
+              type: string
+              description: Attach results to this file collection
+            owner:
+              type: string
+            processId:
+              type: string
+            options:
+              type: object
+              description: "Analyze options: target cnc|print|generic, includeGcode,
+                convertPreview"
+          required:
+            - fileIds
+        paramsExample:
+          fileIds:
+            - <file-id>
       - id: request-analyze
         name: wf-request-analyze
         script: workflows/wf-request-analyze.js
+        brief: Analyze the models of a request
+        description: Read the request's files, analyze every production model in it and
+          attach the estimates back to the request.
+        parameters:
+          type: object
+          properties:
+            requestId:
+              type: string
+              description: The request whose files to analyze
+            owner:
+              type: string
+            processId:
+              type: string
+            options:
+              type: object
+              description: "Analyze options: target cnc|print|generic, includeGcode,
+                convertPreview"
+          required:
+            - requestId
+        paramsExample:
+          requestId: <request-id>
       - id: request-to-order
         name: wf-request-to-order
         script: workflows/wf-request-to-order.js
         brief: Turn a request into a shop order
-        description: "Create the production order for an accepted manufacturing
-          request: the order carries the requestId, the request moves to
-          in_production and the step lands in the journal. Quantity, material,
-          deadline and contact are read off the request; anything given here
-          overrides them. Running it twice answers with the order that already
-          exists."
+        description: "Create the production order for an accepted manufacturing request:
+          the order carries the requestId, the request moves to in_production and
+          the step lands in the journal. Quantity, material, deadline and contact
+          are read off the request; anything given here overrides them. Running it
+          twice answers with the order that already exists."
         parameters:
           type: object
           properties:
@@ -398,15 +486,17 @@ solutions:
               type: string
           required:
             - requestId
+        paramsExample:
+          requestId: <request-id>
       - id: equipment-incident
         name: wf-equipment-incident
         script: workflows/wf-equipment-incident.js
         brief: Report a machine breakdown
-        description: "Report that a machine is down: it is set to error, the
-          incident lands in its journal, the slot it was running is cancelled and
-          the order on that slot is blocked, and everyone in the workspace is
-          notified. Future bookings are not moved — they come back as at risk for
-          the shop to re-plan."
+        description: "Report that a machine is down: it is set to error, the incident
+          lands in its journal, the slot it was running is cancelled and the order
+          on that slot is blocked, and everyone in the workspace is notified. Future
+          bookings are not moved — they come back as at risk for the shop to
+          re-plan."
         parameters:
           type: object
           properties:
@@ -427,6 +517,11 @@ solutions:
               description: Show what would be cancelled and blocked without changing anything
           required:
             - equipmentId
+        paramsExample:
+          equipmentId: <equipment-id>
+          description: Spindle stopped mid-cut, error E-41 on the panel
+          severity: error
+          dryRun: true
       - id: order-review-request
         name: wf-order-review-request
         script: workflows/wf-order-review-request.js
@@ -453,13 +548,15 @@ solutions:
                 - ses
                 - smtp
               description: Which relay this deployment runs; defaults to ses
+        paramsExample:
+          dryRun: true
       - id: order-review-followup
         name: wf-order-review-followup
         script: workflows/wf-order-review-followup.js
         brief: Chase a quiet review link
-        description: Ask once more about a review link that was sent, never opened
-          and not yet chased its allowance of times. One mail per run; dryRun
-          renders the mail and counts nothing.
+        description: Ask once more about a review link that was sent, never opened and
+          not yet chased its allowance of times. One mail per run; dryRun renders
+          the mail and counts nothing.
         parameters:
           type: object
           properties:
@@ -481,15 +578,17 @@ solutions:
                 - ses
                 - smtp
               description: Which relay this deployment runs; defaults to ses
+        paramsExample:
+          dryRun: true
       - id: team-invite
         name: wf-team-invite
         script: workflows/wf-team-invite.js
         brief: Add people to the console from a list
-        description: "Turn a pasted list of people (name + email, in any shape) or
-          an uploaded file into user accounts with a role, staff cards and
-          invitations, and send each of them a sign-in link. Re-running the same
-          list adds nobody twice. Roles it may grant: manager, operator, viewer.
-          dryRun reports what it would do and touches nothing."
+        description: "Turn a pasted list of people (name + email, in any shape) or an
+          uploaded file into user accounts with a role, staff cards and invitations,
+          and send each of them a sign-in link. Re-running the same list adds nobody
+          twice. Roles it may grant: manager, operator, viewer. dryRun reports what
+          it would do and touches nothing."
         parameters:
           type: object
           properties:
@@ -532,9 +631,37 @@ solutions:
                 - ses
                 - smtp
               description: Which relay this deployment runs; defaults to ses
-
-# Tenants are created as sites are sold, not at install. Only meaningful for
-# the `cloud` profile.
+        paramsExample:
+          rawText: |-
+            Anna Ops <anna@example.com>
+            Ivan CNC <ivan@example.com>
+          preset: operator
+          dryRun: true
+      - id: payment-settle
+        name: wf-payment-settle
+        script: workflows/wf-payment-settle.js
+        brief: Settle an invoice from a payment webhook
+        description: Turn a verified delivery from the payment provider into a paid
+          invoice. The UI webhooks gateway checks the signature and publishes the
+          parsed body; this reads it, finds the invoice by the id carried through
+          the checkout, and marks it paid once. Re-running is safe — the provider's
+          own reference is unique, so a retried delivery settles nothing twice.
+        parameters:
+          type: object
+          properties:
+            body:
+              type: object
+              description: The bus event payload from the webhooks gateway
+            dryRun:
+              type: boolean
+          required:
+            - body
+        paramsExample:
+          body:
+            endpoint: <endpoint-slug>
+            provider: lemonsqueezy
+            body: {}
+          dryRun: true
 tenants: {}
 # acme:
 #   storageSize: 20Gi

@@ -115,7 +115,7 @@ export function DashboardPieChartCard({
 					)}
 				</CardHeader>
 			)}
-			<CardContent className="flex min-h-0 flex-1 px-4 pb-4 pt-0">
+			<CardContent className="flex min-h-0 flex-1 gap-4 px-4 pb-4 pt-0">
 				{loading ? (
 					<div
 						className="flex flex-1 items-center justify-center text-muted-foreground"
@@ -128,43 +128,45 @@ export function DashboardPieChartCard({
 						{emptyLabel}
 					</div>
 				) : (
-					<div className="flex h-full min-h-[220px] w-full items-center justify-center overflow-hidden">
-						<svg
-							viewBox={`${-VIEW_SIZE / 2} ${-VIEW_SIZE / 2} ${VIEW_SIZE} ${VIEW_SIZE}`}
-							className="h-full max-h-full w-auto"
-							role="img"
-							aria-label={title ?? "Pie chart"}
-						>
-							{arcs.map(({ path, datum }) => (
-								<path key={datum.key} d={path} fill={datum.color}>
-									<title>
-										{datum.label}: {datum.value.toLocaleString()}
-									</title>
-								</path>
-							))}
-						</svg>
-					</div>
+					<>
+						<div className="flex h-full min-h-[220px] min-w-0 flex-1 items-center justify-center overflow-hidden">
+							<svg
+								viewBox={`${-VIEW_SIZE / 2} ${-VIEW_SIZE / 2} ${VIEW_SIZE} ${VIEW_SIZE}`}
+								className="h-full max-h-full w-auto"
+								role="img"
+								aria-label={title ?? "Pie chart"}
+							>
+								{arcs.map(({ path, datum }) => (
+									<path key={datum.key} d={path} fill={datum.color}>
+										<title>
+											{datum.label}: {datum.value.toLocaleString()}
+										</title>
+									</path>
+								))}
+							</svg>
+						</div>
+						{legend && (
+							<div className="flex shrink-0 flex-col justify-center gap-2 text-xs">
+								{chartData.map((item) => (
+									<div
+										key={item.key}
+										className="flex items-center gap-1.5 text-muted-foreground"
+									>
+										<span
+											className="h-2 w-2 shrink-0 rounded-[2px]"
+											style={{ backgroundColor: item.color }}
+										/>
+										<span>{item.label}</span>
+										<span className="font-mono text-foreground">
+											{item.value.toLocaleString()}
+										</span>
+									</div>
+								))}
+							</div>
+						)}
+					</>
 				)}
 			</CardContent>
-			{!loading && legend && chartData.length > 0 && (
-				<div className="flex flex-wrap gap-x-4 gap-y-2 px-4 pb-4 text-xs">
-					{chartData.map((item) => (
-						<div
-							key={item.key}
-							className="flex items-center gap-1.5 text-muted-foreground"
-						>
-							<span
-								className="h-2 w-2 shrink-0 rounded-[2px]"
-								style={{ backgroundColor: item.color }}
-							/>
-							<span>{item.label}</span>
-							<span className="font-mono text-foreground">
-								{item.value.toLocaleString()}
-							</span>
-						</div>
-					))}
-				</div>
-			)}
 		</Card>
 	);
 }

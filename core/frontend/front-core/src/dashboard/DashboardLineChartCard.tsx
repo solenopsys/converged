@@ -235,7 +235,7 @@ export function DashboardLineChartCard({
 					)}
 				</CardHeader>
 			)}
-			<CardContent className="flex min-h-0 flex-1 flex-col gap-2 px-4 pb-4 pt-0">
+			<CardContent className="flex min-h-0 flex-1 flex-col gap-2 px-4 pb-4 pt-0 sm:flex-row sm:items-stretch">
 				{loading ? (
 					<div
 						className="flex flex-1 items-center justify-center text-muted-foreground"
@@ -245,22 +245,9 @@ export function DashboardLineChartCard({
 					</div>
 				) : (
 					<>
-						{legend && (
-							<div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-								{series.map((s) => (
-									<div key={s.key} className="flex items-center gap-1.5">
-										<span
-											className="h-2 w-2 shrink-0 rounded-[2px]"
-											style={{ backgroundColor: s.color }}
-										/>
-										<span>{s.label}</span>
-									</div>
-								))}
-							</div>
-						)}
 						<div
 							ref={chartContainerRef}
-							className="flex-1 min-h-[160px] w-full overflow-hidden"
+							className="min-h-[160px] min-w-0 flex-1 overflow-hidden"
 						>
 					<svg
 						viewBox={`0 0 ${chartWidth} ${VIEW_HEIGHT}`}
@@ -360,6 +347,19 @@ export function DashboardLineChartCard({
 						</g>
 							</svg>
 						</div>
+						{legend && (
+							<div className="flex shrink-0 flex-col gap-y-1.5 text-xs text-muted-foreground">
+								{series.map((s) => (
+									<div key={s.key} className="flex items-center gap-1.5">
+										<span
+											className="h-2 w-2 shrink-0 rounded-[2px]"
+											style={{ backgroundColor: s.color }}
+										/>
+										<span>{s.label}</span>
+									</div>
+								))}
+							</div>
+						)}
 					</>
 				)}
 			</CardContent>

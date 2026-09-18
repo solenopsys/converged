@@ -264,6 +264,8 @@ export interface WorkflowRef {
 	brief?: string;
 	description?: string;
 	parameters?: Record<string, unknown>;
+	/** Valid example params, prefilled in the admin run form. */
+	paramsExample?: Record<string, unknown>;
 	periodMs?: number;
 	params?: Record<string, unknown>;
 }

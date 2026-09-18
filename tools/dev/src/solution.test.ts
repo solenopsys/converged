@@ -34,6 +34,7 @@ test("resolves the configured solution set and workflow links", () => {
 		"webhooks",
 		"community",
 		"chats",
+		"support",
 		// The production floor: orders, the machines that run them, and the
 		// event log the two write into.
 		"orders",
@@ -41,6 +42,9 @@ test("resolves the configured solution set and workflow links", () => {
 		"events",
 		"reviews",
 		"staff",
+		"billing",
+		"metering",
+		"invoices",
 	]);
 	expect(resolved.solution.spec.lambdas).toEqual([
 		"ses",
@@ -64,6 +68,7 @@ test("resolves the configured solution set and workflow links", () => {
 		"automation",
 		"community",
 		"chats",
+		"support",
 		"orders",
 		"equipment",
 		"reviews",
@@ -84,10 +89,11 @@ test("resolves the configured solution set and workflow links", () => {
 		"order-review-request",
 		"order-review-followup",
 		"team-invite",
+		"payment-settle",
 	]);
 	// The published and the internal shape, on the file workflows that have
 	// both; the product workflows after them are checked by their own tests.
-	expect(resolved.solution.spec.workflows.slice(0, 5)).toEqual([
+	expect(resolved.solution.spec.workflows.slice(0, 2)).toEqual([
 		{
 			id: "files-process",
 			name: "wf-files-process",
@@ -102,6 +108,7 @@ test("resolves the configured solution set and workflow links", () => {
 				},
 				required: ["fileIds"],
 			},
+			paramsExample: { fileIds: ["<file-id>"] },
 		},
 		{
 			id: "file-unpack",
@@ -114,24 +121,15 @@ test("resolves the configured solution set and workflow links", () => {
 				properties: { fileId: { type: "string" } },
 				required: ["fileId"],
 			},
-		},
-		// Reached only through rt.sub / rp-requests, never by the assistant:
-		// without brief, description and parameters the chat catalog skips
-		// them, while rp-dag still resolves their source for centimanus.
-		{
-			id: "file-analyze",
-			name: "wf-file-analyze",
-			script: "workflows/wf-file-analyze.js",
-		},
-		{
-			id: "files-analyze",
-			name: "wf-files-analyze",
-			script: "workflows/wf-files-analyze.js",
-		},
-		{
-			id: "request-analyze",
-			name: "wf-request-analyze",
-			script: "workflows/wf-request-analyze.js",
+			paramsExample: { fileId: "<file-id>" },
 		},
 	]);
+	// Every workflow carries admin metadata: brief, description, parameters
+	// and a valid example for the run form.
+	for (const workflow of resolved.solution.spec.workflows) {
+		expect(workflow.brief).toBeString();
+		expect(workflow.description).toBeString();
+		expect(workflow.parameters).toBeObject();
+		expect(workflow.paramsExample).toBeObject();
+	}
 });
