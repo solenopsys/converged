@@ -5,6 +5,8 @@ pub const kernel_tau: f32 = 0.05;
 pub const neighbor_limit: usize = 20;
 pub const unknown_threshold: f32 = 0.65;
 pub const execute_threshold: f32 = 0.85;
+pub const legacy_execute_threshold: f32 = 0.80;
+pub const legacy_command_margin: f32 = 0.0;
 pub const surface_ratio: f32 = 1.5;
 pub const command_margin: f32 = 0.01;
 
@@ -42,6 +44,31 @@ const SectionAggregate = struct {
 };
 
 pub fn route(allocator: std.mem.Allocator, index: *const context.Index, language: []const u8, query_vector: []const f32) !RouteResult {
+    _ = allocator;
+    var best: ?*const context.Entry = null;
+    var best_score: f32 = -1;
+    var second_score: f32 = -1;
+    for (index.entries.items) |*entry| {
+        const score = dot(query_vector, entry.vector);
+        if (score > best_score) {
+            second_score = best_score;
+            best_score = score;
+            best = entry;
+        } else if (score > second_score) {
+            second_score = score;
+        }
+    }
+    if (best == null) return .{ .decision = "UNKNOWN", .reason = "no_examples", .language = language, .section = null, .command = null, .score = 0, .surface_weight = null, .surface_log_gap = null };
+    const decision: []const u8 = if (best_score > legacy_execute_threshold and best_score - second_score >= legacy_command_margin)
+        "EXECUTE"
+    else if (best_score < 0.83)
+        "UNKNOWN"
+    else
+        "AMBIGUOUS";
+    return .{ .decision = decision, .reason = if (std.mem.eql(u8, decision, "EXECUTE")) "confident_match" else "nearest_match", .language = language, .section = best.?.section, .command = if (std.mem.eql(u8, decision, "UNKNOWN")) null else best.?.id, .score = best_score, .surface_weight = null, .surface_log_gap = null };
+}
+
+pub fn routeHierarchical(allocator: std.mem.Allocator, index: *const context.Index, language: []const u8, query_vector: []const f32) !RouteResult {
     var scored: std.ArrayList(ScoredEntry) = .empty;
     defer scored.deinit(allocator);
     var global_best: f32 = -1;

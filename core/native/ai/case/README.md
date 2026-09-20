@@ -103,8 +103,11 @@ endpoint.
 Routes a user text through the selected context. The `context` and `text`
 fields are required. The optional `language` field can provide the detected
 language explicitly. When omitted, CASE uses its built-in language detector.
-CASE first evaluates the language-specific vectors, then aggregates basket
-support by section, and finally selects the command inside the winning section.
+The context stores the hierarchy (`section -> command -> language examples`).
+The default production route keeps the previously validated nearest-example
+decision rule while preserving section and language metadata in the response.
+The experimental aggregate implementation is kept in `routeHierarchical` for
+comparison and further calibration.
 
     curl -X POST http://localhost:8000/route \
       -H 'content-type: application/json' \
@@ -128,9 +131,12 @@ Response:
       "rss_mb": 0
     }
 
-The section score uses a normalized exponential kernel over all examples in
-the selected language. The initial parameters are `tau=0.05`,
-`surface_ratio=1.5`, `execute_threshold=0.85`, and `command_margin=0.03`.
+The experimental hierarchical route uses a normalized exponential kernel over
+the nearest examples in the selected language. Its parameters are exposed in
+`/stats`; the production nearest-example thresholds are `0.80` for execution,
+`0.83` for unknown, and `0.00` for the runner-up margin. The latter is
+intentional for navigation screens: the embedding score selects the command,
+while destructive actions should apply their own confirmation policy.
 
 `decision` is one of:
 

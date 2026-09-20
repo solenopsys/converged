@@ -64,7 +64,7 @@ fn handleStats(allocator: std.mem.Allocator, contexts: *context.Contexts, reques
         vectors += index.*.entries.items.len;
         commands += index.*.commands;
     }
-    const reply = try std.fmt.allocPrint(allocator, "{{\"rss_mb\":{d},\"contexts\":{d},\"vectors\":{d},\"commands\":{d},\"th_execute\":{d:.2},\"th_unknown\":{d:.2},\"margin\":{d:.2}}}", .{ rssMb(), contexts.items.count(), vectors, commands, router.execute_threshold, router.unknown_threshold, router.command_margin });
+        const reply = try std.fmt.allocPrint(allocator, "{{\"rss_mb\":{d},\"contexts\":{d},\"vectors\":{d},\"commands\":{d},\"th_execute\":{d:.2},\"th_unknown\":{d:.2},\"margin\":{d:.3}}}", .{ rssMb(), contexts.items.count(), vectors, commands, router.legacy_execute_threshold, router.unknown_threshold, router.legacy_command_margin });
     defer allocator.free(reply);
     return respond(request, reply, .ok);
 }
