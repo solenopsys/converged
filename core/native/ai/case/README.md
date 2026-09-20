@@ -46,26 +46,39 @@ Response:
 
 ### POST /contexts
 
-Creates an in-memory context. The `key` is supplied by the client and is used
-to select this context during routing. Keys must be unique while the process
-is running. A context contains one or more commands; each command requires an
-`id` and an `examples` array. `solution` is optional and can be used as a
-second-level filter during routing.
+Creates an in-memory hierarchical context. The `key` is supplied by the client
+and is used to select this context during routing. Keys must be unique while
+the process is running. A context contains sections, commands, and
+language-specific example arrays.
 
     curl -X POST http://localhost:8000/contexts \
       -H 'content-type: application/json' \
       -d '{
         "key": "desktop-assistant",
-        "commands": [
+        "sections": [
           {
-            "id": "open_browser",
-            "solution": "desktop",
-            "examples": ["open a browser", "launch chrome"]
+            "id": "desktop",
+            "commands": [
+              {
+                "id": "open_browser",
+                "examples": {
+                  "en": ["open a browser", "launch chrome"],
+                  "ru": ["открой браузер", "запусти хром"]
+                }
+              }
+            ]
           },
           {
-            "id": "shutdown",
-            "solution": "system",
-            "examples": ["turn off the computer", "shutdown"]
+            "id": "system",
+            "commands": [
+              {
+                "id": "shutdown",
+                "examples": {
+                  "en": ["turn off the computer", "shutdown"],
+                  "ru": ["выключи компьютер", "заверши работу"]
+                }
+              }
+            ]
           }
         ]
       }'
@@ -74,48 +87,57 @@ Response:
 
     {
       "key": "desktop-assistant",
+      "sections": 2,
       "commands": 2,
-      "vectors": 4,
+      "vectors": 8,
       "enc_ms": 0.0,
       "rss_mb": 0
     }
 
-`vectors` is the number of examples encoded for the context. Posting an
-existing key returns `409`; there is currently no update or delete endpoint.
+`vectors` is the number of language-specific examples encoded for the context.
+Posting an existing key returns `409`; there is currently no update or delete
+endpoint.
 
 ### POST /route
 
 Routes a user text through the selected context. The `context` and `text`
-fields are required. The optional `solution` field limits matching to commands
-with the same solution value.
+fields are required. The optional `language` field can provide the detected
+language explicitly. When omitted, CASE uses its built-in language detector.
+CASE first evaluates the language-specific vectors, then aggregates basket
+support by section, and finally selects the command inside the winning section.
 
     curl -X POST http://localhost:8000/route \
       -H 'content-type: application/json' \
       -d '{
         "context": "desktop-assistant",
-        "text": "please open a browser",
-        "solution": "desktop"
+        "language": "en",
+        "text": "please open a browser"
       }'
 
 Response:
 
     {
       "decision": "EXECUTE",
+      "reason": "confident_match",
+      "language": "en",
+      "section": "desktop",
       "command": "open_browser",
       "score": 0.9876,
-      "alternatives": [],
-      "enc_ms": 0.0,
-      "match_ms": 0.0,
+      "surface_weight": 0.0132,
+      "surface_log_gap": 1.0214,
       "rss_mb": 0
     }
 
+The section score uses a normalized exponential kernel over all examples in
+the selected language. The initial parameters are `tau=0.05`,
+`surface_ratio=1.5`, `execute_threshold=0.85`, and `command_margin=0.03`.
+
 `decision` is one of:
 
-* `EXECUTE` when the best score is above `0.90` and leads the second-best
-  score by at least `0.05`;
-* `AMBIGUOUS` when a match exists but is not sufficiently separated;
-* `UNKNOWN` when the score is below `0.83`, or when the selected context has
-  no matching entries.
+* `EXECUTE` when the selected section and command pass their confidence checks;
+* `AMBIGUOUS` when the section or command is not sufficiently separated;
+* `UNKNOWN` when the selected language has no examples or the global best
+  similarity is below `0.65`.
 
 If `context` does not exist, the endpoint returns `404`:
 

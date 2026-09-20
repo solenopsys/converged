@@ -42,23 +42,22 @@ def read_examples(path: str) -> tuple[list[dict[str, Any]], list[Case]]:
     if not isinstance(source, dict):
         raise ValueError("example.json must contain an object keyed by command id")
 
-    commands: list[dict[str, Any]] = []
+    sections: dict[str, list[dict[str, Any]]] = {}
     examples: list[Case] = []
     for command_id, definition in source.items():
         localized = definition.get("examples") if isinstance(definition, dict) else None
         if not isinstance(localized, dict):
             raise ValueError(f"{command_id}: expected examples object keyed by language")
-        all_examples: list[str] = []
         for language, phrases in localized.items():
             if language not in NOISE:
                 raise ValueError(f"unsupported language in example.json: {language}")
             if not isinstance(phrases, list) or not all(isinstance(item, str) for item in phrases):
                 raise ValueError(f"{command_id}/{language}: expected a list of strings")
-            all_examples.extend(phrases)
             for phrase in phrases:
                 examples.append(Case(command_id, language, phrase, ""))
-        commands.append({"id": command_id, "examples": all_examples})
-    return commands, examples
+        section_id = command_id.split(".", 1)[0]
+        sections.setdefault(section_id, []).append({"id": command_id, "examples": localized})
+    return [{"id": section_id, "commands": commands} for section_id, commands in sections.items()], examples
 
 
 def noisy_query(case: Case, rng: random.Random) -> str:
@@ -119,7 +118,7 @@ def main() -> int:
     if args.requests < 1 or args.workers < 1:
         parser.error("--requests and --workers must be positive")
 
-    commands, source_cases = read_examples(args.examples)
+    sections, source_cases = read_examples(args.examples)
     context_key = f"loadtest-{os.getpid()}-{time.time_ns()}"
     base_url = args.url.rstrip("/")
 
@@ -131,7 +130,7 @@ def main() -> int:
     status, loaded, load_ms = call_json(
         f"{base_url}/contexts",
         "POST",
-        {"key": context_key, "commands": commands},
+        {"key": context_key, "sections": sections},
     )
     if status != 200:
         print(f"ERROR: context upload failed: HTTP {status} {loaded}", file=sys.stderr)
@@ -176,7 +175,8 @@ def main() -> int:
     accuracy = correct / len(results) if results else 0.0
     throughput = len(results) / total_s if total_s else 0.0
     print(f"context: {context_key}")
-    print(f"commands: {len(commands)}, source phrases: {len(source_cases)}, generated requests: {len(results)}")
+    command_count = sum(len(section["commands"]) for section in sections)
+    print(f"sections: {len(sections)}, commands: {command_count}, source phrases: {len(source_cases)}, generated requests: {len(results)}")
     print(f"context upload: {status} in {load_ms:.1f} ms ({loaded.get('vectors', '?')} vectors)")
     print(f"correct: {correct}/{len(results)} ({accuracy * 100:.2f}%), HTTP errors: {http_errors}")
     print(f"decisions: {json.dumps(decisions, ensure_ascii=False, sort_keys=True)}")
