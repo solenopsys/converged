@@ -58,6 +58,21 @@ const Index = struct {
     }
 };
 
+const Contexts = struct {
+    allocator: std.mem.Allocator,
+    items: std.StringHashMapUnmanaged(*Index) = .empty,
+
+    fn deinit(self: *Contexts) void {
+        var iterator = self.items.iterator();
+        while (iterator.next()) |entry| {
+            entry.value_ptr.*.deinit();
+            self.allocator.destroy(entry.value_ptr.*);
+            self.allocator.free(entry.key_ptr.*);
+        }
+        self.items.deinit(self.allocator);
+    }
+};
+
 const Model = struct {
     allocator: std.mem.Allocator,
     session: *OrtwSession,
@@ -147,13 +162,13 @@ pub fn main() !void {
     defer tokenizer.deinit();
     var model = try Model.init(allocator, model_path, &tokenizer);
     defer model.deinit();
-    var index = Index{ .allocator = allocator };
-    defer index.deinit();
+    var contexts = Contexts{ .allocator = allocator };
+    defer contexts.deinit();
     _ = model.encode(&.{"warmup"}) catch |err| std.log.warn("warmup failed: {s}", .{@errorName(err)});
-    try serve(allocator, &model, &index, host, port);
+    try serve(allocator, &model, &contexts, host, port);
 }
 
-fn serve(allocator: std.mem.Allocator, model: *Model, index: *Index, host: []const u8, port: u16) !void {
+fn serve(allocator: std.mem.Allocator, model: *Model, contexts: *Contexts, host: []const u8, port: u16) !void {
     const io = std.Options.debug_io;
     const address = try std.Io.net.IpAddress.parse(host, port);
     var listener = try address.listen(io, .{ .reuse_address = true });
@@ -162,11 +177,11 @@ fn serve(allocator: std.mem.Allocator, model: *Model, index: *Index, host: []con
     while (true) {
         var stream = try listener.accept(io);
         defer stream.close(io);
-        handleConnection(allocator, model, index, stream) catch |err| std.log.warn("request failed: {s}", .{@errorName(err)});
+        handleConnection(allocator, model, contexts, stream) catch |err| std.log.warn("request failed: {s}", .{@errorName(err)});
     }
 }
 
-fn handleConnection(allocator: std.mem.Allocator, model: *Model, index: *Index, stream: std.Io.net.Stream) !void {
+fn handleConnection(allocator: std.mem.Allocator, model: *Model, contexts: *Contexts, stream: std.Io.net.Stream) !void {
     const io = std.Options.debug_io;
     var input: [64 * 1024]u8 = undefined;
     var output: [16 * 1024]u8 = undefined;
@@ -177,29 +192,45 @@ fn handleConnection(allocator: std.mem.Allocator, model: *Model, index: *Index, 
     const path = request.head.target[0 .. std.mem.indexOfScalar(u8, request.head.target, '?') orelse request.head.target.len];
     if (request.head.method == .GET and std.mem.eql(u8, path, "/healthz")) return respond(&request, "{\"ok\":true}", .ok);
     if (request.head.method == .GET and std.mem.eql(u8, path, "/stats")) {
-        const reply = try std.fmt.allocPrint(allocator, "{{\"rss_mb\":{d},\"vectors\":{d},\"commands\":{d},\"th_execute\":0.9,\"th_unknown\":0.83,\"margin\":0.05}}", .{ rssMb(), index.entries.items.len, index.commands });
+        var vectors: usize = 0;
+        var commands: usize = 0;
+        var iterator = contexts.items.valueIterator();
+        while (iterator.next()) |index| {
+            vectors += index.*.entries.items.len;
+            commands += index.*.commands;
+        }
+        const reply = try std.fmt.allocPrint(allocator, "{{\"rss_mb\":{d},\"contexts\":{d},\"vectors\":{d},\"commands\":{d},\"th_execute\":0.9,\"th_unknown\":0.83,\"margin\":0.05}}", .{ rssMb(), contexts.items.count(), vectors, commands });
         defer allocator.free(reply);
         return respond(&request, reply, .ok);
     }
-    if (request.head.method != .POST or (!std.mem.eql(u8, path, "/commands") and !std.mem.eql(u8, path, "/route"))) return respond(&request, "{\"error\":\"not found\"}", .not_found);
+    if (request.head.method != .POST or (!std.mem.eql(u8, path, "/contexts") and !std.mem.eql(u8, path, "/route"))) return respond(&request, "{\"error\":\"not found\"}", .not_found);
     var body_buffer: [64 * 1024]u8 = undefined;
     const body = request.readerExpectNone(&body_buffer).allocRemaining(allocator, .limited(max_request_bytes)) catch return respond(&request, "{\"error\":\"payload rejected\"}", .payload_too_large);
     defer allocator.free(body);
-    if (std.mem.eql(u8, path, "/commands")) return handleCommands(allocator, model, index, &request, body);
-    return handleRoute(allocator, model, index, &request, body);
+    if (std.mem.eql(u8, path, "/contexts")) return handleContext(allocator, model, contexts, &request, body);
+    return handleRoute(allocator, model, contexts, &request, body);
 }
 
-fn handleCommands(allocator: std.mem.Allocator, model: *Model, index: *Index, request: *std.http.Server.Request, body: []const u8) !void {
+fn handleContext(allocator: std.mem.Allocator, model: *Model, contexts: *Contexts, request: *std.http.Server.Request, body: []const u8) !void {
     var doc = std.json.parseFromSlice(std.json.Value, allocator, body, .{}) catch return respond(request, "{\"error\":\"bad json\"}", .bad_request);
     defer doc.deinit();
     const object = switch (doc.value) {
         .object => |value| value,
         else => return respond(request, "{\"error\":\"bad json\"}", .bad_request),
     };
+    const key = stringField(object, "key") orelse return respond(request, "{\"error\":\"context key required\"}", .bad_request);
+    if (key.len == 0) return respond(request, "{\"error\":\"context key required\"}", .bad_request);
+    if (contexts.items.get(key) != null) return respond(request, "{\"error\":\"context key already exists\"}", .conflict);
     const commands = switch (object.get("commands") orelse return respond(request, "{\"error\":\"commands required\"}", .bad_request)) {
         .array => |value| value.items,
         else => return respond(request, "{\"error\":\"commands must be array\"}", .bad_request),
     };
+    var index = try allocator.create(Index);
+    index.* = .{ .allocator = allocator };
+    errdefer {
+        index.deinit();
+        allocator.destroy(index);
+    }
     const Meta = struct { id: []const u8, solution: []const u8 };
     var texts: std.ArrayList([]const u8) = .empty;
     defer texts.deinit(allocator);
@@ -226,25 +257,30 @@ fn handleCommands(allocator: std.mem.Allocator, model: *Model, index: *Index, re
         }
     }
     const vectors = model.encode(texts.items) catch return respond(request, "{\"error\":\"model failed\"}", .internal_server_error);
-    index.clear();
     if (meta.items.len > 0) {
         const dim = vectors.len / meta.items.len;
         for (meta.items, 0..) |item, i| try index.entries.append(allocator, .{ .id = try allocator.dupe(u8, item.id), .solution = try allocator.dupe(u8, item.solution), .vector = try allocator.dupe(f32, vectors[i * dim ..][0..dim]) });
     }
     allocator.free(vectors);
     index.commands = commands.len;
-    const reply = try std.fmt.allocPrint(allocator, "{{\"commands\":{d},\"vectors\":{d},\"enc_ms\":0.0,\"rss_mb\":{d}}}", .{ commands.len, index.entries.items.len, rssMb() });
+    const owned_key = try allocator.dupe(u8, key);
+    errdefer allocator.free(owned_key);
+    try contexts.items.put(allocator, owned_key, index);
+    const reply = try std.fmt.allocPrint(allocator, "{{\"key\":{f},\"commands\":{d},\"vectors\":{d},\"enc_ms\":0.0,\"rss_mb\":{d}}}", .{ std.json.fmt(key, .{}), commands.len, index.entries.items.len, rssMb() });
     defer allocator.free(reply);
+    errdefer _ = contexts.items.remove(key);
     try respond(request, reply, .ok);
 }
 
-fn handleRoute(allocator: std.mem.Allocator, model: *Model, index: *Index, request: *std.http.Server.Request, body: []const u8) !void {
+fn handleRoute(allocator: std.mem.Allocator, model: *Model, contexts: *Contexts, request: *std.http.Server.Request, body: []const u8) !void {
     var doc = std.json.parseFromSlice(std.json.Value, allocator, body, .{}) catch return respond(request, "{\"error\":\"bad json\"}", .bad_request);
     defer doc.deinit();
     const object = switch (doc.value) {
         .object => |value| value,
         else => return respond(request, "{\"error\":\"bad json\"}", .bad_request),
     };
+    const context_key = stringField(object, "context") orelse return respond(request, "{\"error\":\"context required\"}", .bad_request);
+    const index = contexts.items.get(context_key) orelse return respond(request, "{\"error\":\"context not found\"}", .not_found);
     const text = stringField(object, "text") orelse return respond(request, "{\"error\":\"empty text\"}", .bad_request);
     if (text.len == 0) return respond(request, "{\"error\":\"empty text\"}", .bad_request);
     const scope = stringField(object, "solution");

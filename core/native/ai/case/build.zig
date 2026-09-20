@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const wrapper_dir = "../wrappers/ai/onnxruntime";
+const wrapper_out_dir = "../../wrappers/ai/onnxruntime/zig-out";
 
 fn targetTriple(b: *std.Build, target: std.Build.ResolvedTarget) []const u8 {
     const arch = switch (target.result.cpu.arch) {
@@ -18,16 +18,8 @@ fn targetTriple(b: *std.Build, target: std.Build.ResolvedTarget) []const u8 {
 
 fn linkOnnxRuntime(b: *std.Build, exe: *std.Build.Step.Compile, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) void {
     const triple = targetTriple(b, target);
-    const lib_dir = b.fmt("../wrappers/ai/onnxruntime/zig-out/{s}/lib", .{triple});
-    const wrapper = b.addSystemCommand(&.{
-        b.graph.zig_exe,
-        "build",
-        b.fmt("-Dtarget={s}", .{triple}),
-        b.fmt("-Doptimize={s}", .{@tagName(optimize)}),
-    });
-    wrapper.setCwd(b.path(wrapper_dir));
-    wrapper.setName(b.fmt("build ONNX Runtime wrapper ({s})", .{triple}));
-    exe.step.dependOn(&wrapper.step);
+    _ = optimize;
+    const lib_dir = b.fmt("{s}/{s}/lib", .{ wrapper_out_dir, triple });
     exe.root_module.addLibraryPath(.{ .cwd_relative = lib_dir });
     exe.root_module.addRPathSpecial("$ORIGIN/lib");
     exe.root_module.addRPathSpecial("$ORIGIN/../lib");
@@ -39,7 +31,6 @@ fn linkOnnxRuntime(b: *std.Build, exe: *std.Build.Step.Compile, target: std.Buil
         .lib,
         "libonnxruntime.so",
     );
-    install_lib.step.dependOn(&wrapper.step);
     b.getInstallStep().dependOn(&install_lib.step);
 }
 
