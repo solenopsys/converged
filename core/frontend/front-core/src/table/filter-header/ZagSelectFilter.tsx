@@ -5,7 +5,7 @@ import { CheckIcon, ChevronDown } from "../../icons";
 import { cn } from "../../lib/utils";
 import type { TableFilterConfig, TableFilterOption } from "./types";
 
-type ZagSelectFilterProps = {
+export type ZagSelectFilterProps = {
 	filter: TableFilterConfig;
 	value: string[];
 	multiple?: boolean;
@@ -63,10 +63,14 @@ export function ZagSelectFilter({
 		onValueChange: ({ value: next }) => onValueChange(next),
 	});
 	const api = select.connect(service, normalizeProps);
+	const selectedLabels = value.map(
+		(selected) =>
+			options.find((option) => option.value === selected)?.label ?? selected,
+	);
 	const label = value.length
 		? multiple
-			? `${filter.label ?? filter.id}: ${value.length}`
-			: (options.find((option) => option.value === value[0])?.label ?? value[0])
+			? selectedLabels.join(", ")
+			: selectedLabels[0]
 		: (filter.allLabel ?? filter.label ?? "All");
 
 	return (
@@ -79,7 +83,9 @@ export function ZagSelectFilter({
 					className="border-input bg-background hover:bg-accent flex h-7 w-full min-w-0 items-center gap-1 rounded-md border px-2 text-left text-xs"
 					{...api.getTriggerProps()}
 				>
-					<span className="min-w-0 flex-1 truncate">{label}</span>
+					<span className="min-w-0 flex-1 truncate" title={label}>
+						{label}
+					</span>
 					<ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
 				</button>
 			</div>

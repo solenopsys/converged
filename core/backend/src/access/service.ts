@@ -1,4 +1,5 @@
 import type { SqlStore } from "../engines/sql/sql-store";
+import { isServiceActor } from "nrpc";
 import { ACCESS_TAGS_TABLE } from "./migration";
 import {
 	AUTHENTICATED_TAG,
@@ -120,6 +121,7 @@ export class AccessTags {
 
 	/** Whether the current actor is matched by any tag of this object. */
 	async canRead(objectId: string): Promise<boolean> {
+		if (isServiceActor()) return true;
 		const tags = actorTags();
 		if (tags.length === 0) return false;
 		const row = await this.db
@@ -146,6 +148,7 @@ export class AccessTags {
 	 * the object also carries, the passer-by holds nothing but `public`.
 	 */
 	async canWrite(objectId: string): Promise<boolean> {
+		if (isServiceActor()) return true;
 		const tags = identityTags();
 		if (tags.length === 0) return false;
 		const row = await this.db

@@ -2,16 +2,60 @@
 // SMTP relay) — both are supported and selected by MAIL_TRANSPORT; the
 // credentials for the selected one are required, with no silent fallback.
 //
-// The letter is the `magic-link` template in rp-notify, rendered by dag-mail —
-// the same template layer every workflow letter goes through. It is the first
+// The letter is the `magic-link` struct entry, rendered by dag-mail. It is the first
 // thing any customer sees of the product, so it goes out in their language:
 // the account's, else the invitation's, else what their browser asked for,
 // else the company's.
 import { settings } from "back-core/settings";
-import { pickLang, renderMail } from "dag-mail";
-import { identityClient, notifyClient, sesClient, smtpClient } from "./clients";
+import { MAIL_LANGS, renderMail } from "dag-mail";
+import {
+	identityClient,
+	notifyClient,
+	sesClient,
+	smtpClient,
+	structClient,
+} from "./clients";
 
 const TEMPLATE_ID = "magic-link";
+
+async function loadMagicLinkTemplate(lang: string): Promise<{
+	id: string;
+	content: Record<string, string>;
+}> {
+	const struct = structClient();
+	for (const candidate of [lang, "en"]) {
+		try {
+			const value = await struct.readJson(
+				`${candidate}/templates/magic-link.json`,
+			);
+			if (value && typeof value === "object") {
+				return { id: TEMPLATE_ID, content: { [candidate]: JSON.stringify(value) } };
+			}
+		} catch {}
+	}
+	return { id: TEMPLATE_ID, content: {} };
+}
+
+function preferredLang(
+	userLang: string | undefined,
+	inviteLang: string | undefined,
+	acceptLanguage: string | undefined,
+	profileLang: string,
+): string {
+	for (const candidate of [
+		userLang,
+		inviteLang,
+		...acceptedLangs(acceptLanguage),
+		profileLang,
+	]) {
+		const normalized = String(candidate ?? "").trim().toLowerCase();
+		if (MAIL_LANGS.includes(normalized as (typeof MAIL_LANGS)[number]))
+			return normalized;
+		const base = normalized.split("-")[0];
+		if (MAIL_LANGS.includes(base as (typeof MAIL_LANGS)[number])) return base;
+	}
+	return "en";
+}
 
 export type MagicLinkEmail = {
 	to: string;
@@ -84,14 +128,6 @@ function requestedAt(lang: string, now: Date): string {
 
 export async function sendMagicLinkEmail(email: MagicLinkEmail): Promise<void> {
 	const notify = notifyClient();
-	const template = await notify.getTemplate(TEMPLATE_ID);
-	// Loud, not a bare three-line fallback: an unseeded install is found on its
-	// first sign-in rather than after months of letters nobody designed.
-	if (!template) {
-		throw new Error(
-			`[auth-gateway] mail template "${TEMPLATE_ID}" is not seeded; run \`notify template seed\``,
-		);
-	}
 	const profile = await notify.getProfile();
 
 	const identity = identityClient();
@@ -99,12 +135,20 @@ export async function sendMagicLinkEmail(email: MagicLinkEmail): Promise<void> {
 		identity.getUserByEmail(email.to).catch(() => null),
 		identity.getInviteByEmail(email.to).catch(() => null),
 	]);
-	const lang = pickLang(template, [
+	const lang = preferredLang(
 		user?.lang,
 		invite?.lang,
-		...acceptedLangs(email.acceptLanguage),
+		email.acceptLanguage,
 		profile.lang,
-	]);
+	);
+	const template = await loadMagicLinkTemplate(lang);
+	// Loud, not a bare three-line fallback: a missing source is found on its
+	// first sign-in rather than after months of letters nobody designed.
+	if (Object.keys(template.content).length === 0) {
+		throw new Error(
+			`[auth-gateway] struct template "${TEMPLATE_ID}" is missing`,
+		);
+	}
 
 	const mail = renderMail(template, lang, {
 		brand: profile.brand,

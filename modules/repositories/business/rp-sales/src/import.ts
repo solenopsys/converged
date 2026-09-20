@@ -12,7 +12,7 @@ import type {
 	ImportLead,
 	ImportSourceFormat,
 	Lead,
-} from "../types";
+} from "./types";
 
 const CONTACT_EMAIL = "EMAIL";
 const CONTACT_PHONE = "PHONE";

@@ -279,8 +279,8 @@ async function loadBackendModules(
 	}
 
 	if (failed.length > 0) {
-		console.warn(
-			`[back-core] Missing backend modules:\n  - ${failed.join("\n  - ")}`,
+		throw new Error(
+			`[back-core] Failed to load backend modules:\n  - ${failed.join("\n  - ")}`,
 		);
 	}
 

@@ -3,7 +3,6 @@ modules:
   automation/lm-kubernetes: _
   convertors/lm-modelconvertor: _
   data/lm-compressors: ready
-  providers/lm-lemonsqueezy: _
   providers/lm-push: _
   providers/lm-ses: ready
   providers/lm-sms: _

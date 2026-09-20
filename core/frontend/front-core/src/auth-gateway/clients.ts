@@ -10,6 +10,7 @@ import { createNotifyServiceClient } from "g-notify";
 import { createOAuthServiceClient } from "g-oauth";
 import { createSesServiceClient } from "g-ses";
 import { createSmtpServiceClient } from "g-smtp";
+import { createStructServiceClient } from "g-struct";
 
 export function authClient() {
 	return createAuthServiceClient(createServerNrpcClientConfig());
@@ -37,4 +38,8 @@ export function sesClient() {
 
 export function smtpClient() {
 	return createSmtpServiceClient(createServerNrpcClientConfig());
+}
+
+export function structClient() {
+	return createStructServiceClient(createServerNrpcClientConfig());
 }

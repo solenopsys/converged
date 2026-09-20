@@ -1,4 +1,5 @@
 import type { Kysely } from "kysely";
+import { isServiceActor } from "nrpc";
 import { ACCESS_TAGS_TABLE } from "./migration";
 import { actorTags } from "./tags";
 
@@ -50,6 +51,9 @@ export function visibleFrom(
 	options: VisibleOptions = {},
 ) {
 	const { idColumn = "id", tags = actorTags(), alias = "obj" } = options;
+	if (isServiceActor() && options.tags === undefined) {
+		return db.selectFrom(`${table} as ${alias}`) as any;
+	}
 	return (db.selectFrom(`${table} as ${alias}`) as any).innerJoin(
 		(eb: any) => visibleIds(eb, tags).as("ids"),
 		(join: any) => join.onRef("ids.objectId", "=", `${alias}.${idColumn}`),

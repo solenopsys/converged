@@ -18,7 +18,6 @@ const content: Record<string, string> = {};
 for (const [lang, letter] of Object.entries(shipped))
 	content[lang] = JSON.stringify(letter);
 
-let template: { id: string; content: Record<string, string> } | undefined;
 let profile = { lang: "en", brand: "Converge" } as Record<string, string>;
 let users: Record<string, { lang?: string }> = {};
 let invites: Record<string, { lang?: string }> = {};
@@ -41,8 +40,14 @@ mock.module("back-core/settings", () => ({
 }));
 
 mock.module("./clients", () => ({
+	structClient: () => ({
+		readJson: async (path: string) => {
+			const lang = path.split("/")[0];
+			const letter = content[lang];
+			return letter ? JSON.parse(letter) : null;
+		},
+	}),
 	notifyClient: () => ({
-		getTemplate: async () => template,
 		getProfile: async () => profile,
 		recordSend: async (input: unknown) => {
 			journal.push(input);
@@ -71,7 +76,6 @@ const FIREFOX =
 	"Mozilla/5.0 (X11; Linux x86_64; rv:130.0) Gecko/20100101 Firefox/130.0";
 
 beforeEach(() => {
-	template = { id: "magic-link", content };
 	profile = { lang: "en", brand: "Acme Works", supportEmail: "help@acme.test" };
 	users = {};
 	invites = {};
@@ -133,11 +137,13 @@ test("account language beats the browser, the browser beats the company", async 
 });
 
 test("an unseeded template is an error, not a blank letter", async () => {
-	template = undefined;
+	const original = content.en;
+	delete content.en;
 	await expect(
 		sendMagicLinkEmail({ to: "ann@acme.test", link: LINK }),
-	).rejects.toThrow(/notify template seed/);
+	).rejects.toThrow(/struct template/);
 	expect(sent).toHaveLength(0);
+	content.en = original;
 });
 
 test("a refused delivery is journalled and still thrown", async () => {

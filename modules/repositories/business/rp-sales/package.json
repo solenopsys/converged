@@ -7,7 +7,7 @@
 	},
 	"type": "module",
 	"exports": {
-		".": "./index.ts"
+		".": "./src/index.ts"
 	},
 	"dependencies": {
 		"back-core": "workspace:*",

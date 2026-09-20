@@ -8,7 +8,6 @@ modules:
   wf-files-process: ready
   wf-order-review-followup: ready
   wf-order-review-request: ready
-  wf-payment-settle: _
   wf-request-analyze: ready
   wf-request-to-order: ready
   wf-sales-import: _

@@ -50,7 +50,6 @@ export type Offer = {
 	id: string;
 	name?: string;
 	description: string;
-	template_path: string;
 	subjectTemplate?: string;
 	bodyTemplate?: string;
 };
@@ -136,30 +135,21 @@ export type OutreachTargetStatus =
 	| "failed"
 	| "skipped";
 
-/**
- * One future send, frozen.
- *
- * `vars` is a flat map because delivery must not know a single variable name:
- * enrichment decides what a template may interpolate, and two enrichment
- * workflows with different ideas (a plain catalogue pitch, a tech-stack one)
- * therefore share one delivery workflow instead of forking it.
- */
-export type OutreachTargetPayload = {
-	/** Where this one letter goes. */
-	email: string;
-	/** The trail back to the lead — not template input. */
-	leadId: string;
-	contactId: string;
-	/** Everything the template may interpolate. */
-	vars: Record<string, string>;
-};
+/** Values available to the template. The recipient ids live here too, so one
+ * target is self-contained apart from its template reference. */
+export type OutreachTargetData = Record<string, unknown>;
 
 export type OutreachTarget = {
 	id: string;
+	/** Temporary queue owner while Campaign is being replaced by Enrichment. */
 	outreachId: string;
+	/** The string id of the company this work belongs to. */
+	companyId: string;
+	/** The template the UI and delivery load when they need to render this target. */
+	templateId: string;
 	status: OutreachTargetStatus | string;
 	position: number;
-	payload: OutreachTargetPayload;
+	data: OutreachTargetData;
 	createdAt: Date;
 	updatedAt: Date;
 };
@@ -167,13 +157,18 @@ export type OutreachTarget = {
 export type OutreachTargetInput = {
 	id?: string;
 	outreachId: string;
+	/** Legacy storage field. New callers identify the queue only by outreachId. */
+	companyId?: string;
+	templateId: string;
 	status?: OutreachTargetStatus | string;
 	position?: number;
-	payload: OutreachTargetPayload;
+	data: OutreachTargetData;
 };
 
 export type OutreachTargetListParams = PaginationParams & {
+	filter?: FilterObject;
 	outreachId?: string;
+	companyId?: string;
 	status?: OutreachTargetStatus | string;
 };
 

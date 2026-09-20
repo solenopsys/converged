@@ -55,7 +55,6 @@ export type Offer = {
 	id: string;
 	name?: string;
 	description: string;
-	template_path: string;
 	subjectTemplate?: string;
 	bodyTemplate?: string;
 };
@@ -123,22 +122,19 @@ export type OutreachTargetStatus = | "planned"
 	| "failed"
 	| "skipped";
 
-export type OutreachTargetPayload = {
-	/** Where this one letter goes. */
-	email: string;
-	/** The trail back to the lead — not template input. */
-	leadId: string;
-	contactId: string;
-	/** Everything the template may interpolate. */
-	vars: Record<string, string>;
-};
+export type OutreachTargetData = Record<string, unknown>;
 
 export type OutreachTarget = {
 	id: string;
+	/** Temporary queue owner while Campaign is being replaced by Enrichment. */
 	outreachId: string;
+	/** The string id of the company this work belongs to. */
+	companyId: string;
+	/** The template the UI and delivery load when they need to render this target. */
+	templateId: string;
 	status: OutreachTargetStatus | string;
 	position: number;
-	payload: OutreachTargetPayload;
+	data: OutreachTargetData;
 	createdAt: Date;
 	updatedAt: Date;
 };
@@ -146,13 +142,18 @@ export type OutreachTarget = {
 export type OutreachTargetInput = {
 	id?: string;
 	outreachId: string;
+	/** Legacy storage field. New callers identify the queue only by outreachId. */
+	companyId?: string;
+	templateId: string;
 	status?: OutreachTargetStatus | string;
 	position?: number;
-	payload: OutreachTargetPayload;
+	data: OutreachTargetData;
 };
 
 export type OutreachTargetListParams = PaginationParams & {
+	filter?: FilterObject;
 	outreachId?: string;
+	companyId?: string;
 	status?: OutreachTargetStatus | string;
 };
 
@@ -1126,7 +1127,7 @@ export const metadata: ServiceMetadata = {
     {
       "name": "Offer",
       "kind": "type",
-      "definition": "{\n\tid: string;\n\tname?: string;\n\tdescription: string;\n\ttemplate_path: string;\n\tsubjectTemplate?: string;\n\tbodyTemplate?: string;\n}"
+      "definition": "{\n\tid: string;\n\tname?: string;\n\tdescription: string;\n\tsubjectTemplate?: string;\n\tbodyTemplate?: string;\n}"
     },
     {
       "name": "ContactType",
@@ -1164,24 +1165,24 @@ export const metadata: ServiceMetadata = {
       "definition": "| \"planned\"\n\t| \"claimed\"\n\t| \"sent\"\n\t| \"completed\"\n\t| \"failed\"\n\t| \"skipped\""
     },
     {
-      "name": "OutreachTargetPayload",
+      "name": "OutreachTargetData",
       "kind": "type",
-      "definition": "{\n\t/** Where this one letter goes. */\n\temail: string;\n\t/** The trail back to the lead — not template input. */\n\tleadId: string;\n\tcontactId: string;\n\t/** Everything the template may interpolate. */\n\tvars: Record<string, string>;\n}"
+      "definition": "Record<string, unknown>"
     },
     {
       "name": "OutreachTarget",
       "kind": "type",
-      "definition": "{\n\tid: string;\n\toutreachId: string;\n\tstatus: OutreachTargetStatus | string;\n\tposition: number;\n\tpayload: OutreachTargetPayload;\n\tcreatedAt: Date;\n\tupdatedAt: Date;\n}"
+      "definition": "{\n\tid: string;\n\t/** Temporary queue owner while Campaign is being replaced by Enrichment. */\n\toutreachId: string;\n\t/** The string id of the company this work belongs to. */\n\tcompanyId: string;\n\t/** The template the UI and delivery load when they need to render this target. */\n\ttemplateId: string;\n\tstatus: OutreachTargetStatus | string;\n\tposition: number;\n\tdata: OutreachTargetData;\n\tcreatedAt: Date;\n\tupdatedAt: Date;\n}"
     },
     {
       "name": "OutreachTargetInput",
       "kind": "type",
-      "definition": "{\n\tid?: string;\n\toutreachId: string;\n\tstatus?: OutreachTargetStatus | string;\n\tposition?: number;\n\tpayload: OutreachTargetPayload;\n}"
+      "definition": "{\n\tid?: string;\n\toutreachId: string;\n\t/** Legacy storage field. New callers identify the queue only by outreachId. */\n\tcompanyId?: string;\n\ttemplateId: string;\n\tstatus?: OutreachTargetStatus | string;\n\tposition?: number;\n\tdata: OutreachTargetData;\n}"
     },
     {
       "name": "OutreachTargetListParams",
       "kind": "type",
-      "definition": "PaginationParams & {\n\toutreachId?: string;\n\tstatus?: OutreachTargetStatus | string;\n}"
+      "definition": "PaginationParams & {\n\tfilter?: FilterObject;\n\toutreachId?: string;\n\tcompanyId?: string;\n\tstatus?: OutreachTargetStatus | string;\n}"
     },
     {
       "name": "OutreachTargetStatusUpdate",

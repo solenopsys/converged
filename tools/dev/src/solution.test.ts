@@ -1,7 +1,25 @@
 import { expect, test } from "bun:test";
 import { resolve } from "node:path";
 import { PROJECT_ROOT } from "./apps";
-import { resolveSolutionConfig } from "./solution";
+import { mappingsFrom, resolveSolutionConfig } from "./solution";
+
+test("preserves a workflow type from mapping.json", () => {
+	const workflows = mappingsFrom(
+		{
+			workflows: [
+				{
+					id: "outreach-send",
+					name: "wf-outreach-send",
+					script: "workflows/wf-outreach-send.js",
+					type: "sales_delivery",
+				},
+			],
+		},
+		"mapping.json",
+	).get("workflows");
+
+	expect(workflows?.get("outreach-send")?.type).toBe("sales_delivery");
+});
 
 test("resolves the configured solution set and workflow links", () => {
 	const resolved = resolveSolutionConfig(
@@ -98,6 +116,7 @@ test("resolves the configured solution set and workflow links", () => {
 			id: "files-process",
 			name: "wf-files-process",
 			script: "workflows/wf-files-process.js",
+			type: "system",
 			brief: "Process uploaded files",
 			description:
 				"Expand ZIP archives and classify every uploaded file, reporting which of them are production models. Does not create a request.",
@@ -114,6 +133,7 @@ test("resolves the configured solution set and workflow links", () => {
 			id: "file-unpack",
 			name: "wf-file-unpack",
 			script: "workflows/wf-file-unpack.js",
+			type: "system",
 			brief: "Unpack an uploaded archive",
 			description: "Extract a ZIP archive and return IDs of its entries.",
 			parameters: {

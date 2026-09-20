@@ -1,0 +1,40 @@
+{
+	"subject": "Sign in to {{brand}}",
+	"preheader": "Your sign-in link for {{brand}}. Open it on the device you want to stay signed in on.",
+	"heading": "Your sign-in link",
+	"cta": "Sign in to {{brand}}",
+	"blocks": [
+		{
+			"p": "Press the button below to sign in to {{brand}}. No password needed — this device will remember you, and next time you are straight in."
+		},
+		{
+			"button": "{{url}}"
+		},
+		{
+			"note": "The link opens once. Open it on the device you want to stay signed in on."
+		},
+		{
+			"fallback": "{{url}}",
+			"label": "If the button does not work"
+		},
+		{
+			"meta": "Requested for {{email}}",
+			"detail": "{{requestInfo}}",
+			"when": "email"
+		},
+		{
+			"note": "Did not ask to sign in? Just delete this letter — nothing happens unless the link is opened."
+		}
+	],
+	"footer": [
+		"{{brand}} · a service letter about access to your account",
+		{
+			"text": "Questions — [{{supportEmail}}](mailto:{{supportEmail}})",
+			"when": "supportEmail"
+		},
+		{
+			"text": "{{address}}",
+			"when": "address"
+		}
+	]
+}

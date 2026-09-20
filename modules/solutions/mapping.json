@@ -49,6 +49,7 @@
 			"id": "files-process",
 			"name": "wf-files-process",
 			"script": "workflows/wf-files-process.js",
+			"type": "system",
 			"brief": "Process uploaded files",
 			"description": "Expand ZIP archives and classify every uploaded file, reporting which of them are production models. Does not create a request.",
 			"parameters": {
@@ -75,6 +76,7 @@
 			"id": "file-unpack",
 			"name": "wf-file-unpack",
 			"script": "workflows/wf-file-unpack.js",
+			"type": "system",
 			"brief": "Unpack an uploaded archive",
 			"description": "Extract a ZIP archive and return IDs of its entries.",
 			"parameters": {
@@ -96,6 +98,7 @@
 			"id": "file-analyze",
 			"name": "wf-file-analyze",
 			"script": "workflows/wf-file-analyze.js",
+			"type": "system",
 			"brief": "Analyze one uploaded file",
 			"description": "Stage one file, detect its type, convert it to a preview where possible and estimate production parameters. Skips files that are not production models.",
 			"parameters": {
@@ -132,6 +135,7 @@
 			"id": "files-analyze",
 			"name": "wf-files-analyze",
 			"script": "workflows/wf-files-analyze.js",
+			"type": "system",
 			"brief": "Analyze a batch of uploaded files",
 			"description": "Run the single-file analysis over every production model in the batch and report per-file estimates and errors.",
 			"parameters": {
@@ -450,36 +454,6 @@
 			"paramsExample": {
 				"rawText": "Anna Ops <anna@example.com>\nIvan CNC <ivan@example.com>",
 				"preset": "operator",
-				"dryRun": true
-			}
-		},
-		{
-			"id": "payment-settle",
-			"name": "wf-payment-settle",
-			"script": "workflows/wf-payment-settle.js",
-			"brief": "Settle an invoice from a payment webhook",
-			"description": "Turn a verified delivery from the payment provider into a paid invoice. The UI webhooks gateway checks the signature and publishes the parsed body; this reads it, finds the invoice by the id carried through the checkout, and marks it paid once. Re-running is safe — the provider's own reference is unique, so a retried delivery settles nothing twice.",
-			"parameters": {
-				"type": "object",
-				"properties": {
-					"body": {
-						"type": "object",
-						"description": "The bus event payload from the webhooks gateway"
-					},
-					"dryRun": {
-						"type": "boolean"
-					}
-				},
-				"required": [
-					"body"
-				]
-			},
-			"paramsExample": {
-				"body": {
-					"endpoint": "<endpoint-slug>",
-					"provider": "lemonsqueezy",
-					"body": {}
-				},
 				"dryRun": true
 			}
 		},

@@ -61,6 +61,8 @@ const asAlice = <T>(fn: () => T) =>
 	runWithWorkspaceContext({ user: "alice" }, fn);
 const asBob = <T>(fn: () => T) =>
 	runWithWorkspaceContext({ user: "bob", accessTags: ["team-support"] }, fn);
+const asService = <T>(fn: () => T) =>
+	runWithWorkspaceContext({ user: "centimanus", actorType: "service" }, fn);
 const anonymous = <T>(fn: () => T) => runWithWorkspaceContext({}, fn);
 
 describe("selecting what an actor may see", () => {
@@ -90,6 +92,18 @@ describe("selecting what an actor may see", () => {
 			listVisible<{ id: string }>(store.db, "topics"),
 		);
 		expect(page.items.map((row) => row.id)).toEqual(["t1"]);
+	});
+
+	test("a service token is not narrowed by object tags", async () => {
+		await addTopic("t1", "private", ["u-carol"]);
+		await addTopic("t2", "also private", ["team-support"]);
+
+		expect(await asService(() => access.canRead("t1"))).toBe(true);
+		expect(await asService(() => access.canWrite("t1"))).toBe(true);
+		const page = await asService(() =>
+			listVisible<{ id: string }>(store.db, "topics"),
+		);
+		expect(page.items.map((row) => row.id).sort()).toEqual(["t1", "t2"]);
 	});
 
 	test("an object matched by two of the actor's tags is returned once", async () => {

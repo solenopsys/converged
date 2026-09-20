@@ -1595,22 +1595,6 @@
       ]
     },
     {
-      "owner": "wf-payment-settle",
-      "path": "modules/workflows/wf-payment-settle/docs",
-      "sections": [
-        {
-          "id": "modules",
-          "index": "modules/workflows/wf-payment-settle/docs/index.json",
-          "articles": [
-            {
-              "slug": "wf-payment-settle",
-              "file": "modules/workflows/wf-payment-settle/docs/wf-payment-settle.md"
-            }
-          ]
-        }
-      ]
-    },
-    {
       "owner": "wf-request-analyze",
       "path": "modules/workflows/wf-request-analyze/docs",
       "sections": [

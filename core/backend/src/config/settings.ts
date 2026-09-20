@@ -111,19 +111,6 @@ export const settings = {
 		}),
 	},
 
-	// The payment provider the club bills its members through. Kept beside mail
-	// for the same reason: ptah projects one `<workspace>-secrets` Secret, and a
-	// second place to put credentials is a second place to get them wrong.
-	payments: {
-		lemonsqueezy: () => ({
-			apiKey: requireRaw("LEMONSQUEEZY_API_KEY"),
-			storeId: requireRaw("LEMONSQUEEZY_STORE_ID"),
-			// Lemon Squeezy has no arbitrary-amount checkout, so a deployment
-			// needs one throwaway variant for custom-priced invoices to hang off.
-			variantId: requireRaw("LEMONSQUEEZY_VARIANT_ID"),
-			webhookSecret: requireRaw("LEMONSQUEEZY_WEBHOOK_SECRET"),
-		}),
-	},
 };
 
 // Full registry of env settings — the source of truth for the startup dump.
@@ -173,11 +160,6 @@ export const SETTINGS_REGISTRY: SettingDescriptor[] = [
 	{ name: "MAIL_SMTP_SECURE" },
 	{ name: "MAIL_SMTP_USER" },
 	{ name: "MAIL_SMTP_PASS", secret: true },
-	// payments: how the club takes money for an invoice
-	{ name: "LEMONSQUEEZY_API_KEY", secret: true },
-	{ name: "LEMONSQUEEZY_STORE_ID" },
-	{ name: "LEMONSQUEEZY_VARIANT_ID" },
-	{ name: "LEMONSQUEEZY_WEBHOOK_SECRET", secret: true },
 	// ai providers
 	{ name: "OPENAI_API_KEY", secret: true },
 	{ name: "OPENAI_MODEL" },

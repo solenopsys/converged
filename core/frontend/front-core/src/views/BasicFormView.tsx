@@ -7,7 +7,8 @@ import { Textarea } from "../components/ui/textarea";
 import { Label } from "../components/ui/label";
 import { Button } from "../components/ui/button";
 import { Checkbox } from "../components/ui/checkbox";
-import { ContentContainer } from "../components/ContentContainer";
+import { FormLayout } from "../components/FormLayout";
+import { Save, X } from "../icons";
 import {
 	Select,
 	SelectContent,
@@ -269,8 +270,8 @@ export const BasicFormView: React.FC<BasicFormViewProps> = ({
 		}
 	};
 
-	const handleSubmit = async (e: React.FormEvent) => {
-		e.preventDefault();
+	const handleSubmit = async (e?: React.FormEvent) => {
+		e?.preventDefault();
 
 		const allTouched: Record<string, boolean> = {};
 		fields.forEach((field) => {
@@ -469,18 +470,39 @@ export const BasicFormView: React.FC<BasicFormViewProps> = ({
 	};
 
 	return (
-		<ContentContainer size="form" className="flex h-full flex-col">
-			<div className="px-6 py-4 border-b">
-				<h2 className="text-lg font-semibold">{title}</h2>
-				{subtitle && (
-					<p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
-				)}
-			</div>
-
-			<form
-				onSubmit={handleSubmit}
-				className="flex flex-1 min-h-0 flex-col overflow-auto"
-			>
+		<FormLayout
+			header={
+				<>
+					<h2 className="text-lg font-semibold">{title}</h2>
+					{subtitle && (
+						<p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
+					)}
+				</>
+			}
+			bodyClassName="p-0"
+			commands={[
+				...(onCancel || onClose
+					? [
+							{
+								id: "cancel",
+								label: cancelButtonText,
+								icon: X,
+								variant: "outline" as const,
+								onSelect: handleCancel,
+								disabled: isSubmitting || loading,
+							},
+						]
+					: []),
+				{
+					id: "save",
+					label: isSubmitting ? "Saving..." : saveButtonText,
+					icon: Save,
+					onSelect: handleSubmit,
+					disabled: isSubmitting || loading,
+				},
+			]}
+		>
+			<form onSubmit={handleSubmit} className="flex min-h-full flex-col">
 				<div className="shrink-0 px-6 py-4 space-y-4">
 					{fields.map(renderField)}
 				</div>
@@ -496,28 +518,6 @@ export const BasicFormView: React.FC<BasicFormViewProps> = ({
 					</div>
 				)}
 			</form>
-
-			<div className="border-t px-6 py-4">
-				<div className="flex justify-end gap-3">
-					{(onCancel || onClose) && (
-						<Button
-							type="button"
-							variant="outline"
-							onClick={handleCancel}
-							disabled={isSubmitting || loading}
-						>
-							{cancelButtonText}
-						</Button>
-					)}
-					<Button
-						type="submit"
-						onClick={handleSubmit}
-						disabled={isSubmitting || loading}
-					>
-						{isSubmitting ? "Saving..." : saveButtonText}
-					</Button>
-				</div>
-			</div>
-		</ContentContainer>
+		</FormLayout>
 	);
 };

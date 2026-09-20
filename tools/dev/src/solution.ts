@@ -17,6 +17,8 @@ export type MappingEntry = {
 	id?: string;
 	name: string;
 	script: string;
+	/** Stable workflow category a UI can display and filter by. */
+	type?: string;
 	brief?: string;
 	description?: string;
 	parameters?: Record<string, unknown>;
@@ -128,8 +130,16 @@ export function mappingsFrom(
 			if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
 				throw new Error(`[dev] ${path}.${group} contains an invalid entry`);
 			}
-			const { id, name, script, brief, description, parameters, paramsExample } =
-				entry as JsonObject;
+			const {
+				id,
+				name,
+				script,
+				type,
+				brief,
+				description,
+				parameters,
+				paramsExample,
+			} = entry as JsonObject;
 			if (typeof name !== "string" || typeof script !== "string") {
 				throw new Error(
 					`[dev] ${path}.${group} entries require name and script`,
@@ -138,6 +148,9 @@ export function mappingsFrom(
 			const key = typeof id === "string" ? id : name;
 			if (groupMappings.has(key)) {
 				throw new Error(`[dev] ${path}.${group} duplicates "${key}"`);
+			}
+			if (type !== undefined && typeof type !== "string") {
+				throw new Error(`[dev] ${path}.${group} ${key}.type must be a string`);
 			}
 			if (
 				parameters !== undefined &&
@@ -153,12 +166,17 @@ export function mappingsFrom(
 				...(typeof id === "string" ? { id } : {}),
 				name,
 				script,
+				...(typeof type === "string" && type.trim()
+					? { type: type.trim() }
+					: {}),
 				...(typeof brief === "string" ? { brief } : {}),
 				...(typeof description === "string" ? { description } : {}),
 				...(parameters
 					? { parameters: parameters as Record<string, unknown> }
 					: {}),
-				...(paramsExample && typeof paramsExample === "object" && !Array.isArray(paramsExample)
+				...(paramsExample &&
+				typeof paramsExample === "object" &&
+				!Array.isArray(paramsExample)
 					? { paramsExample: paramsExample as Record<string, unknown> }
 					: {}),
 			});

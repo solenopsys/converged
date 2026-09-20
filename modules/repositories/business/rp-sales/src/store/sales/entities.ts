@@ -1,0 +1,130 @@
+import { BaseRepositorySQL, type KeySQL } from "back-core";
+
+export interface StringKey extends KeySQL {
+	id: string;
+}
+
+export interface LeadEntity {
+	id: string;
+	createdAt: number;
+	description: string;
+	lang: string;
+	type: string;
+	catalogId: string;
+	disabled: boolean;
+}
+
+export interface LeadTagEntity {
+	id: string;
+	name: string;
+	description: string;
+	createdAt: number;
+	updatedAt: number;
+}
+
+export interface LeadTagLinkEntity {
+	tagId: string;
+	leadId: string;
+	createdAt: number;
+}
+
+export interface OfferEntity {
+	id: string;
+	name: string;
+	description: string;
+	subjectTemplate: string;
+	bodyTemplate: string;
+}
+
+export interface ContactEntity {
+	id: string;
+	leadId: string;
+	createdAt: number;
+	contactType: string;
+	value: string;
+	role: string;
+	description: string;
+}
+
+export interface TouchEntity {
+	id: string;
+	contactId: string;
+	createdAt: number;
+	description: string;
+	companyName: string | null;
+	outreachId: string | null;
+}
+
+export interface OutreachEntity {
+	id: string;
+	name: string;
+	status: string;
+	lang: string;
+	description: string;
+	templateId: string | null;
+	/** JSON: the canonical lead predicate this campaign mails. */
+	audience: string;
+	enrichWorkflow: string;
+	/** JSON: opaque here, validated by the workflow's own parameters schema. */
+	enrichParams: string;
+	sendWorkflow: string;
+	sendParams: string;
+	createdAt: number;
+	updatedAt: number;
+}
+
+export interface OutreachTargetEntity {
+	id: string;
+	outreachId: string;
+	companyId: string;
+	templateId: string;
+	status: string;
+	position: number;
+	data: string;
+	/** Retained only for rows written before target data became first-class. */
+	payload: string;
+	createdAt: number;
+	updatedAt: number;
+}
+
+export interface LeadEventEntity {
+	id: string;
+	code: string;
+	type: string;
+	contactId: string | null;
+	leadId: string | null;
+	url: string | null;
+	referrer: string | null;
+	userAgent: string | null;
+	createdAt: number;
+}
+
+export class LeadRepository extends BaseRepositorySQL<StringKey, LeadEntity> {}
+export class OfferRepository extends BaseRepositorySQL<
+	StringKey,
+	OfferEntity
+> {}
+export class ContactRepository extends BaseRepositorySQL<
+	StringKey,
+	ContactEntity
+> {}
+export class TouchRepository extends BaseRepositorySQL<
+	StringKey,
+	TouchEntity
+> {}
+export class OutreachRepository extends BaseRepositorySQL<
+	StringKey,
+	OutreachEntity
+> {}
+export class OutreachTargetRepository extends BaseRepositorySQL<
+	StringKey,
+	OutreachTargetEntity
+> {}
+export class LeadEventRepository extends BaseRepositorySQL<
+	StringKey,
+	LeadEventEntity
+> {}
+export class LeadTagRepository extends BaseRepositorySQL<
+	StringKey,
+	LeadTagEntity
+> {}

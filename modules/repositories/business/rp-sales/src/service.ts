@@ -1,0 +1,1185 @@
+import { randomUUID } from "node:crypto";
+import { BaseService, badRequestError, conflictError } from "back-core";
+import {
+	normalizeImportLeads as normalizeImportRows,
+	parseImportText,
+} from "./import";
+import { StoresController } from "./store";
+import type {
+	LeadEntity,
+	LeadTagEntity,
+	OfferEntity,
+	OutreachEntity,
+} from "./store/sales";
+import type {
+	Contact,
+	ContactListParams,
+	FilterObject,
+	Lead,
+	LeadEvent,
+	LeadListParams,
+	LeadSelection,
+	LeadTag,
+	LeadTagInput,
+	LeadTagLink,
+	LeadUpdate,
+	NormalizeImportLeadsInput,
+	NormalizeImportLeadsResult,
+	Offer,
+	Outreach,
+	OutreachCandidate,
+	OutreachTarget,
+	OutreachTargetInput,
+	OutreachTargetListParams,
+	OutreachTargetStatusUpdate,
+	PaginatedResult,
+	PaginationParams,
+	ParseImportLeadsInput,
+	ParseImportLeadsResult,
+	SalesService,
+	SalesStatisticKey,
+	SelectionDescriptor,
+	SelectionStats,
+	Statistic,
+	Touch,
+} from "./types";
+
+function normalizeDate(value: unknown): Date {
+	if (value instanceof Date && !Number.isNaN(value.getTime())) {
+		return value;
+	}
+
+	if (typeof value === "string" || typeof value === "number") {
+		const timestamp =
+			typeof value === "number" && value > 0 && value < 100000000000
+				? value * 1000
+				: value;
+		const date = new Date(timestamp);
+		if (!Number.isNaN(date.getTime())) {
+			return date;
+		}
+	}
+
+	return new Date();
+}
+
+function normalizeTargetData(value: unknown): Record<string, unknown> {
+	if (!value || typeof value !== "object" || Array.isArray(value)) {
+		throw badRequestError("target data is required");
+	}
+	return value as Record<string, unknown>;
+}
+
+const EMPTY_TARGET_DATA: Record<string, unknown> = {};
+
+/**
+ * A target's frozen variables, whichever build wrote it.
+ *
+ * Enrichment used to store `{ outreach, lead, contact, company, tech }` and
+ * delivery reached into it by name. It stores a flat variable map now, so one
+ * delivery workflow serves any enrichment — but rows written before that are
+ * still in the queue, and reading them as empty would blank out a campaign's
+ * whole history. So the old shape is flattened here rather than migrated.
+ */
+function parseTargetData(value: string): Record<string, unknown> {
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(value);
+	} catch {
+		return EMPTY_TARGET_DATA;
+	}
+	if (!parsed || typeof parsed !== "object" || Array.isArray(parsed))
+		return EMPTY_TARGET_DATA;
+
+	const payload = parsed as Record<string, unknown>;
+	if (payload.vars && typeof payload.vars === "object") {
+		return {
+			...(payload.vars as Record<string, unknown>),
+			email: String(payload.email ?? ""),
+			leadId: String(payload.leadId ?? ""),
+			contactId: String(payload.contactId ?? ""),
+		};
+	}
+	if (payload.lead || payload.contact || payload.company) {
+		return flattenLegacyPayload(payload);
+	}
+	return payload;
+}
+
+type LegacyRecord = Record<string, unknown>;
+
+const legacyObject = (value: unknown): LegacyRecord =>
+	value && typeof value === "object" && !Array.isArray(value)
+		? (value as LegacyRecord)
+		: {};
+
+const legacyText = (source: LegacyRecord, key: string): string => {
+	const value = source[key];
+	return value === undefined || value === null ? "" : String(value);
+};
+
+/** The pre-flat shape, read back as the variables a template would have used. */
+function flattenLegacyPayload(payload: LegacyRecord): Record<string, unknown> {
+	const lead = legacyObject(payload.lead);
+	const contact = legacyObject(payload.contact);
+	const company = legacyObject(payload.company);
+	const tech = legacyObject(payload.tech);
+	const email = legacyText(contact, "email") || legacyText(contact, "value");
+	const companyAlias =
+		legacyText(company, "alias") || legacyText(company, "id");
+
+	return {
+		...{
+			...Object.fromEntries(
+				Object.entries(tech).map(([key, value]) => [key, String(value ?? "")]),
+			),
+			companyId: legacyText(company, "id"),
+			companyAlias,
+			companyName: legacyText(company, "name") || companyAlias,
+			companyDomain: legacyText(company, "domain"),
+			contactId: legacyText(contact, "id"),
+			contactRole: legacyText(contact, "role"),
+			leadId: legacyText(lead, "id"),
+			leadDescription: legacyText(lead, "description"),
+			recipientEmail: email,
+		},
+		email,
+		contactId: legacyText(contact, "id"),
+	};
+}
+
+function createTouchId(): string {
+	const suffix = Math.floor(Math.random() * 1000)
+		.toString()
+		.padStart(3, "0");
+	return `${Date.now()}${suffix}`;
+}
+
+function toSeconds(value: unknown): number {
+	return Math.floor(normalizeDate(value).getTime() / 1000);
+}
+
+function isPrimaryKeyConflict(error: unknown): boolean {
+	const err = error as { code?: string; errno?: number } | null;
+	return err?.code === "SQLITE_CONSTRAINT_PRIMARYKEY" || err?.errno === 1555;
+}
+
+function readBoolean(value: unknown): boolean {
+	return value === true || value === 1 || value === "1";
+}
+
+function mapLead(entity: LeadEntity, tags?: LeadTag[]): Lead {
+	return {
+		id: entity.id,
+		description: entity.description,
+		lang: entity.lang,
+		type: entity.type,
+		catalogId: entity.catalogId,
+		disabled: readBoolean(entity.disabled),
+		createdAt: new Date(entity.createdAt * 1000),
+		...(tags ? { tags } : {}),
+	};
+}
+
+function mapOffer(entity: OfferEntity): Offer {
+	return {
+		id: entity.id,
+		name: entity.name || entity.id,
+		description: entity.description,
+		subjectTemplate: entity.subjectTemplate ?? "",
+		bodyTemplate: entity.bodyTemplate ?? "",
+	};
+}
+
+function mapTag(entity: LeadTagEntity): LeadTag {
+	return {
+		id: entity.id,
+		name: entity.name,
+		description: entity.description,
+		createdAt: new Date(entity.createdAt * 1000),
+		updatedAt: new Date(entity.updatedAt * 1000),
+	};
+}
+
+/** JSON columns are opaque to this service: their shape is the workflow's
+ *  business, not the store's. A row written by an older build simply reads as
+ *  empty rather than failing the whole list. */
+function readJson<T>(value: string | null | undefined, fallback: T): T {
+	if (!value) return fallback;
+	try {
+		const parsed = JSON.parse(value);
+		return parsed && typeof parsed === "object" ? (parsed as T) : fallback;
+	} catch {
+		return fallback;
+	}
+}
+
+function mapOutreach(entity: OutreachEntity): Outreach {
+	return {
+		id: entity.id,
+		name: entity.name,
+		status: entity.status,
+		lang: entity.lang,
+		description: entity.description,
+		templateId: entity.templateId ?? undefined,
+		audience: readJson<FilterObject>(entity.audience, {}),
+		enrichWorkflow: entity.enrichWorkflow || undefined,
+		enrichParams: readJson<Record<string, unknown>>(entity.enrichParams, {}),
+		sendWorkflow: entity.sendWorkflow || undefined,
+		sendParams: readJson<Record<string, unknown>>(entity.sendParams, {}),
+		createdAt: new Date(entity.createdAt * 1000),
+		updatedAt: new Date(entity.updatedAt * 1000),
+	};
+}
+
+class SalesServiceImpl
+	extends BaseService<StoresController>
+	implements SalesService
+{
+	constructor() {
+		super("rp-sales");
+	}
+
+	protected createStores(repositoryId: string): StoresController {
+		return new StoresController(repositoryId);
+	}
+
+	async addLead(lead: Lead): Promise<string> {
+		await this.ready();
+		if (!lead.id || !lead.description) {
+			throw badRequestError("Lead id and description are required");
+		}
+
+		try {
+			const createdAt = normalizeDate(lead.createdAt);
+			const leadEntity = {
+				id: lead.id,
+				createdAt: Math.floor(createdAt.getTime() / 1000),
+				description: lead.description,
+				lang: lead.lang ?? "",
+				type: lead.type ?? "",
+				catalogId: lead.catalogId ?? "",
+				disabled: Boolean(lead.disabled),
+			};
+			await this.stores.salesStoreSevice.addLead(leadEntity);
+			return lead.id;
+		} catch (err) {
+			if (isPrimaryKeyConflict(err)) {
+				throw conflictError(`Lead with id '${lead.id}' already exists`);
+			}
+			throw err;
+		}
+	}
+
+	async getLead(leadId: string): Promise<Lead | null> {
+		await this.ready();
+		const normalizedLeadId = leadId?.trim();
+		if (!normalizedLeadId) {
+			throw badRequestError("leadId is required");
+		}
+
+		const entity = await this.stores.salesStoreSevice.getLead(normalizedLeadId);
+		if (!entity) return null;
+
+		const tags = await this.stores.salesStoreSevice.listLeadTags(entity.id);
+		return mapLead(entity, tags.map(mapTag));
+	}
+
+	async updateLead(lead: LeadUpdate): Promise<boolean> {
+		await this.ready();
+		const normalizedLeadId = lead.id?.trim();
+		if (!normalizedLeadId) {
+			throw badRequestError("lead id is required");
+		}
+
+		const patch: Record<string, unknown> = {};
+		if (lead.description !== undefined) patch.description = lead.description;
+		if (lead.lang !== undefined) patch.lang = lead.lang;
+		if (lead.type !== undefined) patch.type = lead.type;
+		if (lead.catalogId !== undefined) patch.catalogId = lead.catalogId;
+		if (lead.disabled !== undefined) patch.disabled = Boolean(lead.disabled);
+
+		if (Object.keys(patch).length === 0) return false;
+
+		return this.stores.salesStoreSevice.updateLead(normalizedLeadId, patch);
+	}
+
+	async updateLeadCatalogId(
+		leadId: string,
+		catalogId: string,
+	): Promise<boolean> {
+		await this.ready();
+		const normalizedLeadId = leadId?.trim();
+		const normalizedCatalogId = catalogId?.trim();
+
+		if (!normalizedLeadId || !normalizedCatalogId) {
+			throw badRequestError("leadId and catalogId are required");
+		}
+
+		return this.stores.salesStoreSevice.updateLeadCatalogId(
+			normalizedLeadId,
+			normalizedCatalogId,
+		);
+	}
+
+	async assignLeadTag(leadId: string, tagName: string): Promise<void> {
+		await this.ready();
+		const normalizedTagName = tagName?.trim();
+		if (!leadId || !normalizedTagName) {
+			throw badRequestError("leadId and tagName are required");
+		}
+
+		await this.stores.salesStoreSevice.assignLeadTag(leadId, normalizedTagName);
+	}
+
+	async removeLeadTag(leadId: string, tagName: string): Promise<boolean> {
+		await this.ready();
+		const normalizedTagName = tagName?.trim();
+		if (!leadId || !normalizedTagName) {
+			throw badRequestError("leadId and tagName are required");
+		}
+
+		return this.stores.salesStoreSevice.removeLeadTag(
+			leadId,
+			normalizedTagName,
+		);
+	}
+
+	async listLeadTags(leadId: string): Promise<LeadTag[]> {
+		await this.ready();
+		if (!leadId) {
+			throw badRequestError("leadId is required");
+		}
+
+		const tags = await this.stores.salesStoreSevice.listLeadTags(leadId);
+		return tags.map(mapTag);
+	}
+
+	async listLeadTagLinks(
+		params: PaginationParams,
+	): Promise<PaginatedResult<LeadTagLink>> {
+		await this.ready();
+		const result = await this.stores.salesStoreSevice.listLeadTagLinks(params);
+		return {
+			items: result.items.map((link) => ({
+				tagId: link.tagId,
+				leadId: link.leadId,
+				createdAt: new Date(link.createdAt * 1000),
+			})),
+			totalCount: result.totalCount,
+		};
+	}
+
+	async saveOffer(offer: Offer): Promise<string> {
+		await this.ready();
+		const id = offer.id?.trim();
+		if (!id) {
+			throw badRequestError("Offer id is required");
+		}
+
+		await this.stores.salesStoreSevice.saveOffer({
+			id,
+			name: offer.name?.trim() || id,
+			description: offer.description ?? "",
+			subjectTemplate: offer.subjectTemplate ?? "",
+			bodyTemplate: offer.bodyTemplate ?? "",
+		});
+		return id;
+	}
+
+	async getOffer(offerId: string): Promise<Offer | null> {
+		await this.ready();
+		const id = offerId?.trim();
+		if (!id) throw badRequestError("offerId is required");
+		const offer = await this.stores.salesStoreSevice.getOffer(id);
+		return offer ? mapOffer(offer) : null;
+	}
+
+	async listOffers(params: PaginationParams): Promise<PaginatedResult<Offer>> {
+		await this.ready();
+		const { items, totalCount } =
+			await this.stores.salesStoreSevice.listOffers(params);
+
+		return {
+			items: items.map(mapOffer),
+			totalCount,
+		};
+	}
+
+	async saveTag(tag: LeadTagInput): Promise<string> {
+		await this.ready();
+		const name = tag.name?.trim();
+		if (!name) throw badRequestError("Tag name is required");
+		// An id in the payload names the tag being edited; it does not reserve a
+		// new one. A name the caller has never seen produces a fresh id here,
+		// because an id a caller may choose is an id it may occupy, and the
+		// relation carries no object type to catch the collision
+		// (`access-control.md`, "Требования к идентификаторам").
+		const claimed = tag.id?.trim();
+		const existing = claimed
+			? await this.stores.salesStoreSevice.getTag(claimed)
+			: undefined;
+		const id = existing?.id;
+		const clash = await this.stores.salesStoreSevice.findTagByName(name);
+		if (clash && clash.id !== id) {
+			throw conflictError(`A tag named '${name}' already exists`);
+		}
+		const tagId = id ?? randomUUID();
+		const now = Math.floor(Date.now() / 1000);
+		await this.stores.salesStoreSevice.saveTag({
+			id: tagId,
+			name,
+			description: tag.description?.trim() ?? existing?.description ?? "",
+			createdAt: existing?.createdAt ?? now,
+			updatedAt: now,
+		});
+		return tagId;
+	}
+
+	async ensureTag(name: string, description = ""): Promise<string> {
+		await this.ready();
+		const normalized = name?.trim();
+		if (!normalized) throw badRequestError("Tag name is required");
+		const existing =
+			await this.stores.salesStoreSevice.findTagByName(normalized);
+		if (existing) return existing.id;
+		return this.saveTag({ name: normalized, description });
+	}
+
+	async findTagId(name: string): Promise<string | null> {
+		await this.ready();
+		const normalized = name?.trim();
+		if (!normalized) return null;
+		const tag = await this.stores.salesStoreSevice.findTagByName(normalized);
+		return tag?.id ?? null;
+	}
+
+	async getTag(tagId: string): Promise<LeadTag | null> {
+		await this.ready();
+		const id = tagId?.trim();
+		if (!id) throw badRequestError("tagId is required");
+		const entity = await this.stores.salesStoreSevice.getTag(id);
+		return entity ? mapTag(entity) : null;
+	}
+
+	async listTags(params: PaginationParams): Promise<PaginatedResult<LeadTag>> {
+		await this.ready();
+		const result = await this.stores.salesStoreSevice.listTags(params);
+		return {
+			items: result.items.map(mapTag),
+			totalCount: result.totalCount,
+		};
+	}
+
+	async deleteTag(tagId: string): Promise<boolean> {
+		await this.ready();
+		const id = tagId?.trim();
+		if (!id) throw badRequestError("tagId is required");
+		return this.stores.salesStoreSevice.deleteTag(id);
+	}
+
+	async assignTag(tagId: string, selection: LeadSelection): Promise<number> {
+		await this.ready();
+		const id = await this.requireTag(tagId);
+		return this.stores.salesStoreSevice.addTagLeads(
+			id,
+			await this.resolveSelection(selection),
+		);
+	}
+
+	async unassignTag(tagId: string, selection: LeadSelection): Promise<number> {
+		await this.ready();
+		const id = await this.requireTag(tagId);
+		return this.stores.salesStoreSevice.removeTagLeads(
+			id,
+			await this.resolveSelection(selection),
+		);
+	}
+
+	async listTagLeads(
+		tagId: string,
+		params: PaginationParams,
+	): Promise<PaginatedResult<Lead>> {
+		await this.ready();
+		const id = tagId?.trim();
+		if (!id) throw badRequestError("tagId is required");
+		const result = await this.stores.salesStoreSevice.listTagLeads(id, params);
+		return {
+			items: await this.mapLeadsWithTags(result.items),
+			totalCount: result.totalCount,
+		};
+	}
+
+	async describeSelection(objectType: string): Promise<SelectionDescriptor> {
+		await this.ready();
+		if (objectType !== "sales.lead") {
+			throw badRequestError(`Unsupported selection object: ${objectType}`);
+		}
+		const tags = await this.stores.salesStoreSevice.listTags({
+			offset: 0,
+			limit: 200,
+		});
+		const langs = await this.stores.salesStoreSevice.listLeadLangs();
+		return {
+			objectType,
+			title: "Leads",
+			description: "Companies worth writing to, and everything known of them",
+			fields: [
+				{
+					id: "description",
+					label: "Description",
+					description: "Company name and address as it was collected",
+					valueType: "string",
+					operators: ["contains", "startsWith", "eq"],
+					control: "text",
+				},
+				{
+					id: "contact",
+					label: "Contact",
+					description: "Email, domain or phone recorded for the lead",
+					valueType: "string",
+					operators: ["contains", "startsWith", "eq"],
+					control: "text",
+				},
+				{
+					id: "tag",
+					label: "Tag",
+					description: "Named group the lead belongs to",
+					valueType: "enum",
+					operators: ["eq", "notEq", "in", "notIn", "isNull", "isNotNull"],
+					control: "multi-select",
+					values: tags.items.map((tag) => ({
+						id: tag.id,
+						label: tag.name,
+						aliases: [tag.name],
+					})),
+					valuesComplete: tags.items.length === tags.totalCount,
+				},
+				{
+					id: "lang",
+					label: "Language",
+					valueType: "enum",
+					operators: ["eq", "notEq", "in", "notIn"],
+					control: "multi-select",
+					values: langs.map((lang) => ({ id: lang, label: lang })),
+					valuesComplete: true,
+				},
+				{
+					id: "type",
+					label: "Type",
+					valueType: "enum",
+					operators: ["eq", "notEq", "in", "notIn"],
+					control: "multi-select",
+					values: [
+						{ id: "cnc", label: "CNC" },
+						{ id: "3dprint", label: "3D printing" },
+					],
+				},
+				{
+					id: "disabled",
+					label: "Disabled",
+					valueType: "boolean",
+					operators: ["eq"],
+					control: "boolean",
+				},
+				{
+					id: "createdAt",
+					label: "Created",
+					valueType: "date",
+					operators: ["gte", "lte", "between"],
+					control: "date-range",
+				},
+			],
+			filterExample: tags.items[0]
+				? { tag: { eq: tags.items[0].id } }
+				: { lang: { eq: langs[0] ?? "en" } },
+			revision: `tags-${tags.totalCount}`,
+		};
+	}
+
+	async inspectLeads(filter?: FilterObject): Promise<SelectionStats> {
+		await this.ready();
+		return {
+			totalCount: await this.stores.salesStoreSevice.countLeadsFiltered(filter),
+		};
+	}
+
+	private async requireTag(tagId: string): Promise<string> {
+		const id = tagId?.trim();
+		if (!id) throw badRequestError("tagId is required");
+		if (!(await this.stores.salesStoreSevice.leadTagRepo.findById({ id }))) {
+			throw badRequestError(`Tag '${id}' does not exist`);
+		}
+		return id;
+	}
+
+	/**
+	 * Ticked rows win when there are any; otherwise the filter itself is the
+	 * selection and the identifiers never leave the server.
+	 */
+	private async resolveSelection(selection: LeadSelection): Promise<string[]> {
+		const ids =
+			selection?.ids?.map((leadId) => leadId.trim()).filter(Boolean) ?? [];
+		if (ids.length > 0) return [...new Set(ids)];
+		return this.stores.salesStoreSevice.listLeadIdsFiltered(selection?.filter);
+	}
+
+	async addContact(contact: Contact): Promise<string> {
+		await this.ready();
+		if (!contact.id || !contact.leadId || !contact.type) {
+			throw badRequestError("Contact id, leadId, and type are required");
+		}
+
+		try {
+			const createdAt = normalizeDate(contact.createdAt);
+			const contactEntity = {
+				id: contact.id,
+				leadId: contact.leadId,
+				createdAt: Math.floor(createdAt.getTime() / 1000),
+				contactType: contact.type,
+				value: contact.value ?? "",
+				role: contact.role ?? "",
+				description: contact.description ?? "",
+			};
+			await this.stores.salesStoreSevice.addContact(contactEntity);
+			return contact.id;
+		} catch (err) {
+			if (isPrimaryKeyConflict(err)) {
+				throw conflictError(`Contact with id '${contact.id}' already exists`);
+			}
+			throw err;
+		}
+	}
+
+	async getContact(contactId: string): Promise<Contact | null> {
+		await this.ready();
+		const normalizedContactId = contactId?.trim();
+		if (!normalizedContactId) {
+			throw badRequestError("contactId is required");
+		}
+
+		const entity =
+			await this.stores.salesStoreSevice.getContact(normalizedContactId);
+		if (!entity) return null;
+
+		return {
+			id: entity.id,
+			leadId: entity.leadId,
+			type: entity.contactType as Contact["type"],
+			value: entity.value,
+			role: entity.role,
+			description: entity.description,
+			createdAt: new Date(entity.createdAt * 1000),
+		};
+	}
+
+	async addTouch(touch: Touch): Promise<number> {
+		await this.ready();
+		if (!touch.contactId || !touch.description) {
+			throw badRequestError("Touch contactId and description are required");
+		}
+
+		try {
+			const createdAt = normalizeDate(touch.createdAt);
+			const touchEntity = {
+				id: createTouchId(),
+				contactId: touch.contactId,
+				createdAt: Math.floor(createdAt.getTime() / 1000),
+				description: touch.description,
+				companyName: touch.companyName ?? "",
+				outreachId: touch.outreachId ?? null,
+			};
+			const result = await this.stores.salesStoreSevice.addTouch(touchEntity);
+			return result?.id ? Number(result.id) : 0;
+		} catch (err) {
+			if (isPrimaryKeyConflict(err)) {
+				throw conflictError("Touch already exists");
+			}
+			throw err;
+		}
+	}
+
+	async saveOutreach(outreach: Outreach): Promise<string> {
+		await this.ready();
+		const id = outreach.id?.trim();
+		const name = outreach.name?.trim();
+		if (!id || !name) {
+			throw badRequestError("Outreach id and name are required");
+		}
+
+		const now = Math.floor(Date.now() / 1000);
+		await this.stores.salesStoreSevice.saveOutreach({
+			id,
+			name,
+			status: outreach.status?.trim() || "draft",
+			lang: outreach.lang?.trim().toLowerCase() ?? "",
+			description: outreach.description ?? "",
+			templateId: outreach.templateId?.trim() || null,
+			audience: JSON.stringify(outreach.audience ?? {}),
+			enrichWorkflow: outreach.enrichWorkflow?.trim() || "",
+			enrichParams: JSON.stringify(outreach.enrichParams ?? {}),
+			sendWorkflow: outreach.sendWorkflow?.trim() || "",
+			sendParams: JSON.stringify(outreach.sendParams ?? {}),
+			createdAt: toSeconds(outreach.createdAt ?? now),
+			updatedAt: now,
+		});
+
+		return id;
+	}
+
+	async getOutreach(outreachId: string): Promise<Outreach | null> {
+		await this.ready();
+		const id = outreachId?.trim();
+		if (!id) throw badRequestError("outreachId is required");
+		const entity = await this.stores.salesStoreSevice.getOutreach(id);
+		return entity ? mapOutreach(entity) : null;
+	}
+
+	async listOutreaches(
+		params: PaginationParams,
+	): Promise<PaginatedResult<Outreach>> {
+		await this.ready();
+		const result = await this.stores.salesStoreSevice.listOutreaches(params);
+		return {
+			items: result.items.map(mapOutreach),
+			totalCount: result.totalCount,
+		};
+	}
+
+	async addOutreachTargets(targets: OutreachTargetInput[]): Promise<number> {
+		await this.ready();
+		if (!Array.isArray(targets) || targets.length === 0) return 0;
+
+		const now = Math.floor(Date.now() / 1000);
+		const entities = targets.map((target, index) => {
+			const outreachId = target.outreachId?.trim();
+			if (!outreachId) {
+				throw badRequestError("outreachId is required");
+			}
+			const companyId = target.companyId?.trim() || outreachId;
+			const templateId = target.templateId?.trim();
+			if (!templateId) {
+				throw badRequestError("target templateId is required");
+			}
+			const data = normalizeTargetData(target.data);
+
+			return {
+				// A target's id is the caller's to choose, and has to be: reloading a
+				// campaign's queue upserts by it. It is safe because a target never
+				// enters `access_tags` — it is read through its campaign — so there is
+				// no audience for a chosen id to inherit.
+				id: target.id?.trim() || randomUUID(),
+				outreachId,
+				companyId,
+				templateId,
+				status: target.status?.trim() || "planned",
+				position: Number.isFinite(target.position)
+					? Number(target.position)
+					: index,
+				data: JSON.stringify(data),
+				payload: JSON.stringify(data),
+				createdAt: now,
+				updatedAt: now,
+			};
+		});
+
+		return this.stores.salesStoreSevice.addOutreachTargets(entities);
+	}
+
+	async listOutreachTargets(
+		params: OutreachTargetListParams,
+	): Promise<PaginatedResult<OutreachTarget>> {
+		await this.ready();
+		const result = await this.stores.salesStoreSevice.listOutreachTargets({
+			...params,
+			outreachId: params.outreachId?.trim(),
+			companyId: params.companyId?.trim(),
+			status: params.status?.trim(),
+		});
+
+		return {
+			items: result.items.map((entity) => this.toOutreachTarget(entity)),
+			totalCount: result.totalCount,
+		};
+	}
+
+	async claimNextOutreachTarget(
+		outreachId: string,
+	): Promise<OutreachTarget | null> {
+		await this.ready();
+		const normalizedOutreachId = outreachId?.trim();
+		if (!normalizedOutreachId) {
+			throw badRequestError("outreachId is required");
+		}
+
+		const target =
+			await this.stores.salesStoreSevice.claimNextOutreachTarget(
+				normalizedOutreachId,
+			);
+		return target ? this.toOutreachTarget(target) : null;
+	}
+
+	async updateOutreachTargetStatus(
+		update: OutreachTargetStatusUpdate,
+	): Promise<OutreachTarget | null> {
+		await this.ready();
+		const id = update.id?.trim();
+		const status = update.status?.trim();
+		if (!id || !status) {
+			throw badRequestError("target id and status are required");
+		}
+
+		const target =
+			await this.stores.salesStoreSevice.updateOutreachTargetStatus({
+				id,
+				status,
+			});
+
+		return target ? this.toOutreachTarget(target) : null;
+	}
+
+	async getStatistic(keys?: SalesStatisticKey[]): Promise<Statistic> {
+		await this.ready();
+		const title = keys?.includes("title") ?? false;
+		if (title) {
+			const [leads, touches, daily] = await Promise.all([
+				this.stores.salesStoreSevice.leadRepo.count(),
+				this.stores.salesStoreSevice.touchRepo.count(),
+				this.stores.salesStoreSevice.getRecentDailyStatistics(),
+			]);
+			return { leads, touches, daily };
+		}
+		const [
+			leads,
+			touches,
+			byType,
+			byLang,
+			contactsByType,
+			touchesByCompanyName,
+			outreachProgress,
+		] = await Promise.all([
+			this.stores.salesStoreSevice.leadRepo.count(),
+			this.stores.salesStoreSevice.touchRepo.count(),
+			this.stores.salesStoreSevice.getLeadTypeStats(),
+			this.stores.salesStoreSevice.getLeadLangStats(),
+			this.stores.salesStoreSevice.getContactTypeStats(),
+			this.stores.salesStoreSevice.getTouchCompanyNameStats(),
+			this.stores.salesStoreSevice.getOutreachProgressStats(),
+		]);
+
+		return {
+			leads,
+			touches,
+			byType,
+			byLang,
+			contactsByType,
+			touchesByCompanyName,
+			outreachProgress,
+		};
+	}
+
+	async getDailyStatistic(): Promise<{ [key: string]: Statistic }> {
+		await this.ready();
+		return await this.stores.salesStoreSevice.getDailyStatistics();
+	}
+
+	async listLeads(params: LeadListParams): Promise<PaginatedResult<Lead>> {
+		await this.ready();
+		const tags = params.tags?.map((tag) => tag.trim()).filter(Boolean) ?? [];
+		const contact = params.contact?.trim() ?? "";
+		const query = params.query?.trim() ?? "";
+		const filter = params.filter;
+		const useCursor = typeof params.after === "string";
+		if (useCursor && (tags.length || contact || query || filter)) {
+			throw new Error(
+				"listLeads: 'after' cursor is not supported together with filters",
+			);
+		}
+		const result = useCursor
+			? await this.stores.salesStoreSevice.listLeadsAfter(
+					params.after as string,
+					params.limit,
+				)
+			: await this.stores.salesStoreSevice.listLeadsFiltered(
+					{ tags, contact, query, filter },
+					params,
+				);
+
+		const items = await this.mapLeadsWithTags(result.items);
+
+		return {
+			items,
+			totalCount: result.totalCount,
+		};
+	}
+
+	private async mapLeadsWithTags(entities: LeadEntity[]): Promise<Lead[]> {
+		const tagsByLeadId =
+			await this.stores.salesStoreSevice.listLeadTagsByLeadIds(
+				entities.map((entity) => entity.id),
+			);
+		return entities.map((entity) =>
+			mapLead(entity, (tagsByLeadId.get(entity.id) ?? []).map(mapTag)),
+		);
+	}
+
+	async listContacts(
+		params: ContactListParams,
+	): Promise<PaginatedResult<Contact>> {
+		await this.ready();
+		const result = await this.stores.salesStoreSevice.listContactsFiltered(
+			params.filter,
+			params,
+		);
+
+		const items = result.items.map((entity) => ({
+			id: entity.id,
+			leadId: entity.leadId,
+			type: entity.contactType as Contact["type"],
+			value: entity.value,
+			role: entity.role,
+			description: entity.description,
+			createdAt: new Date(entity.createdAt * 1000),
+		}));
+
+		return {
+			items,
+			totalCount: result.totalCount,
+		};
+	}
+
+	async listLeadContacts(leadId: string): Promise<PaginatedResult<Contact>> {
+		await this.ready();
+		const contacts =
+			await this.stores.salesStoreSevice.listLeadContacts(leadId);
+
+		const items = contacts.map((entity) => ({
+			id: entity.id,
+			leadId: entity.leadId,
+			type: entity.contactType as Contact["type"],
+			value: entity.value,
+			role: entity.role,
+			description: entity.description,
+			createdAt: new Date(entity.createdAt * 1000),
+		}));
+
+		return {
+			items,
+			totalCount: items.length,
+		};
+	}
+
+	async listTouches(params: PaginationParams): Promise<PaginatedResult<Touch>> {
+		await this.ready();
+		const { items: touches, totalCount } =
+			await this.stores.salesStoreSevice.listTouches(params);
+
+		const items = touches.map((entity: any) => ({
+			id: parseInt(entity.id, 10),
+			contactId: entity.contactId,
+			description: entity.description,
+			companyName: entity.companyName ?? "",
+			outreachId: entity.outreachId ?? "",
+			createdAt: new Date(entity.createdAt * 1000),
+		}));
+
+		return {
+			items,
+			totalCount,
+		};
+	}
+
+	async recordEvent(event: LeadEvent): Promise<string> {
+		await this.ready();
+		const code = event.code?.trim();
+		const type = event.type?.toString().trim();
+		if (!code || !type) {
+			throw badRequestError("Event code and type are required");
+		}
+
+		// Use ids supplied by the caller; otherwise resolve them from the code's
+		// owning `email_sent` event so opens/clicks/page-views attribute to the lead.
+		let contactId = event.contactId ?? null;
+		let leadId = event.leadId ?? null;
+		if (!contactId || !leadId) {
+			const owner = await this.stores.salesStoreSevice.resolveCodeOwner(code);
+			contactId = contactId ?? owner.contactId;
+			leadId = leadId ?? owner.leadId;
+		}
+
+		const createdAt = normalizeDate(event.createdAt);
+		const id = createTouchId();
+		await this.stores.salesStoreSevice.addLeadEvent({
+			id,
+			code,
+			type,
+			contactId,
+			leadId,
+			url: event.url ?? null,
+			referrer: event.referrer ?? null,
+			userAgent: event.userAgent ?? null,
+			createdAt: Math.floor(createdAt.getTime() / 1000),
+		});
+		return id;
+	}
+
+	async listEvents(
+		params: PaginationParams,
+	): Promise<PaginatedResult<LeadEvent>> {
+		await this.ready();
+		const result = await this.stores.salesStoreSevice.listLeadEvents(params);
+		return {
+			items: result.items.map((entity) => ({
+				id: entity.id,
+				code: entity.code,
+				type: entity.type,
+				contactId: entity.contactId,
+				leadId: entity.leadId,
+				url: entity.url,
+				referrer: entity.referrer,
+				userAgent: entity.userAgent,
+				createdAt: new Date(entity.createdAt * 1000),
+			})),
+			totalCount: result.totalCount,
+		};
+	}
+
+	async getEventFunnel(): Promise<Record<string, number>> {
+		await this.ready();
+		return this.stores.salesStoreSevice.getEventFunnel();
+	}
+
+	/** Turns an uploaded lead list into raw rows. Regex scanning over a whole
+	 *  file is far too heavy for the workflow VM, so the parsers live here. */
+	async parseImportLeads(
+		input: ParseImportLeadsInput,
+	): Promise<ParseImportLeadsResult> {
+		await this.ready();
+		return parseImportText(input.text ?? "");
+	}
+
+	/** Raw rows -> the exact Lead/Contact rows to insert, with content-derived
+	 *  ids so a re-import updates instead of duplicating. Kept out of the
+	 *  workflow because the ids are sha256 and QuickJS has no node:crypto. */
+	async normalizeImportLeads(
+		input: NormalizeImportLeadsInput,
+	): Promise<NormalizeImportLeadsResult> {
+		await this.ready();
+		return normalizeImportRows({
+			leads: input.leads ?? [],
+			defaultLang: input.defaultLang,
+			defaultType: input.defaultType,
+			tags: input.tags,
+		});
+	}
+
+	async findOutreachCandidate(lang: string): Promise<OutreachCandidate | null> {
+		await this.ready();
+		const normalizedLang = lang?.trim().toLowerCase();
+		if (!normalizedLang) {
+			throw badRequestError("lang is required");
+		}
+
+		const candidate =
+			await this.stores.salesStoreSevice.findOutreachCandidate(normalizedLang);
+		if (!candidate) return null;
+
+		return {
+			contact: {
+				id: candidate.contact.id,
+				leadId: candidate.contact.leadId,
+				type: candidate.contact.contactType as Contact["type"],
+				value: candidate.contact.value,
+				role: candidate.contact.role,
+				description: candidate.contact.description,
+				createdAt: new Date(candidate.contact.createdAt * 1000),
+			},
+			lead: mapLead(candidate.lead),
+		};
+	}
+
+	async findRandomLeadByLang(lang: string): Promise<Lead | null> {
+		await this.ready();
+		const normalizedLang = lang?.trim().toLowerCase();
+		if (!normalizedLang) {
+			throw badRequestError("lang is required");
+		}
+
+		const lead =
+			await this.stores.salesStoreSevice.findRandomLeadByLang(normalizedLang);
+		if (!lead) return null;
+
+		return mapLead(lead);
+	}
+
+	async leadHasTouches(leadId: string): Promise<boolean> {
+		await this.ready();
+		const normalizedLeadId = leadId?.trim();
+		if (!normalizedLeadId) {
+			throw badRequestError("leadId is required");
+		}
+
+		return this.stores.salesStoreSevice.leadHasTouches(normalizedLeadId);
+	}
+
+	async leadHasCompanyTouch(
+		leadId: string,
+		companyName: string,
+	): Promise<boolean> {
+		await this.ready();
+		const normalizedLeadId = leadId?.trim();
+		const normalizedCompanyName = companyName?.trim();
+		if (!normalizedLeadId || !normalizedCompanyName) {
+			throw badRequestError("leadId and companyName are required");
+		}
+
+		return this.stores.salesStoreSevice.leadHasCompanyTouch(
+			normalizedLeadId,
+			normalizedCompanyName,
+		);
+	}
+
+	async leadHasOutreachTouch(
+		leadId: string,
+		outreachId: string,
+	): Promise<boolean> {
+		await this.ready();
+		const normalizedLeadId = leadId?.trim();
+		const normalizedOutreachId = outreachId?.trim();
+		if (!normalizedLeadId || !normalizedOutreachId) {
+			throw badRequestError("leadId and outreachId are required");
+		}
+
+		return this.stores.salesStoreSevice.leadHasOutreachTouch(
+			normalizedLeadId,
+			normalizedOutreachId,
+		);
+	}
+
+	private toOutreachTarget(entity: {
+		id: string;
+		outreachId: string;
+		companyId: string;
+		templateId: string;
+		status: string;
+		position: number;
+		data: string;
+		payload: string;
+		createdAt: number;
+		updatedAt: number;
+	}): OutreachTarget {
+		return {
+			id: entity.id,
+			outreachId: entity.outreachId,
+			companyId: entity.companyId || entity.outreachId,
+			templateId: entity.templateId,
+			status: entity.status,
+			position: entity.position,
+			data: parseTargetData(entity.data || entity.payload),
+			createdAt: new Date(entity.createdAt * 1000),
+			updatedAt: new Date(entity.updatedAt * 1000),
+		};
+	}
+}
+
+export default SalesServiceImpl;

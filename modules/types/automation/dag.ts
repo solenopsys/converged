@@ -53,6 +53,8 @@ export type AvailableWorkflow = {
 	id: string;
 	name: string;
 	script: string;
+	/** Stable category advertised by the active Solution. */
+	type?: string;
 	brief?: string;
 	description?: string;
 	parameters?: {

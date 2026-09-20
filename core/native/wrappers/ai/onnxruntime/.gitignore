@@ -1,0 +1,4 @@
+vendor/
+.zig-cache/
+zig-out/
+tools/zig-target.txt

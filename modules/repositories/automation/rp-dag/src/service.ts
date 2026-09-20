@@ -12,7 +12,6 @@ import type {
 	DagStats,
 	DagStatsPoint,
 	Execution,
-	ExecutionStatus,
 	ExecutionTree,
 	ExecutionTreeRow,
 	FilterObject,
@@ -52,6 +51,10 @@ const workflowFilters = createJsonFilterAdapter<AvailableWorkflow>({
 		operators: ["eq", "in", "contains", "startsWith"],
 	},
 	script: {
+		valueType: "string",
+		operators: ["eq", "in", "contains", "startsWith"],
+	},
+	type: {
 		valueType: "string",
 		operators: ["eq", "in", "contains", "startsWith"],
 	},
@@ -161,24 +164,26 @@ export default class DagServiceImpl implements DagService {
 					(proxy && digests[workflow.script]
 						? `${proxy}/${digests[workflow.script]}`
 						: undefined);
-			const parameters = asParameters(workflow.parameters);
-			const paramsExample = asParamsExample(workflow.paramsExample);
-			return [
-				{
-					id: typeof workflow.id === "string" ? workflow.id : workflow.name,
-					name: workflow.name,
-					script: workflow.script,
-					...(typeof workflow.brief === "string"
-						? { brief: workflow.brief }
-						: {}),
-					...(typeof workflow.description === "string"
-						? { description: workflow.description }
-						: {}),
-					...(parameters ? { parameters } : {}),
-					...(paramsExample ? { paramsExample } : {}),
-					...(sourceUrl ? { sourceUrl } : {}),
-				},
-			];
+				const parameters = asParameters(workflow.parameters);
+				const paramsExample = asParamsExample(workflow.paramsExample);
+				const type = asWorkflowType(workflow.type);
+				return [
+					{
+						id: typeof workflow.id === "string" ? workflow.id : workflow.name,
+						name: workflow.name,
+						script: workflow.script,
+						...(type ? { type } : {}),
+						...(typeof workflow.brief === "string"
+							? { brief: workflow.brief }
+							: {}),
+						...(typeof workflow.description === "string"
+							? { description: workflow.description }
+							: {}),
+						...(parameters ? { parameters } : {}),
+						...(paramsExample ? { paramsExample } : {}),
+						...(sourceUrl ? { sourceUrl } : {}),
+					},
+				];
 			}),
 		};
 	}
@@ -568,6 +573,10 @@ function asParamsExample(value: unknown): Record<string, unknown> | undefined {
 	if (!value || typeof value !== "object" || Array.isArray(value))
 		return undefined;
 	return value as Record<string, unknown>;
+}
+
+function asWorkflowType(value: unknown): string | undefined {
+	return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
 function parseStringMap(raw: string | undefined): Record<string, string> {

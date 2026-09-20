@@ -9,6 +9,7 @@ export const workflowsColumns = [
 		minWidth: 200,
 	},
 	{ id: "script", title: "Script", type: COLUMN_TYPES.TEXT, minWidth: 240 },
+	{ id: "type", title: "Type", type: COLUMN_TYPES.TEXT, minWidth: 180 },
 	{ id: "brief", title: "Brief", type: COLUMN_TYPES.TEXT, minWidth: 260 },
 ];
 
