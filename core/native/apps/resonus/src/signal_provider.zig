@@ -148,10 +148,6 @@ pub const Provider = struct {
         if (std.mem.eql(u8, name, "context.delete")) {
             return .{ .payload = try self.control.deleteContext(allocator, request.envelope.scope, payload) };
         }
-        if (std.mem.eql(u8, name, "case")) {
-            const reply = try self.llm.complete(allocator, request.payload);
-            return .{ .payload = reply.body };
-        }
         if (std.mem.eql(u8, name, "llm.generate")) {
             return self.control.generate(allocator, request, payload, &self.llm, self.runtime orelse return error.TransportUnavailable);
         }
@@ -181,6 +177,14 @@ pub const Provider = struct {
             // closes its active phrase. This reply merely acknowledges stop;
             // the reaper owns teardown so the transport worker stays free.
             return .{ .payload = "{\"stopped\":true}" };
+        }
+
+        // Provider commands are VM extensions. Once authorization has accepted
+        // a generated method, the native gateway forwards it unchanged; the
+        // descriptor in providers/ owns its request and response semantics.
+        if (resonus_nrpc.policy(name) != null) {
+            const reply = try self.llm.complete(allocator, request.payload);
+            return .{ .payload = reply.body };
         }
         return error.CommandUnsupported;
     }

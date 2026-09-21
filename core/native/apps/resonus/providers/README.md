@@ -76,6 +76,7 @@ QuickJS should be business logic, and anything heavy stays in Zig.
 | `gemini` | generateContent | `${secret:gemini}` → `GEMINI_API_KEY` |
 | `openai-realtime` | Realtime WebSocket + SDP | `${secret:openai}` → `OPENAI_API_KEY` |
 | `case` | CASE command router | `CASE_URL` |
+| `params` | PARAMS field extraction | `PARAMS_URL` |
 
 ### CASE operations
 
@@ -107,6 +108,24 @@ tool call whose `name` is the CASE command id.
   "maxTokens": 1,
   "messages": [{ "role": "user", "content": "show incoming mail" }],
   "input": { "context": "club", "language": "en" }
+}
+```
+
+### PARAMS extraction
+
+PARAMS accepts a query plus a field format and optional enum variants. The
+adapter uses `input.query`, then `input.text`, then the last `user` message.
+
+```json
+{
+  "provider": "params",
+  "model": "params",
+  "maxTokens": 1,
+  "messages": [{ "role": "user", "content": "Active orders from today" }],
+  "input": {
+    "format": { "status": { "type": "string" } },
+    "variants": { "status": ["active", "done"] }
+  }
 }
 ```
 

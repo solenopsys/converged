@@ -129,7 +129,7 @@ pub fn build(b: *std.Build) void {
     // rebuilding Zig is the point of the whole arrangement. Embedding them here
     // just means the tests exercise the exact bytes the builder emits, so the
     // format cannot drift from its reader.
-    for ([_][]const u8{ "anthropic", "case", "openai", "openai-realtime", "gemini" }) |name| {
+    for ([_][]const u8{ "anthropic", "case", "gemini", "openai", "openai-realtime", "params" }) |name| {
         const file = b.fmt("providers/dist/{s}.table.json", .{name});
         unit_tests.root_module.addAnonymousImport(
             b.fmt("table:{s}", .{name}),

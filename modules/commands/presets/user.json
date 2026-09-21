@@ -32,6 +32,7 @@
       "context.create": "w",
       "context.delete": "w",
       "case": "w",
+      "params": "w",
       "llm.generate": "w"
     }
   },
