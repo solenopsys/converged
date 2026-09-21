@@ -52,6 +52,8 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
         }),
     });
+    const tokenizer = b.createModule(.{ .root_source_file = b.path("src/tokenizer.zig"), .target = target, .optimize = optimize });
+    exe.root_module.addImport("tokenizer", tokenizer);
     linkOnnxRuntime(b, exe, target, optimize);
     b.installArtifact(exe);
     const run = b.addRunArtifact(exe);

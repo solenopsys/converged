@@ -6,7 +6,7 @@ import {
 	moduleForAction,
 } from "./function-index";
 
-test("the function index remains the authoritative surface owner", () => {
+test("the index declares lazy surface actions before their modules load", () => {
 	const actionId = "trace-owner-test.open";
 	const ghostId = "trace-owner-test.ghost";
 
@@ -51,7 +51,11 @@ test("the function index remains the authoritative surface owner", () => {
 	});
 
 	expect(moduleForAction(actionId)).toBe("sf-trace-owner-test");
-	expect(registry.meta(ghostId)).toBeUndefined();
+	expect(moduleForAction(ghostId)).toBe("trace-owner-test-sf");
+	expect(registry.meta(ghostId)).toMatchObject({
+		id: ghostId,
+		description: "Not implemented by the surface",
+	});
 	expect(registry.meta(actionId)).toMatchObject({
 		root: { surface: "sf-trace-owner-test", baseType: "trace" },
 		examples: { en: ["open the trace test"] },

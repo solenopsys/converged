@@ -8,7 +8,7 @@ describe("CASE context builder", () => {
 		expect(caseLanguage("ja-JP")).toBeUndefined();
 	});
 
-	test("keeps only the active language and user-visible commands", () => {
+	test("keeps English plus the active language for user-visible commands", () => {
 		const context = buildCaseContext("workspace:ru:v1", "ru-RU", [
 			{
 				id: "mailing.incoming.show",
@@ -41,7 +41,10 @@ describe("CASE context builder", () => {
 					commands: [
 						{
 							id: "mailing.incoming.show",
-							examples: { ru: ["покажи входящие письма"] },
+							examples: {
+								en: ["show incoming mail"],
+								ru: ["покажи входящие письма"],
+							},
 						},
 					],
 				},

@@ -1,0 +1,19 @@
+FROM alpine:3.22
+WORKDIR /app
+
+COPY zig-out/bin/speach /app/speach
+COPY zig-out/lib/libonnxruntime.so /app/lib/libonnxruntime.so
+COPY models/model.onnx /app/models/model.onnx
+COPY models/tokens.txt /app/models/tokens.txt
+RUN chmod 755 /app/speach \
+    && chmod 644 /app/lib/libonnxruntime.so \
+    && adduser -D -H -u 1000 speach
+
+USER speach
+ENV SPEACH_HOST=0.0.0.0 \
+    SPEACH_PORT=8002 \
+    SPEACH_MODEL=/app/models/model.onnx \
+    SPEACH_TOKENS=/app/models/tokens.txt \
+    LD_LIBRARY_PATH=/app/lib
+EXPOSE 8002
+ENTRYPOINT ["/app/speach"]

@@ -22,6 +22,6 @@ export async function initChat(
 	catalog?: ChatCatalog,
 ): Promise<Chat> {
 	const chat = initChatStore(config, catalog);
-	await mountStyles();
+	await Promise.all([mountStyles(), chat.ready]);
 	return chat;
 }

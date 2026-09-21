@@ -2,7 +2,7 @@ const std = @import("std");
 const Model = @import("model.zig").Model;
 const context = @import("context.zig");
 const router = @import("router.zig");
-const Tokenizer = @import("tokenizer.zig").Tokenizer;
+const Tokenizer = @import("tokenizer").Tokenizer;
 
 const max_request_bytes = 2 * 1024 * 1024;
 const context_encode_batch_size = 32;

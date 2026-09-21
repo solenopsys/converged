@@ -36,8 +36,9 @@ export function caseLanguage(locale: string): CaseLanguage | undefined {
 }
 
 /**
- * Produces the compact upload form CASE accepts. Only the active language's
- * examples travel; descriptions, schemas and non-user actions stay out.
+ * Produces the compact upload form CASE accepts. English is the common
+ * fallback vocabulary; the user's current language is included alongside it.
+ * Descriptions, schemas and non-user actions stay out.
  */
 export function buildCaseContext(
 	key: string,
@@ -45,16 +46,22 @@ export function buildCaseContext(
 	actions: Iterable<CaseAction>,
 ): CaseContext {
 	const language = caseLanguage(locale);
+	const languages = new Set<CaseLanguage>(["en"]);
+	if (language) languages.add(language);
 	const sections = new Map<string, CaseContext["sections"][number]>();
-	if (!language) return { key, sections: [] };
 
 	for (const action of actions) {
 		if (action.exposure && action.exposure !== "user") continue;
 		const root = action.root;
-		const phrases = action.examples?.[language]
-			?.map((value) => value.trim())
-			.filter(Boolean);
-		if (!root || !phrases?.length) continue;
+		const examples = Object.fromEntries(
+			[...languages].flatMap((code) => {
+				const phrases = action.examples?.[code]
+					?.map((value) => value.trim())
+					.filter(Boolean);
+				return phrases?.length ? [[code, [...new Set(phrases)]]] : [];
+			}),
+		) as Partial<Record<CaseLanguage, string[]>>;
+		if (!root || Object.keys(examples).length === 0) continue;
 
 		// Both values form the first CASE level. A shared action vocabulary may
 		// contain "show statistics" in more than one surface, and surface alone
@@ -68,7 +75,7 @@ export function buildCaseContext(
 		if (section.commands.some((command) => command.id === action.id)) continue;
 		section.commands.push({
 			id: action.id,
-			examples: { [language]: [...new Set(phrases)] },
+			examples,
 		});
 	}
 

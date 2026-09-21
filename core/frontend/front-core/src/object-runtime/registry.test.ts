@@ -43,6 +43,9 @@ describe("object registry surface identity", () => {
 		expect(registry.moduleDescription("sf-sales")).toBe(
 			"Leads, contacts, audiences and campaigns",
 		);
+		expect(registry.allLlmCatalogs()).toHaveLength(1);
+		expect(registry.allLlmCatalogs()[0]?.catalog.actions["leads.show"])
+			.toBeDefined();
 	});
 
 	test("registering the module marks the same surface loaded", () => {

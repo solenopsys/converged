@@ -1,5 +1,9 @@
 import { createDomain } from "effector";
-import { createDomainLogger } from "front-core/core";
+import {
+	createDomainLogger,
+	moduleForAction,
+	setActionLoader,
+} from "front-core/core";
 import {
 	objectRegistry,
 	registerSurface,
@@ -89,6 +93,11 @@ export function loadSurfaceForOperation(operationId: string): Promise<void> {
 }
 
 setSurfaceLoader(loadSurface);
+setActionLoader(async (actionId) => {
+	const moduleName = moduleForAction(actionId);
+	if (!moduleName) throw new Error(`[shell] Unknown action "${actionId}"`);
+	await loadSurface(moduleName);
+});
 
 // A surface becomes active from the strip, the catalog menu, a pin restored from
 // the account or an assistant command. Every path loads the owner, so its

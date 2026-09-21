@@ -1,0 +1,4 @@
+models/
+zig-out/
+.zig-cache/
+test/*.wav

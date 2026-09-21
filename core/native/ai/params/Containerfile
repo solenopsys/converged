@@ -1,0 +1,19 @@
+FROM alpine:3.22
+WORKDIR /app
+
+COPY zig-out/bin/params /app/params
+COPY zig-out/lib/libonnxruntime.so /app/lib/libonnxruntime.so
+COPY models/params/model.onnx /app/models/model.onnx
+COPY models/params/tokenizer.json /app/models/tokenizer.json
+RUN chmod 755 /app/params \
+    && chmod 644 /app/lib/libonnxruntime.so \
+    && adduser -D -H -u 1000 params
+
+USER params
+ENV PARAMS_HOST=0.0.0.0 \
+    PARAMS_PORT=8001 \
+    PARAMS_MODEL=/app/models/model.onnx \
+    PARAMS_TOKENIZER=/app/models/tokenizer.json \
+    LD_LIBRARY_PATH=/app/lib
+EXPOSE 8001
+ENTRYPOINT ["/app/params"]

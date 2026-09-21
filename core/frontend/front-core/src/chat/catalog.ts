@@ -61,11 +61,14 @@ function modules() {
 // is the point of `describeFunction` and far too much for a listing: a bare
 // `listFunctions` would answer with the whole registry seven times over.
 function briefs(entries: OperatorCatalogEntry[]) {
-	return entries.map(({ id, brief, description }) => ({
+	return entries.map(({ id, brief, description, exposure, root, examples }) => ({
 		id,
 		brief,
 		description,
 		category: "operator",
+		exposure,
+		root,
+		examples,
 	}));
 }
 

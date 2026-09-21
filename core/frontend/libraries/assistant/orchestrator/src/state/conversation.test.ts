@@ -79,6 +79,32 @@ const planner =
 	};
 
 describe("conversation entries", () => {
+	test("a CASE hit invokes the existing catalog controller without a model step", async () => {
+		const { catalog, invoked } = catalogWith([
+			{ id: "core.select:sales.lead", brief: "Select Leads" },
+		]);
+		const { driver } = driverOf([]);
+		let asks = 0;
+		const conversation = createConversation({
+			catalog,
+			driver,
+			prompt: async () => "prompt",
+			ask: async () => {
+				asks += 1;
+				return { text: "", toolCalls: [] };
+			},
+			caseRoute: async () => "core.select:sales.lead",
+		});
+
+		expect(await conversation.plan("open leads")).toMatchObject({
+			kind: "function",
+			id: "core.select:sales.lead",
+			args: {},
+		});
+		expect(invoked).toEqual([{ id: "core.select:sales.lead", args: {} }]);
+		expect(asks).toBe(0);
+	});
+
 	test("captures compact host context once for planning steps", async () => {
 		const { catalog } = catalogWith([
 			{ id: "companies.select", brief: "Select companies" },

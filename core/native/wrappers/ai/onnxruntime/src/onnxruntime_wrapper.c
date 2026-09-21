@@ -111,7 +111,7 @@ int ortw_session_run(ortw_session *session, const ortw_tensor_input *inputs, siz
     }
     for (size_t i = 0; i < input_count; ++i) {
         const ortw_tensor_input *input = &inputs[i];
-        if (input->name == NULL || input->data == NULL || input->shape == NULL || input->shape_len == 0 || input->data_bytes == 0) {
+        if (input->name == NULL || input->data == NULL || input->shape == NULL || input->shape_len == 0) {
             set_error("invalid tensor input at index %zu", i);
             goto cleanup;
         }
@@ -139,6 +139,7 @@ int ortw_session_run(ortw_session *session, const ortw_tensor_input *inputs, siz
             session->api->ReleaseTensorTypeAndShapeInfo(info); goto cleanup;
         }
         element_size = type == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT ? sizeof(float) :
+                       type == ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT8 ? sizeof(uint8_t) :
                        type == ONNX_TENSOR_ELEMENT_DATA_TYPE_DOUBLE ? sizeof(double) :
                        type == ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64 ? sizeof(int64_t) :
                        type == ONNX_TENSOR_ELEMENT_DATA_TYPE_INT32 ? sizeof(int32_t) : 0;

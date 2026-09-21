@@ -66,6 +66,7 @@ export function createServices(config: ChatConfig) {
 	return {
 		assistantClient,
 		chatDriver,
+		resonusTransport,
 		resonusSession,
 		contextsClient,
 		dagClient: centimanusClient,

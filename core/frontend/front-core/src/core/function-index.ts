@@ -65,10 +65,9 @@ function ingestCatalog(
 ): void {
 	moduleBriefs.set(module, brief);
 	for (const [id, meta] of Object.entries(catalog.actions)) {
-		// The shell index names the actual lazy bundle. A catalog embedded in that
-		// bundle only enriches existing actions: it must not replace that owner or
-		// advertise an action the module does not implement.
-		if (!authoritative && !registry.meta(id)) continue;
+		// The object index is available before lazy surface code. Declaring its
+		// actions here gives CASE stable ids and lets actionCommand load the owning
+		// surface only after CASE chose one.
 		if (authoritative || !owners.has(id)) owners.set(id, module);
 		registry.declare({
 			id,

@@ -6,6 +6,7 @@ import { selectCommandSchema } from "../select/schema";
 import { applySelectCommand } from "../select/selection";
 import type { SelectCommand } from "../select/types";
 import { authorizeObjectType } from "./authorization";
+import { registry } from "front-core/core";
 import { objectRegistry } from "./registry";
 import { objectResolver } from "./resolver";
 import { executeOperation, loadObjectType, presentReference } from "./runtime";
@@ -27,6 +28,8 @@ export type OperatorCatalogEntry = {
 	category: "operator";
 	priority: "primary" | "secondary";
 	exposure: "user";
+	root?: { surface: string; baseType: string };
+	examples?: Partial<Record<"en" | "ru" | "de" | "fr" | "es" | "it" | "pt", string[]>>;
 	/** Set on a resolved candidate: what this entry acts on. */
 	targetType?: string;
 	/** Set when the candidate is a domain operation rather than a type. */
@@ -296,6 +299,7 @@ export function operatorCandidateEntries(): OperatorCatalogEntry[] {
 				candidate.operation?.descriptionKey,
 				candidate.description,
 			);
+			const actionMeta = registry.meta(id);
 			return {
 				id,
 				operator,
@@ -317,6 +321,11 @@ export function operatorCandidateEntries(): OperatorCatalogEntry[] {
 				category: "operator" as const,
 				priority: "primary" as const,
 				exposure: "user" as const,
+				root: actionMeta?.root ?? {
+					surface: owner ?? "core",
+					baseType: target,
+				},
+				...(actionMeta?.examples ? { examples: actionMeta.examples } : {}),
 				parameters: candidate.operation?.view
 					? { type: "object", properties: {} }
 					: (candidate.operation?.parameters ??
@@ -357,7 +366,13 @@ export async function invokeCatalogEntry(
 	const entry = catalogEntry(id);
 	if (!entry) throw new Error(`[object-runtime] Unknown catalog entry: ${id}`);
 	if (entry.operator === "select" && entry.targetType && !entry.operationId) {
-		const command = params as SelectCommand;
+		// Selecting a collection with no stated filter is the normal "open its
+		// list" controller command. Parameters only override these UI defaults.
+		const command = {
+			scope: "new",
+			mode: "replace",
+			...params,
+		} as SelectCommand;
 		if (command.scope !== "new" && command.scope !== "current") {
 			throw new Error("[object-runtime] select requires scope new or current");
 		}

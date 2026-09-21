@@ -8,6 +8,10 @@ import {
 	createFilesStep,
 	createFunctionCatalogTools,
 	createFunctionSteps,
+	createResonusCaseRouter,
+	loadResonusCaseContext,
+	buildCaseContext,
+	caseLanguage,
 	createUploadedChatFilesTool,
 	type ExecutableTool,
 	type FunctionCatalogContext,
@@ -17,7 +21,11 @@ import {
 	type TurnFile,
 } from "assistant-state";
 import { $files, filesPickerOpened, uploadCompleted } from "files-state";
-import { refreshFocusedObjects } from "front-core/object-runtime";
+import {
+	catalogEntries,
+	objectRegistry,
+	refreshFocusedObjects,
+} from "front-core/object-runtime";
 import { registerBuiltinSlashCommands } from "./commands/builtin";
 import { isSlashInput, runSlashCommand } from "./commands/registry";
 import type { ChatConfig } from "./config";
@@ -28,6 +36,8 @@ import { setActionBriefResolver } from "./ui/labels";
 
 export type Chat = {
 	store: ChatStore;
+	/** CASE context is uploaded before a chat input can be mounted. */
+	ready: Promise<void>;
 	sendMessage: (text: string) => void;
 	attachFiles: (files: File[]) => void;
 };
@@ -43,6 +53,9 @@ export type CatalogEntryView = {
 	moduleLabel?: string;
 	targetType?: string;
 	intent?: "create" | "mutate" | "read";
+	exposure?: "llm" | "user";
+	root?: { surface: string; baseType: string };
+	examples?: Partial<Record<"en" | "ru" | "de" | "fr" | "es" | "it" | "pt", string[]>>;
 	parameters?: {
 		type: "object";
 		properties: Record<string, unknown>;
@@ -101,6 +114,49 @@ type IntakeReport = {
 	/** Archives whose contents are now known, so they can leave the context. */
 	archiveIds: string[];
 };
+
+const words = (value: string): string[] =>
+	value
+		.toLowerCase()
+		.split(/[^a-z0-9]+/)
+		.filter(Boolean)
+		.map((word) => (word.endsWith("s") ? word.slice(0, -1) : word));
+
+/**
+ * llm.json names a user intent; the object catalog owns its controller. Resolve
+ * the former to the latter before CASE receives the context, never afterwards.
+ */
+function controllerForCaseAction(
+	module: string,
+	id: string,
+	action: {
+		controller?: string;
+		brief: string;
+		description: string;
+	},
+): string | undefined {
+	if (action.controller) return action.controller;
+	const actionWords = new Set(words(`${id} ${action.brief} ${action.description}`));
+	const operation = /(?:^|[._-])(create|new|form)(?:$|[._-])/.test(id)
+		? "create"
+		: /(?:^|[._-])(run|execute)(?:$|[._-])/.test(id)
+			? "execute"
+			: "select";
+	const candidates = catalogEntries().filter(
+		(candidate) => candidate.module === module && candidate.operator === operation,
+	);
+	let best: { id: string; score: number } | undefined;
+	for (const candidate of candidates) {
+		const candidateWords = new Set(
+			words(
+				`${candidate.targetType ?? ""} ${candidate.brief} ${candidate.description}`,
+			),
+		);
+		const score = [...actionWords].filter((word) => candidateWords.has(word)).length;
+		if (!best || score > best.score) best = { id: candidate.id, score };
+	}
+	return best?.score ? best.id : undefined;
+}
 
 /** What wf-files-process reports, narrowed to what the chat needs. The workflow
  *  is a service reply, not a typed import: read it defensively. */
@@ -176,8 +232,64 @@ export function initChatStore(config: ChatConfig, host?: ChatCatalog): Chat {
 		dagCatalogClient,
 		dagClient,
 		resonusSession,
+		resonusTransport,
 		threadsClient,
 	} = createServices(config);
+
+	// Read the headers held by ObjectRegistry, not the action registry. The
+	// object index is loaded before chat creation; lazy surface bundles are not.
+	const caseActions = () =>
+		objectRegistry.allLlmCatalogs().flatMap(({ module, catalog }) =>
+			Object.entries(catalog.actions)
+				.filter(([, action]) => action.exposure === "user" && action.examples)
+				.flatMap(([id, action]) => {
+					const controller = controllerForCaseAction(module, id, action);
+					return controller
+						? [{
+								// CASE returns the controller id consumed by the UI catalog.
+								id: controller,
+								...action,
+								root: catalog.root ?? {
+									surface: module,
+									baseType: action.category,
+								},
+							}]
+						: [];
+				}),
+		);
+	const caseContext = buildCaseContext(
+		`chat:${crypto.randomUUID()}`,
+		config.language,
+		caseActions(),
+	);
+	const caseRouter = caseContext && caseContext.sections.length > 0
+		? createResonusCaseRouter({
+				transport: resonusTransport,
+				context: caseContext.key,
+				language: caseLanguage(config.language),
+			})
+		: undefined;
+	// This request queues behind Signal's authentication when the socket is still
+	// opening. By the first user message CASE has a ready, immutable context.
+	const caseContextReady = caseRouter
+		? loadResonusCaseContext(resonusTransport, caseContext)
+				.then(() => true)
+				.catch((error) => {
+					console.warn("[chat] CASE context upload failed", error);
+					return false;
+				})
+		: Promise.resolve(false);
+	const routeWithCase = caseRouter
+		? async (text: string): Promise<string | undefined> => {
+				if (!(await caseContextReady)) return undefined;
+				try {
+					return (await caseRouter.route(text))?.command;
+				} catch (error) {
+					console.warn("[chat] CASE route failed; using regular orchestrator", error);
+					return undefined;
+				}
+			}
+		: undefined;
 
 	initChatMessages(undefined, config.language);
 
@@ -255,6 +367,10 @@ export function initChatStore(config: ChatConfig, host?: ChatCatalog): Chat {
 		turnContext: host?.turnContext,
 		focus: host?.focus,
 		position: host?.position,
+		caseRoute: (text) => {
+			if (turnFiles().length > 0) return Promise.resolve(undefined);
+			return routeWithCase?.(text) ?? Promise.resolve(undefined);
+		},
 		// The built-in flow reads the user's words to find a function and to fill
 		// its arguments. Files are not words: after an archive is unpacked the
 		// turn holds identifiers nobody typed, and the only question worth a model
@@ -282,6 +398,53 @@ export function initChatStore(config: ChatConfig, host?: ChatCatalog): Chat {
 		],
 	});
 	conversation.turn.turnFinished.watch(refreshFocusedObjects);
+
+	const caseContextEntryId = crypto.randomUUID();
+	const caseContextStartedAt = Date.now();
+	const caseCommands = caseContext.sections.reduce(
+		(count, section) => count + section.commands.length,
+		0,
+	);
+	const caseLanguages = [
+		...new Set(
+			caseContext.sections.flatMap((section) =>
+				section.commands.flatMap((command) => Object.keys(command.examples)),
+			),
+		),
+	].join(",");
+	const caseCommandList = caseContext.sections.map((section) => ({
+		section: section.id,
+		commands: section.commands.map((command) => ({
+			id: command.id,
+			languages: Object.keys(command.examples),
+		})),
+	}));
+	conversation.entries.appended({
+		id: caseContextEntryId,
+		at: caseContextStartedAt,
+		streams: ["conversation", "model:fast"],
+		kind: "step",
+		step: "case.context",
+		tier: "fast",
+		phase: "apply",
+		input: JSON.stringify({
+			sections: caseContext.sections.length,
+			commands: caseCommands,
+			languages: caseLanguages,
+			commandList: caseCommandList,
+		}),
+		status: "running",
+	});
+	void caseContextReady.then((ready) => {
+		conversation.entries.patched({
+			id: caseContextEntryId,
+			patch: {
+				status: ready ? "completed" : "failed",
+				outcome: ready ? "CASE context ready" : "CASE context unavailable",
+				elapsedMs: Date.now() - caseContextStartedAt,
+			},
+		});
+	});
 
 	const workflows = new Map<
 		string,
@@ -481,6 +644,7 @@ export function initChatStore(config: ChatConfig, host?: ChatCatalog): Chat {
 
 	instance = {
 		store,
+		ready: caseContextReady.then(() => undefined),
 		sendMessage: (text) => {
 			const content = text.trim();
 			if (!content) return;

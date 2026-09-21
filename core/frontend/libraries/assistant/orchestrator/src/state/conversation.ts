@@ -62,6 +62,8 @@ export type ConversationOptions = {
 	systemPrompt?: () => Promise<string | undefined>;
 	budget?: TurnBudget;
 	tier?: (step: string) => Tier | undefined;
+	/** Optional fast router. A miss falls back to the regular route/search flow. */
+	caseRoute?: (text: string) => Promise<string | undefined>;
 	/** Names the answer's log; the steps log under their own tier. */
 	model?: string;
 	/** Captures compact host state once so deciding steps share the same view. */
@@ -163,6 +165,7 @@ export function createConversation({
 	turnContext,
 	focus,
 	position,
+	caseRoute,
 	domain = createDomain("conversation"),
 }: ConversationOptions): Conversation {
 	const entries = createConversationEntries(domain);
@@ -199,8 +202,77 @@ export function createConversation({
 		// Frozen for the whole turn: a function chosen by `select` must still be
 		// there at `invoke`.
 		const frozen: OrchestratorCatalog = catalog.snapshot();
-		const table =
-			typeof steps === "function"
+		const caseStartedAt = Date.now();
+		const caseEntryId = caseRoute ? id() : undefined;
+		if (caseEntryId) {
+			append({
+				id: caseEntryId,
+				at: caseStartedAt,
+				streams: [CONVERSATION, "model:fast"],
+				kind: "step",
+				step: "case.route",
+				tier: "fast",
+				phase: "apply",
+				input: `User: ${text}`,
+				status: "running",
+			});
+		}
+		let routedId: string | undefined;
+		try {
+			routedId = caseRoute ? await caseRoute(text) : undefined;
+			if (caseEntryId) {
+				entries.patched({
+					id: caseEntryId,
+					patch: {
+						status: "completed",
+						outcome: routedId ? `EXECUTE ${routedId}` : "UNKNOWN",
+						elapsedMs: Date.now() - caseStartedAt,
+					},
+				});
+			}
+		} catch (error) {
+			if (caseEntryId) {
+				entries.patched({
+					id: caseEntryId,
+					patch: {
+						status: "failed",
+						outcome: `error: ${error instanceof Error ? error.message : String(error)}`,
+						elapsedMs: Date.now() - caseStartedAt,
+					},
+				});
+			}
+			throw error;
+		}
+		const selectedId = routedId && frozen.meta(routedId) ? routedId : undefined;
+		// CASE has already selected an existing UI controller. Opening its default
+		// projection is local and must not wait for schema loading or an args model.
+		if (selectedId) {
+			const startedAt = Date.now();
+			let fact: unknown;
+			try {
+				fact = await frozen.invoke(selectedId, {});
+			} catch (error) {
+				fact = {
+					ok: false,
+					error: error instanceof Error ? error.message : String(error),
+				};
+			}
+			const failure = errorOf(fact);
+			append({
+				id: id(),
+				at: startedAt,
+				streams: [CONVERSATION],
+				kind: "call",
+				name: selectedId,
+				args: {},
+				status: failure ? "failed" : "completed",
+				elapsedMs: Date.now() - startedAt,
+				result: failure ? undefined : fact,
+				error: failure,
+			});
+			return { kind: "function", id: selectedId, args: {}, fact };
+		}
+		const table = typeof steps === "function"
 				? steps(frozen)
 				: (steps ?? createFunctionSteps({ catalog: frozen }));
 		const open = new Map<string, string>();
@@ -255,6 +327,7 @@ export function createConversation({
 		const plan = await machine.run({
 			userText: text,
 			candidates: [],
+			...(selectedId ? { id: selectedId } : {}),
 			...(hostContext === undefined ? {} : { hostContext }),
 			...(working.length > 0 ? { focus: working } : {}),
 			...(standing ? { position: standing } : {}),

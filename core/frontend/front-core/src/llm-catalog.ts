@@ -17,6 +17,8 @@ export type LlmCatalogExamples = Partial<Record<
 >>;
 
 export type SurfaceLlmAction = {
+	/** Existing Effector catalog command that performs this UI intent. */
+	controller?: string;
 	brief: string;
 	category: string;
 	description: string;

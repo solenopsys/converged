@@ -1,6 +1,7 @@
 import { createDomain } from "effector";
 import { createDomainLogger } from "../../../libraries/effector/effector-logger/logger";
 import { registerSurfaceLocaleFallbacks } from "../i18n";
+import type { SurfaceLlmCatalog } from "../llm-catalog";
 import type {
 	CategoryId,
 	ObjectIndexFile,
@@ -45,6 +46,9 @@ export class ObjectRegistry {
 	private readonly views = new Map<string, Owned<ViewDefinition>>();
 	private readonly operations = new Map<string, Owned<OperationDefinition>>();
 	private readonly surfaces = new Map<string, SurfaceIdentity>();
+	// Retain the compact header from /sf/index.json. CASE consumes this before
+	// any lazy surface module has been imported.
+	private readonly llmCatalogs = new Map<string, SurfaceLlmCatalog>();
 	private readonly cleanups = new Map<string, () => void>();
 
 	private identify(
@@ -107,8 +111,19 @@ export class ObjectRegistry {
 			// Before declaring: the declaration is what makes the shell read labels.
 			if (entry.locales)
 				registerSurfaceLocaleFallbacks(entry.module, entry.locales);
+			if (entry.llm) {
+				this.llmCatalogs.set(entry.module, entry.llm);
+			}
 			this.declare(entry.module, entry.manifest);
 		}
+	}
+
+	/** CASE source: catalog headers available immediately after index ingest. */
+	allLlmCatalogs(): Array<{ module: string; catalog: SurfaceLlmCatalog }> {
+		return [...this.llmCatalogs].map(([module, catalog]) => ({
+			module,
+			catalog,
+		}));
 	}
 
 	surface(id: string): SurfaceIdentity | undefined {

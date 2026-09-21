@@ -1,0 +1,9 @@
+.git
+.gitignore
+.venv-laya
+.zig-cache
+test
+test
+models/laya
+models/laya-multilingual
+*.pyc

@@ -1,5 +1,5 @@
 const std = @import("std");
-const Tokenizer = @import("tokenizer.zig").Tokenizer;
+const Tokenizer = @import("tokenizer").Tokenizer;
 
 pub const max_tokens = 512;
 const start_token: i64 = 179934;
