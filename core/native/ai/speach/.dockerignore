@@ -2,7 +2,6 @@
 .gitignore
 .venv
 .zig-cache
-zig-out
 test
-models/
+models/model.int8.onnx
 *.pyc

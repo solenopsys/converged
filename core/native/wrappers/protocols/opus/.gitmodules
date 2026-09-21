@@ -1,0 +1,3 @@
+[submodule "vendor/opus-vendor"]
+	path = vendor/opus-vendor
+	url = https://github.com/xiph/opus.git
