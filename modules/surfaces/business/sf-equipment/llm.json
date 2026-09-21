@@ -1,4 +1,8 @@
 {
+	"root": {
+		"surface": "sf-equipment",
+		"baseType": "equipment"
+	},
 	"actions": {
 		"equipment.machine.create": {
 			"brief": "Register a machine",
@@ -9,12 +13,59 @@
 			"parameters": {
 				"type": "object",
 				"properties": {
-					"kind": { "type": "string" },
-					"name": { "type": "string" },
-					"serialNumber": { "type": "string" },
-					"location": { "type": "string" }
+					"kind": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
+					},
+					"serialNumber": {
+						"type": "string"
+					},
+					"location": {
+						"type": "string"
+					}
 				},
-				"required": ["kind"]
+				"required": [
+					"kind"
+				]
+			},
+			"examples": {
+				"en": [
+					"Register a machine",
+					"Please register a machine",
+					"I want to register a machine (equipment in sf-equipment)"
+				],
+				"ru": [
+					"зарегистрируй a machine (equipment, sf-equipment)",
+					"пожалуйста, зарегистрируй a machine",
+					"мне нужно зарегистрируй a machine"
+				],
+				"de": [
+					"registriere a machine (equipment, sf-equipment)",
+					"bitte registriere a machine",
+					"ich möchte registriere a machine"
+				],
+				"fr": [
+					"enregistre a machine (equipment, sf-equipment)",
+					"s’il te plaît, enregistre a machine",
+					"je veux enregistre a machine"
+				],
+				"es": [
+					"registra a machine (equipment, sf-equipment)",
+					"por favor, registra a machine",
+					"quiero registra a machine"
+				],
+				"it": [
+					"registra a machine (equipment, sf-equipment)",
+					"per favore, registra a machine",
+					"voglio registra a machine"
+				],
+				"pt": [
+					"registre a machine (equipment, sf-equipment)",
+					"por favor, registre a machine",
+					"quero registre a machine"
+				]
 			}
 		},
 		"equipment.machine.set-state": {
@@ -28,15 +79,62 @@
 				"properties": {
 					"status": {
 						"type": "string",
-						"enum": ["running", "idle", "maintenance", "error", "offline"]
+						"enum": [
+							"running",
+							"idle",
+							"maintenance",
+							"error",
+							"offline"
+						]
 					},
-					"jobId": { "type": "string" },
+					"jobId": {
+						"type": "string"
+					},
 					"description": {
 						"type": "string",
 						"description": "What happened, when the state is error"
 					}
 				},
-				"required": ["status"]
+				"required": [
+					"status"
+				]
+			},
+			"examples": {
+				"en": [
+					"Set machine state",
+					"Please set machine state",
+					"I want to set machine state (equipment in sf-equipment)"
+				],
+				"ru": [
+					"настрой machine state (equipment, sf-equipment)",
+					"пожалуйста, настрой machine state",
+					"мне нужно настрой machine state"
+				],
+				"de": [
+					"stelle ein machine state (equipment, sf-equipment)",
+					"bitte stelle ein machine state",
+					"ich möchte stelle ein machine state"
+				],
+				"fr": [
+					"configure machine state (equipment, sf-equipment)",
+					"s’il te plaît, configure machine state",
+					"je veux configure machine state"
+				],
+				"es": [
+					"configura machine state (equipment, sf-equipment)",
+					"por favor, configura machine state",
+					"quiero configura machine state"
+				],
+				"it": [
+					"configura machine state (equipment, sf-equipment)",
+					"per favore, configura machine state",
+					"voglio configura machine state"
+				],
+				"pt": [
+					"configure machine state (equipment, sf-equipment)",
+					"por favor, configure machine state",
+					"quero configure machine state"
+				]
 			}
 		},
 		"equipment.log.create": {
@@ -48,11 +146,56 @@
 			"parameters": {
 				"type": "object",
 				"properties": {
-					"description": { "type": "string" },
-					"eventType": { "type": "string" },
-					"severity": { "type": "string" }
+					"description": {
+						"type": "string"
+					},
+					"eventType": {
+						"type": "string"
+					},
+					"severity": {
+						"type": "string"
+					}
 				},
-				"required": ["description"]
+				"required": [
+					"description"
+				]
+			},
+			"examples": {
+				"en": [
+					"Log a machine event",
+					"Please log a machine event",
+					"I want to manage log a machine event (equipment in sf-equipment)"
+				],
+				"ru": [
+					"настрой log a machine event (equipment, sf-equipment)",
+					"пожалуйста, настрой log a machine event",
+					"мне нужно настрой log a machine event"
+				],
+				"de": [
+					"verwalte log a machine event (equipment, sf-equipment)",
+					"bitte verwalte log a machine event",
+					"ich möchte verwalte log a machine event"
+				],
+				"fr": [
+					"gère log a machine event (equipment, sf-equipment)",
+					"s’il te plaît, gère log a machine event",
+					"je veux gère log a machine event"
+				],
+				"es": [
+					"gestiona log a machine event (equipment, sf-equipment)",
+					"por favor, gestiona log a machine event",
+					"quiero gestiona log a machine event"
+				],
+				"it": [
+					"gestisci log a machine event (equipment, sf-equipment)",
+					"per favore, gestisci log a machine event",
+					"voglio gestisci log a machine event"
+				],
+				"pt": [
+					"gerencie log a machine event (equipment, sf-equipment)",
+					"por favor, gerencie log a machine event",
+					"quero gerencie log a machine event"
+				]
 			}
 		},
 		"equipment.slot.create": {
@@ -64,12 +207,60 @@
 			"parameters": {
 				"type": "object",
 				"properties": {
-					"startAt": { "type": "string" },
-					"endAt": { "type": "string" },
-					"orderId": { "type": "string" },
-					"note": { "type": "string" }
+					"startAt": {
+						"type": "string"
+					},
+					"endAt": {
+						"type": "string"
+					},
+					"orderId": {
+						"type": "string"
+					},
+					"note": {
+						"type": "string"
+					}
 				},
-				"required": ["startAt", "endAt"]
+				"required": [
+					"startAt",
+					"endAt"
+				]
+			},
+			"examples": {
+				"en": [
+					"Book a machine slot",
+					"Please book a machine slot",
+					"I want to manage book a machine slot (equipment in sf-equipment)"
+				],
+				"ru": [
+					"настрой book a machine slot (equipment, sf-equipment)",
+					"пожалуйста, настрой book a machine slot",
+					"мне нужно настрой book a machine slot"
+				],
+				"de": [
+					"verwalte book a machine slot (equipment, sf-equipment)",
+					"bitte verwalte book a machine slot",
+					"ich möchte verwalte book a machine slot"
+				],
+				"fr": [
+					"gère book a machine slot (equipment, sf-equipment)",
+					"s’il te plaît, gère book a machine slot",
+					"je veux gère book a machine slot"
+				],
+				"es": [
+					"gestiona book a machine slot (equipment, sf-equipment)",
+					"por favor, gestiona book a machine slot",
+					"quiero gestiona book a machine slot"
+				],
+				"it": [
+					"gestisci book a machine slot (equipment, sf-equipment)",
+					"per favore, gestisci book a machine slot",
+					"voglio gestisci book a machine slot"
+				],
+				"pt": [
+					"gerencie book a machine slot (equipment, sf-equipment)",
+					"por favor, gerencie book a machine slot",
+					"quero gerencie book a machine slot"
+				]
 			}
 		}
 	}

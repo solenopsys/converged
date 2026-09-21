@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { registry } from "./registry";
+import { $actionCatalog, registry } from "./registry";
 import {
 	ingestFunctionIndex,
 	ingestSurfaceLlmCatalog,
@@ -30,6 +30,7 @@ test("the function index remains the authoritative surface owner", () => {
 	});
 
 	ingestSurfaceLlmCatalog("trace-owner-test-sf", "", {
+		root: { surface: "sf-trace-owner-test", baseType: "trace" },
 		actions: {
 			[actionId]: {
 				brief: "Open test",
@@ -37,6 +38,7 @@ test("the function index remains the authoritative surface owner", () => {
 				category: "trace",
 				exposure: "llm",
 				priority: "normal",
+				examples: { en: ["open the trace test"] },
 			},
 			[ghostId]: {
 				brief: "Ghost",
@@ -50,4 +52,12 @@ test("the function index remains the authoritative surface owner", () => {
 
 	expect(moduleForAction(actionId)).toBe("sf-trace-owner-test");
 	expect(registry.meta(ghostId)).toBeUndefined();
+	expect(registry.meta(actionId)).toMatchObject({
+		root: { surface: "sf-trace-owner-test", baseType: "trace" },
+		examples: { en: ["open the trace test"] },
+	});
+	expect($actionCatalog.getState().find((action) => action.id === actionId)).toMatchObject({
+		root: { surface: "sf-trace-owner-test", baseType: "trace" },
+		examples: { en: ["open the trace test"] },
+	});
 });

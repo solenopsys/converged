@@ -1,4 +1,8 @@
 {
+	"root": {
+		"surface": "sf-orders",
+		"baseType": "orders"
+	},
 	"actions": {
 		"orders.order.create": {
 			"brief": "Put a job on the queue",
@@ -9,7 +13,9 @@
 			"parameters": {
 				"type": "object",
 				"properties": {
-					"modelName": { "type": "string" },
+					"modelName": {
+						"type": "string"
+					},
 					"productionMethod": {
 						"type": "string",
 						"enum": [
@@ -23,15 +29,69 @@
 							"generic"
 						]
 					},
-					"quantity": { "type": "number" },
-					"material": { "type": "string" },
-					"weightGrams": { "type": "number" },
-					"dueAt": { "type": "string" },
-					"notes": { "type": "string" },
-					"customerName": { "type": "string" },
-					"customerEmail": { "type": "string" }
+					"quantity": {
+						"type": "number"
+					},
+					"material": {
+						"type": "string"
+					},
+					"weightGrams": {
+						"type": "number"
+					},
+					"dueAt": {
+						"type": "string"
+					},
+					"notes": {
+						"type": "string"
+					},
+					"customerName": {
+						"type": "string"
+					},
+					"customerEmail": {
+						"type": "string"
+					}
 				},
-				"required": ["modelName", "productionMethod"]
+				"required": [
+					"modelName",
+					"productionMethod"
+				]
+			},
+			"examples": {
+				"en": [
+					"Put a job on the queue",
+					"Please put a job on the queue",
+					"I want to manage put a job on the queue (orders in sf-orders)"
+				],
+				"ru": [
+					"настрой put a job on the queue (orders, sf-orders)",
+					"пожалуйста, настрой put a job on the queue",
+					"мне нужно настрой put a job on the queue"
+				],
+				"de": [
+					"verwalte put a job on the queue (orders, sf-orders)",
+					"bitte verwalte put a job on the queue",
+					"ich möchte verwalte put a job on the queue"
+				],
+				"fr": [
+					"gère put a job on the queue (orders, sf-orders)",
+					"s’il te plaît, gère put a job on the queue",
+					"je veux gère put a job on the queue"
+				],
+				"es": [
+					"gestiona put a job on the queue (orders, sf-orders)",
+					"por favor, gestiona put a job on the queue",
+					"quiero gestiona put a job on the queue"
+				],
+				"it": [
+					"gestisci put a job on the queue (orders, sf-orders)",
+					"per favore, gestisci put a job on the queue",
+					"voglio gestisci put a job on the queue"
+				],
+				"pt": [
+					"gerencie put a job on the queue (orders, sf-orders)",
+					"por favor, gerencie put a job on the queue",
+					"quero gerencie put a job on the queue"
+				]
 			}
 		},
 		"orders.order.updateStatus": {
@@ -56,7 +116,46 @@
 						]
 					}
 				},
-				"required": ["status"]
+				"required": [
+					"status"
+				]
+			},
+			"examples": {
+				"en": [
+					"Move a job along",
+					"Please move a job along",
+					"I want to move a job along (orders in sf-orders)"
+				],
+				"ru": [
+					"перемести a job along (orders, sf-orders)",
+					"пожалуйста, перемести a job along",
+					"мне нужно перемести a job along"
+				],
+				"de": [
+					"verschiebe a job along (orders, sf-orders)",
+					"bitte verschiebe a job along",
+					"ich möchte verschiebe a job along"
+				],
+				"fr": [
+					"déplace a job along (orders, sf-orders)",
+					"s’il te plaît, déplace a job along",
+					"je veux déplace a job along"
+				],
+				"es": [
+					"mueve a job along (orders, sf-orders)",
+					"por favor, mueve a job along",
+					"quiero mueve a job along"
+				],
+				"it": [
+					"sposta a job along (orders, sf-orders)",
+					"per favore, sposta a job along",
+					"voglio sposta a job along"
+				],
+				"pt": [
+					"mova a job along (orders, sf-orders)",
+					"por favor, mova a job along",
+					"quero mova a job along"
+				]
 			}
 		},
 		"orders.order.assignEquipment": {
@@ -68,11 +167,56 @@
 			"parameters": {
 				"type": "object",
 				"properties": {
-					"equipmentId": { "type": "string" },
-					"startAt": { "type": "string" },
-					"endAt": { "type": "string" }
+					"equipmentId": {
+						"type": "string"
+					},
+					"startAt": {
+						"type": "string"
+					},
+					"endAt": {
+						"type": "string"
+					}
 				},
-				"required": ["equipmentId"]
+				"required": [
+					"equipmentId"
+				]
+			},
+			"examples": {
+				"en": [
+					"Put a job on a machine",
+					"Please put a job on a machine",
+					"I want to manage put a job on a machine (orders in sf-orders)"
+				],
+				"ru": [
+					"настрой put a job on a machine (orders, sf-orders)",
+					"пожалуйста, настрой put a job on a machine",
+					"мне нужно настрой put a job on a machine"
+				],
+				"de": [
+					"verwalte put a job on a machine (orders, sf-orders)",
+					"bitte verwalte put a job on a machine",
+					"ich möchte verwalte put a job on a machine"
+				],
+				"fr": [
+					"gère put a job on a machine (orders, sf-orders)",
+					"s’il te plaît, gère put a job on a machine",
+					"je veux gère put a job on a machine"
+				],
+				"es": [
+					"gestiona put a job on a machine (orders, sf-orders)",
+					"por favor, gestiona put a job on a machine",
+					"quiero gestiona put a job on a machine"
+				],
+				"it": [
+					"gestisci put a job on a machine (orders, sf-orders)",
+					"per favore, gestisci put a job on a machine",
+					"voglio gestisci put a job on a machine"
+				],
+				"pt": [
+					"gerencie put a job on a machine (orders, sf-orders)",
+					"por favor, gerencie put a job on a machine",
+					"quero gerencie put a job on a machine"
+				]
 			}
 		},
 		"orders.order.save": {
@@ -84,16 +228,71 @@
 			"parameters": {
 				"type": "object",
 				"properties": {
-					"modelName": { "type": "string" },
-					"productionMethod": { "type": "string" },
-					"quantity": { "type": "number" },
-					"material": { "type": "string" },
-					"weightGrams": { "type": "number" },
-					"dueAt": { "type": "string" },
-					"notes": { "type": "string" },
-					"customerName": { "type": "string" },
-					"customerEmail": { "type": "string" }
+					"modelName": {
+						"type": "string"
+					},
+					"productionMethod": {
+						"type": "string"
+					},
+					"quantity": {
+						"type": "number"
+					},
+					"material": {
+						"type": "string"
+					},
+					"weightGrams": {
+						"type": "number"
+					},
+					"dueAt": {
+						"type": "string"
+					},
+					"notes": {
+						"type": "string"
+					},
+					"customerName": {
+						"type": "string"
+					},
+					"customerEmail": {
+						"type": "string"
+					}
 				}
+			},
+			"examples": {
+				"en": [
+					"Edit a job",
+					"Please edit a job",
+					"I want to edit a job (orders in sf-orders)"
+				],
+				"ru": [
+					"измени a job (orders, sf-orders)",
+					"пожалуйста, измени a job",
+					"мне нужно измени a job"
+				],
+				"de": [
+					"bearbeite a job (orders, sf-orders)",
+					"bitte bearbeite a job",
+					"ich möchte bearbeite a job"
+				],
+				"fr": [
+					"modifie a job (orders, sf-orders)",
+					"s’il te plaît, modifie a job",
+					"je veux modifie a job"
+				],
+				"es": [
+					"edita a job (orders, sf-orders)",
+					"por favor, edita a job",
+					"quiero edita a job"
+				],
+				"it": [
+					"modifica a job (orders, sf-orders)",
+					"per favore, modifica a job",
+					"voglio modifica a job"
+				],
+				"pt": [
+					"edite a job (orders, sf-orders)",
+					"por favor, edite a job",
+					"quero edite a job"
+				]
 			}
 		}
 	}

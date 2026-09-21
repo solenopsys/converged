@@ -1,11 +1,52 @@
 {
+	"root": {
+		"surface": "sf-static",
+		"baseType": "static"
+	},
 	"actions": {
 		"static.cache.show": {
 			"brief": "Open the static SSR page cache",
 			"description": "Show the SSR static cache: pages with status, content type, size and load time. Supports flush and invalidation by pattern.",
 			"category": "static",
 			"exposure": "user",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Open the static SSR page cache",
+					"Please open the static ssr page cache",
+					"I want to open the static ssr page cache (static in sf-static)"
+				],
+				"ru": [
+					"открой the static ssr page cache (static, sf-static)",
+					"пожалуйста, открой the static ssr page cache",
+					"мне нужно открой the static ssr page cache"
+				],
+				"de": [
+					"öffne the static ssr page cache (static, sf-static)",
+					"bitte öffne the static ssr page cache",
+					"ich möchte öffne the static ssr page cache"
+				],
+				"fr": [
+					"ouvre the static ssr page cache (static, sf-static)",
+					"s’il te plaît, ouvre the static ssr page cache",
+					"je veux ouvre the static ssr page cache"
+				],
+				"es": [
+					"abre the static ssr page cache (static, sf-static)",
+					"por favor, abre the static ssr page cache",
+					"quiero abre the static ssr page cache"
+				],
+				"it": [
+					"apri the static ssr page cache (static, sf-static)",
+					"per favore, apri the static ssr page cache",
+					"voglio apri the static ssr page cache"
+				],
+				"pt": [
+					"abra the static ssr page cache (static, sf-static)",
+					"por favor, abra the static ssr page cache",
+					"quero abra the static ssr page cache"
+				]
+			}
 		}
 	}
 }

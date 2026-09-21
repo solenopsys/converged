@@ -48,6 +48,7 @@
       "message.put": "w",
       "context.create": "w",
       "context.delete": "w",
+      "case": "w",
       "llm.generate": "w"
     }
   },

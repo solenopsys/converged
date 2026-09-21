@@ -1,4 +1,8 @@
 {
+	"root": {
+		"surface": "sf-team",
+		"baseType": "team"
+	},
 	"actions": {
 		"team.member.import": {
 			"brief": "Add people to the console from a list",
@@ -9,15 +13,70 @@
 			"parameters": {
 				"type": "object",
 				"properties": {
-					"rawText": { "type": "string" },
-					"fileIds": { "type": "array", "items": { "type": "string" } },
+					"rawText": {
+						"type": "string"
+					},
+					"fileIds": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						}
+					},
 					"preset": {
 						"type": "string",
-						"enum": ["manager", "operator", "viewer"]
+						"enum": [
+							"manager",
+							"operator",
+							"viewer"
+						]
 					},
-					"tags": { "type": "array", "items": { "type": "string" } },
-					"dryRun": { "type": "boolean" }
+					"tags": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						}
+					},
+					"dryRun": {
+						"type": "boolean"
+					}
 				}
+			},
+			"examples": {
+				"en": [
+					"Add people to the console from a list",
+					"Please add people to the console from a list",
+					"I want to add people to the console from a list (team in sf-team)"
+				],
+				"ru": [
+					"добавь people to the console from a покажи список (team, sf-team)",
+					"пожалуйста, добавь people to the console from a покажи список",
+					"мне нужно добавь people to the console from a покажи список"
+				],
+				"de": [
+					"füge hinzu people to the console from a zeige die Liste (team, sf-team)",
+					"bitte füge hinzu people to the console from a zeige die Liste",
+					"ich möchte füge hinzu people to the console from a zeige die Liste"
+				],
+				"fr": [
+					"ajoute people to the console from a affiche la liste (team, sf-team)",
+					"s’il te plaît, ajoute people to the console from a affiche la liste",
+					"je veux ajoute people to the console from a affiche la liste"
+				],
+				"es": [
+					"añade people to the console from a muestra la lista (team, sf-team)",
+					"por favor, añade people to the console from a muestra la lista",
+					"quiero añade people to the console from a muestra la lista"
+				],
+				"it": [
+					"aggiungi people to the console from a mostra l’elenco (team, sf-team)",
+					"per favore, aggiungi people to the console from a mostra l’elenco",
+					"voglio aggiungi people to the console from a mostra l’elenco"
+				],
+				"pt": [
+					"adicione people to the console from a mostre a lista (team, sf-team)",
+					"por favor, adicione people to the console from a mostre a lista",
+					"quero adicione people to the console from a mostre a lista"
+				]
 			}
 		},
 		"team.member.setRole": {
@@ -31,11 +90,59 @@
 				"properties": {
 					"preset": {
 						"type": "string",
-						"enum": ["manager", "operator", "viewer"]
+						"enum": [
+							"manager",
+							"operator",
+							"viewer"
+						]
 					},
-					"tags": { "type": "array", "items": { "type": "string" } }
+					"tags": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						}
+					}
 				},
-				"required": ["preset"]
+				"required": [
+					"preset"
+				]
+			},
+			"examples": {
+				"en": [
+					"Change somebody's role",
+					"Please change somebody's role",
+					"I want to change somebody s role (team in sf-team)"
+				],
+				"ru": [
+					"измени somebody s role (team, sf-team)",
+					"пожалуйста, измени somebody s role",
+					"мне нужно измени somebody s role"
+				],
+				"de": [
+					"ändere somebody s role (team, sf-team)",
+					"bitte ändere somebody s role",
+					"ich möchte ändere somebody s role"
+				],
+				"fr": [
+					"change somebody s role (team, sf-team)",
+					"s’il te plaît, change somebody s role",
+					"je veux change somebody s role"
+				],
+				"es": [
+					"cambia somebody s role (team, sf-team)",
+					"por favor, cambia somebody s role",
+					"quiero cambia somebody s role"
+				],
+				"it": [
+					"cambia somebody s role (team, sf-team)",
+					"per favore, cambia somebody s role",
+					"voglio cambia somebody s role"
+				],
+				"pt": [
+					"altere somebody s role (team, sf-team)",
+					"por favor, altere somebody s role",
+					"quero altere somebody s role"
+				]
 			}
 		},
 		"team.member.deactivate": {
@@ -44,7 +151,47 @@
 			"category": "team",
 			"exposure": "llm",
 			"priority": "normal",
-			"parameters": { "type": "object", "properties": {} }
+			"parameters": {
+				"type": "object",
+				"properties": {}
+			},
+			"examples": {
+				"en": [
+					"Switch off somebody's access",
+					"Please switch off somebody's access",
+					"I want to manage switch off somebody s access (team in sf-team)"
+				],
+				"ru": [
+					"настрой switch off somebody s access (team, sf-team)",
+					"пожалуйста, настрой switch off somebody s access",
+					"мне нужно настрой switch off somebody s access"
+				],
+				"de": [
+					"verwalte switch off somebody s access (team, sf-team)",
+					"bitte verwalte switch off somebody s access",
+					"ich möchte verwalte switch off somebody s access"
+				],
+				"fr": [
+					"gère switch off somebody s access (team, sf-team)",
+					"s’il te plaît, gère switch off somebody s access",
+					"je veux gère switch off somebody s access"
+				],
+				"es": [
+					"gestiona switch off somebody s access (team, sf-team)",
+					"por favor, gestiona switch off somebody s access",
+					"quiero gestiona switch off somebody s access"
+				],
+				"it": [
+					"gestisci switch off somebody s access (team, sf-team)",
+					"per favore, gestisci switch off somebody s access",
+					"voglio gestisci switch off somebody s access"
+				],
+				"pt": [
+					"gerencie switch off somebody s access (team, sf-team)",
+					"por favor, gerencie switch off somebody s access",
+					"quero gerencie switch off somebody s access"
+				]
+			}
 		},
 		"team.member.create": {
 			"brief": "File a card for one person",
@@ -55,12 +202,59 @@
 			"parameters": {
 				"type": "object",
 				"properties": {
-					"name": { "type": "string" },
-					"email": { "type": "string" },
-					"contact": { "type": "string" },
-					"role": { "type": "string" }
+					"name": {
+						"type": "string"
+					},
+					"email": {
+						"type": "string"
+					},
+					"contact": {
+						"type": "string"
+					},
+					"role": {
+						"type": "string"
+					}
 				},
-				"required": ["name"]
+				"required": [
+					"name"
+				]
+			},
+			"examples": {
+				"en": [
+					"File a card for one person",
+					"Please file a card for one person",
+					"I want to manage file a card for one person (team in sf-team)"
+				],
+				"ru": [
+					"настрой файл a card for one person (team, sf-team)",
+					"пожалуйста, настрой файл a card for one person",
+					"мне нужно настрой файл a card for one person"
+				],
+				"de": [
+					"verwalte Datei a card for one person (team, sf-team)",
+					"bitte verwalte Datei a card for one person",
+					"ich möchte verwalte Datei a card for one person"
+				],
+				"fr": [
+					"gère fichier a card for one person (team, sf-team)",
+					"s’il te plaît, gère fichier a card for one person",
+					"je veux gère fichier a card for one person"
+				],
+				"es": [
+					"gestiona archivo a card for one person (team, sf-team)",
+					"por favor, gestiona archivo a card for one person",
+					"quiero gestiona archivo a card for one person"
+				],
+				"it": [
+					"gestisci file a card for one person (team, sf-team)",
+					"per favore, gestisci file a card for one person",
+					"voglio gestisci file a card for one person"
+				],
+				"pt": [
+					"gerencie arquivo a card for one person (team, sf-team)",
+					"por favor, gerencie arquivo a card for one person",
+					"quero gerencie arquivo a card for one person"
+				]
 			}
 		},
 		"team.invite.revoke": {
@@ -69,7 +263,47 @@
 			"category": "team",
 			"exposure": "llm",
 			"priority": "normal",
-			"parameters": { "type": "object", "properties": {} }
+			"parameters": {
+				"type": "object",
+				"properties": {}
+			},
+			"examples": {
+				"en": [
+					"Revoke an invitation",
+					"Please revoke an invitation",
+					"I want to manage revoke an invitation (team in sf-team)"
+				],
+				"ru": [
+					"настрой revoke an invitation (team, sf-team)",
+					"пожалуйста, настрой revoke an invitation",
+					"мне нужно настрой revoke an invitation"
+				],
+				"de": [
+					"verwalte revoke an invitation (team, sf-team)",
+					"bitte verwalte revoke an invitation",
+					"ich möchte verwalte revoke an invitation"
+				],
+				"fr": [
+					"gère revoke an invitation (team, sf-team)",
+					"s’il te plaît, gère revoke an invitation",
+					"je veux gère revoke an invitation"
+				],
+				"es": [
+					"gestiona revoke an invitation (team, sf-team)",
+					"por favor, gestiona revoke an invitation",
+					"quiero gestiona revoke an invitation"
+				],
+				"it": [
+					"gestisci revoke an invitation (team, sf-team)",
+					"per favore, gestisci revoke an invitation",
+					"voglio gestisci revoke an invitation"
+				],
+				"pt": [
+					"gerencie revoke an invitation (team, sf-team)",
+					"por favor, gerencie revoke an invitation",
+					"quero gerencie revoke an invitation"
+				]
+			}
 		}
 	}
 }

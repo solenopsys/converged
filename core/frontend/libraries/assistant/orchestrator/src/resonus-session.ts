@@ -2,6 +2,8 @@ import type { OneShotAsk, StepAnswer, Tier, ToolSpec } from "./types";
 
 export type ResonusCommandTransport = {
 	command(method: string, payload: Record<string, unknown>): Promise<void>;
+	/** One non-streaming nRPC request whose JSON response is meaningful. */
+	request(method: string, payload: Record<string, unknown>): Promise<unknown>;
 	stream(
 		method: string,
 		payload: Record<string, unknown>,

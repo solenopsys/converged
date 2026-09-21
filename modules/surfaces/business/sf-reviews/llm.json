@@ -1,4 +1,8 @@
 {
+	"root": {
+		"surface": "sf-reviews",
+		"baseType": "reviews"
+	},
 	"actions": {
 		"reviews.review.publish": {
 			"brief": "Publish a review",
@@ -6,7 +10,47 @@
 			"category": "reviews",
 			"exposure": "llm",
 			"priority": "primary",
-			"parameters": { "type": "object", "properties": {} }
+			"parameters": {
+				"type": "object",
+				"properties": {}
+			},
+			"examples": {
+				"en": [
+					"Publish a review",
+					"Please publish a review",
+					"I want to manage publish a review (reviews in sf-reviews)"
+				],
+				"ru": [
+					"настрой publish a review (reviews, sf-reviews)",
+					"пожалуйста, настрой publish a review",
+					"мне нужно настрой publish a review"
+				],
+				"de": [
+					"verwalte publish a review (reviews, sf-reviews)",
+					"bitte verwalte publish a review",
+					"ich möchte verwalte publish a review"
+				],
+				"fr": [
+					"gère publish a review (reviews, sf-reviews)",
+					"s’il te plaît, gère publish a review",
+					"je veux gère publish a review"
+				],
+				"es": [
+					"gestiona publish a review (reviews, sf-reviews)",
+					"por favor, gestiona publish a review",
+					"quiero gestiona publish a review"
+				],
+				"it": [
+					"gestisci publish a review (reviews, sf-reviews)",
+					"per favore, gestisci publish a review",
+					"voglio gestisci publish a review"
+				],
+				"pt": [
+					"gerencie publish a review (reviews, sf-reviews)",
+					"por favor, gerencie publish a review",
+					"quero gerencie publish a review"
+				]
+			}
 		},
 		"reviews.review.reject": {
 			"brief": "Reject a review",
@@ -14,7 +58,47 @@
 			"category": "reviews",
 			"exposure": "llm",
 			"priority": "normal",
-			"parameters": { "type": "object", "properties": {} }
+			"parameters": {
+				"type": "object",
+				"properties": {}
+			},
+			"examples": {
+				"en": [
+					"Reject a review",
+					"Please reject a review",
+					"I want to manage reject a review (reviews in sf-reviews)"
+				],
+				"ru": [
+					"настрой reject a review (reviews, sf-reviews)",
+					"пожалуйста, настрой reject a review",
+					"мне нужно настрой reject a review"
+				],
+				"de": [
+					"verwalte reject a review (reviews, sf-reviews)",
+					"bitte verwalte reject a review",
+					"ich möchte verwalte reject a review"
+				],
+				"fr": [
+					"gère reject a review (reviews, sf-reviews)",
+					"s’il te plaît, gère reject a review",
+					"je veux gère reject a review"
+				],
+				"es": [
+					"gestiona reject a review (reviews, sf-reviews)",
+					"por favor, gestiona reject a review",
+					"quiero gestiona reject a review"
+				],
+				"it": [
+					"gestisci reject a review (reviews, sf-reviews)",
+					"per favore, gestisci reject a review",
+					"voglio gestisci reject a review"
+				],
+				"pt": [
+					"gerencie reject a review (reviews, sf-reviews)",
+					"por favor, gerencie reject a review",
+					"quero gerencie reject a review"
+				]
+			}
 		},
 		"reviews.review.reply": {
 			"brief": "Answer a review",
@@ -24,8 +108,51 @@
 			"priority": "primary",
 			"parameters": {
 				"type": "object",
-				"properties": { "reply": { "type": "string" } },
-				"required": ["reply"]
+				"properties": {
+					"reply": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"reply"
+				]
+			},
+			"examples": {
+				"en": [
+					"Answer a review",
+					"Please answer a review",
+					"I want to manage answer a review (reviews in sf-reviews)"
+				],
+				"ru": [
+					"настрой answer a review (reviews, sf-reviews)",
+					"пожалуйста, настрой answer a review",
+					"мне нужно настрой answer a review"
+				],
+				"de": [
+					"verwalte answer a review (reviews, sf-reviews)",
+					"bitte verwalte answer a review",
+					"ich möchte verwalte answer a review"
+				],
+				"fr": [
+					"gère answer a review (reviews, sf-reviews)",
+					"s’il te plaît, gère answer a review",
+					"je veux gère answer a review"
+				],
+				"es": [
+					"gestiona answer a review (reviews, sf-reviews)",
+					"por favor, gestiona answer a review",
+					"quiero gestiona answer a review"
+				],
+				"it": [
+					"gestisci answer a review (reviews, sf-reviews)",
+					"per favore, gestisci answer a review",
+					"voglio gestisci answer a review"
+				],
+				"pt": [
+					"gerencie answer a review (reviews, sf-reviews)",
+					"por favor, gerencie answer a review",
+					"quero gerencie answer a review"
+				]
 			}
 		},
 		"reviews.review.create": {
@@ -37,14 +164,67 @@
 			"parameters": {
 				"type": "object",
 				"properties": {
-					"author": { "type": "string" },
-					"text": { "type": "string" },
-					"rating": { "type": "number" },
-					"orderId": { "type": "string" },
-					"contact": { "type": "string" },
-					"externalPlatform": { "type": "string" }
+					"author": {
+						"type": "string"
+					},
+					"text": {
+						"type": "string"
+					},
+					"rating": {
+						"type": "number"
+					},
+					"orderId": {
+						"type": "string"
+					},
+					"contact": {
+						"type": "string"
+					},
+					"externalPlatform": {
+						"type": "string"
+					}
 				},
-				"required": ["author", "text", "rating"]
+				"required": [
+					"author",
+					"text",
+					"rating"
+				]
+			},
+			"examples": {
+				"en": [
+					"Record a review",
+					"Please record a review",
+					"I want to manage record a review (reviews in sf-reviews)"
+				],
+				"ru": [
+					"настрой record a review (reviews, sf-reviews)",
+					"пожалуйста, настрой record a review",
+					"мне нужно настрой record a review"
+				],
+				"de": [
+					"verwalte record a review (reviews, sf-reviews)",
+					"bitte verwalte record a review",
+					"ich möchte verwalte record a review"
+				],
+				"fr": [
+					"gère record a review (reviews, sf-reviews)",
+					"s’il te plaît, gère record a review",
+					"je veux gère record a review"
+				],
+				"es": [
+					"gestiona record a review (reviews, sf-reviews)",
+					"por favor, gestiona record a review",
+					"quiero gestiona record a review"
+				],
+				"it": [
+					"gestisci record a review (reviews, sf-reviews)",
+					"per favore, gestisci record a review",
+					"voglio gestisci record a review"
+				],
+				"pt": [
+					"gerencie record a review (reviews, sf-reviews)",
+					"por favor, gerencie record a review",
+					"quero gerencie record a review"
+				]
 			}
 		},
 		"reviews.invite.create": {
@@ -56,11 +236,57 @@
 			"parameters": {
 				"type": "object",
 				"properties": {
-					"orderId": { "type": "string" },
-					"contact": { "type": "string" },
-					"lang": { "type": "string" }
+					"orderId": {
+						"type": "string"
+					},
+					"contact": {
+						"type": "string"
+					},
+					"lang": {
+						"type": "string"
+					}
 				},
-				"required": ["orderId", "contact"]
+				"required": [
+					"orderId",
+					"contact"
+				]
+			},
+			"examples": {
+				"en": [
+					"Ask a customer for a review",
+					"Please ask a customer for a review",
+					"I want to manage ask a customer for a review (reviews in sf-reviews)"
+				],
+				"ru": [
+					"настрой ask a customer for a review (reviews, sf-reviews)",
+					"пожалуйста, настрой ask a customer for a review",
+					"мне нужно настрой ask a customer for a review"
+				],
+				"de": [
+					"verwalte ask a customer for a review (reviews, sf-reviews)",
+					"bitte verwalte ask a customer for a review",
+					"ich möchte verwalte ask a customer for a review"
+				],
+				"fr": [
+					"gère ask a customer for a review (reviews, sf-reviews)",
+					"s’il te plaît, gère ask a customer for a review",
+					"je veux gère ask a customer for a review"
+				],
+				"es": [
+					"gestiona ask a customer for a review (reviews, sf-reviews)",
+					"por favor, gestiona ask a customer for a review",
+					"quiero gestiona ask a customer for a review"
+				],
+				"it": [
+					"gestisci ask a customer for a review (reviews, sf-reviews)",
+					"per favore, gestisci ask a customer for a review",
+					"voglio gestisci ask a customer for a review"
+				],
+				"pt": [
+					"gerencie ask a customer for a review (reviews, sf-reviews)",
+					"por favor, gerencie ask a customer for a review",
+					"quero gerencie ask a customer for a review"
+				]
 			}
 		}
 	}

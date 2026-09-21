@@ -1,18 +1,96 @@
 {
+	"root": {
+		"surface": "sf-usage",
+		"baseType": "usage"
+	},
 	"actions": {
 		"usage.list.show": {
 			"brief": "Show usage events",
 			"description": "Show usage events",
 			"category": "usage",
 			"exposure": "user",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Show usage events",
+					"Please show usage events",
+					"I want to show usage events (usage in sf-usage)"
+				],
+				"ru": [
+					"покажи использование events (usage, sf-usage)",
+					"пожалуйста, покажи использование events",
+					"мне нужно покажи использование events"
+				],
+				"de": [
+					"zeige Nutzung events (usage, sf-usage)",
+					"bitte zeige Nutzung events",
+					"ich möchte zeige Nutzung events"
+				],
+				"fr": [
+					"affiche utilisation events (usage, sf-usage)",
+					"s’il te plaît, affiche utilisation events",
+					"je veux affiche utilisation events"
+				],
+				"es": [
+					"muestra uso events (usage, sf-usage)",
+					"por favor, muestra uso events",
+					"quiero muestra uso events"
+				],
+				"it": [
+					"mostra utilizzo events (usage, sf-usage)",
+					"per favore, mostra utilizzo events",
+					"voglio mostra utilizzo events"
+				],
+				"pt": [
+					"mostre uso events (usage, sf-usage)",
+					"por favor, mostre uso events",
+					"quero mostre uso events"
+				]
+			}
 		},
 		"usage.stats.show": {
 			"brief": "Show usage statistics",
 			"description": "Show usage statistics",
 			"category": "usage",
 			"exposure": "user",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Show usage statistics",
+					"Please show usage statistics",
+					"I want to show usage statistics (usage in sf-usage)"
+				],
+				"ru": [
+					"покажи использование статистику (usage, sf-usage)",
+					"пожалуйста, покажи использование статистику",
+					"мне нужно покажи использование статистику"
+				],
+				"de": [
+					"zeige Nutzung Statistiken (usage, sf-usage)",
+					"bitte zeige Nutzung Statistiken",
+					"ich möchte zeige Nutzung Statistiken"
+				],
+				"fr": [
+					"affiche utilisation statistiques (usage, sf-usage)",
+					"s’il te plaît, affiche utilisation statistiques",
+					"je veux affiche utilisation statistiques"
+				],
+				"es": [
+					"muestra uso estadísticas (usage, sf-usage)",
+					"por favor, muestra uso estadísticas",
+					"quiero muestra uso estadísticas"
+				],
+				"it": [
+					"mostra utilizzo statistiche (usage, sf-usage)",
+					"per favore, mostra utilizzo statistiche",
+					"voglio mostra utilizzo statistiche"
+				],
+				"pt": [
+					"mostre uso estatísticas (usage, sf-usage)",
+					"por favor, mostre uso estatísticas",
+					"quero mostre uso estatísticas"
+				]
+			}
 		}
 	}
 }

@@ -1,11 +1,52 @@
 {
+	"root": {
+		"surface": "sf-secrets",
+		"baseType": "secrets"
+	},
 	"actions": {
 		"secrets.show": {
 			"brief": "Show secrets list",
 			"description": "Show secrets list",
 			"category": "secrets",
 			"exposure": "user",
-			"priority": "primary"
+			"priority": "primary",
+			"examples": {
+				"en": [
+					"Show secrets list",
+					"Please show secrets list",
+					"I want to show secrets list (secrets in sf-secrets)"
+				],
+				"ru": [
+					"покажи секреты покажи список (secrets, sf-secrets)",
+					"пожалуйста, покажи секреты покажи список",
+					"мне нужно покажи секреты покажи список"
+				],
+				"de": [
+					"zeige Geheimnisse zeige die Liste (secrets, sf-secrets)",
+					"bitte zeige Geheimnisse zeige die Liste",
+					"ich möchte zeige Geheimnisse zeige die Liste"
+				],
+				"fr": [
+					"affiche secrets affiche la liste (secrets, sf-secrets)",
+					"s’il te plaît, affiche secrets affiche la liste",
+					"je veux affiche secrets affiche la liste"
+				],
+				"es": [
+					"muestra secretos muestra la lista (secrets, sf-secrets)",
+					"por favor, muestra secretos muestra la lista",
+					"quiero muestra secretos muestra la lista"
+				],
+				"it": [
+					"mostra segreti mostra l’elenco (secrets, sf-secrets)",
+					"per favore, mostra segreti mostra l’elenco",
+					"voglio mostra segreti mostra l’elenco"
+				],
+				"pt": [
+					"mostre segredos mostre a lista (secrets, sf-secrets)",
+					"por favor, mostre segredos mostre a lista",
+					"quero mostre segredos mostre a lista"
+				]
+			}
 		}
 	}
 }

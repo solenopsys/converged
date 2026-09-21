@@ -1,11 +1,52 @@
 {
+	"root": {
+		"surface": "sf-galery",
+		"baseType": "galery"
+	},
 	"actions": {
 		"galery.list": {
 			"brief": "Show galery items list",
 			"description": "Show galery items list",
 			"category": "galery",
 			"exposure": "user",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Show galery items list",
+					"Please show galery items list",
+					"I want to show galery items list (galery in sf-galery)"
+				],
+				"ru": [
+					"покажи galery items покажи список (galery, sf-galery)",
+					"пожалуйста, покажи galery items покажи список",
+					"мне нужно покажи galery items покажи список"
+				],
+				"de": [
+					"zeige galery items zeige die Liste (galery, sf-galery)",
+					"bitte zeige galery items zeige die Liste",
+					"ich möchte zeige galery items zeige die Liste"
+				],
+				"fr": [
+					"affiche galery items affiche la liste (galery, sf-galery)",
+					"s’il te plaît, affiche galery items affiche la liste",
+					"je veux affiche galery items affiche la liste"
+				],
+				"es": [
+					"muestra galery items muestra la lista (galery, sf-galery)",
+					"por favor, muestra galery items muestra la lista",
+					"quiero muestra galery items muestra la lista"
+				],
+				"it": [
+					"mostra galery items mostra l’elenco (galery, sf-galery)",
+					"per favore, mostra galery items mostra l’elenco",
+					"voglio mostra galery items mostra l’elenco"
+				],
+				"pt": [
+					"mostre galery items mostre a lista (galery, sf-galery)",
+					"por favor, mostre galery items mostre a lista",
+					"quero mostre galery items mostre a lista"
+				]
+			}
 		}
 	}
 }

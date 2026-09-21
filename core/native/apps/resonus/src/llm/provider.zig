@@ -23,6 +23,10 @@ pub const Reply = struct { ok: bool, body: []const u8 };
 /// opaque json values — each provider re-encodes them into its wire dialect.
 pub const ChatRequest = struct {
     model: []const u8,
+    /// Adapter-defined operation and input. The generic provider core forwards
+    /// these to its TypeScript encoder without assigning them provider meaning.
+    operation: ?[]const u8 = null,
+    input: ?std.json.Value = null,
     /// Optional provider-side session affinity. Stateless HTTP providers
     /// ignore it; realtime providers lease their persistent WSS by this key.
     session_id: ?[]const u8 = null,

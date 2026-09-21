@@ -131,6 +131,7 @@ pub const Engine = struct {
 
     const Wire = struct {
         method: []const u8,
+        path: ?[]const u8 = null,
         body: []const u8,
         extra_headers: []const std.http.Header,
     };
@@ -154,6 +155,7 @@ pub const Engine = struct {
 
         return .{
             .method = provider.strField(wire, "method") orelse "POST",
+            .path = provider.strField(wire, "path"),
             .body = body,
             .extra_headers = &.{},
         };
@@ -187,7 +189,8 @@ pub const Engine = struct {
         model: []const u8,
         wire: Wire,
     ) !http.Result {
-        const url = try registry_mod.substitute(a, entry.table.transport.url, model, self.secrets);
+        const base_url = try registry_mod.substitute(a, entry.table.transport.url, model, self.secrets);
+        const url = if (wire.path) |path| try joinUrl(a, base_url, path) else base_url;
         const headers = try self.buildHeaders(a, entry, model);
         return http.postJson(client, a, url, headers, wire.body);
     }
@@ -203,6 +206,14 @@ fn uniformRequestJson(a: std.mem.Allocator, req: provider.ChatRequest) ![]const 
     try out.appendSlice(a, "{\"model\":");
     try provider.appendJsonStr(&out, a, req.model);
     try out.appendSlice(a, try std.fmt.allocPrint(a, ",\"maxTokens\":{d}", .{req.max_tokens}));
+    if (req.operation) |operation| {
+        try out.appendSlice(a, ",\"operation\":");
+        try provider.appendJsonStr(&out, a, operation);
+    }
+    if (req.input) |input| {
+        try out.appendSlice(a, ",\"input\":");
+        try provider.appendValue(&out, a, input);
+    }
     if (req.temperature) |t| {
         try out.appendSlice(a, try std.fmt.allocPrint(a, ",\"temperature\":{d}", .{t}));
     }
@@ -219,6 +230,12 @@ fn uniformRequestJson(a: std.mem.Allocator, req: provider.ChatRequest) ![]const 
     try out.appendSlice(a, try std.fmt.allocPrint(a, "],\"requireTool\":{}}}", .{req.require_tool}));
 
     return out.toOwnedSlice(a);
+}
+
+fn joinUrl(a: std.mem.Allocator, base: []const u8, path: []const u8) ![]const u8 {
+    if (path.len == 0 or path[0] != '/') return error.EncodeTurnInvalid;
+    const trimmed = std.mem.trimEnd(u8, base, "/");
+    return std.fmt.allocPrint(a, "{s}{s}", .{ trimmed, path });
 }
 
 fn argsJson(a: std.mem.Allocator, values: []const std.json.Value) ![]const u8 {

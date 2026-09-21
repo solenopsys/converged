@@ -259,7 +259,8 @@ pub const Hub = struct {
         const model = provider.strField(root, "model") orelse return error.ModelMissing;
         const max_tokens = provider.intField(root, "maxTokens") orelse return error.MaxTokensMissing;
         const messages = provider.arrField(root, "messages") orelse return error.MessagesMissing;
-        if (messages.len == 0) return error.MessagesEmpty;
+        const operation = provider.strField(root, "operation");
+        if (messages.len == 0 and operation == null) return error.MessagesEmpty;
         const temperature: ?f64 = if (provider.field(root, "temperature")) |t| switch (t) {
             .float => |f| f,
             .integer => |n| @floatFromInt(n),
@@ -267,6 +268,8 @@ pub const Hub = struct {
         } else null;
         return .{
             .model = model,
+            .operation = operation,
+            .input = provider.field(root, "input"),
             .session_id = provider.strField(root, "sessionId"),
             .max_tokens = max_tokens,
             .temperature = temperature,

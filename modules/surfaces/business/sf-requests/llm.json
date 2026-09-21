@@ -1,32 +1,184 @@
 {
+	"root": {
+		"surface": "sf-requests",
+		"baseType": "requests"
+	},
 	"actions": {
 		"requests.show": {
 			"brief": "Show requests",
 			"description": "Show requests",
 			"category": "requests",
 			"exposure": "user",
-			"priority": "primary"
+			"priority": "primary",
+			"examples": {
+				"en": [
+					"Show requests",
+					"Please show requests",
+					"I want to show requests (requests in sf-requests)"
+				],
+				"ru": [
+					"покажи запросы (requests, sf-requests)",
+					"пожалуйста, покажи запросы",
+					"мне нужно покажи запросы"
+				],
+				"de": [
+					"zeige Anfragen (requests, sf-requests)",
+					"bitte zeige Anfragen",
+					"ich möchte zeige Anfragen"
+				],
+				"fr": [
+					"affiche demandes (requests, sf-requests)",
+					"s’il te plaît, affiche demandes",
+					"je veux affiche demandes"
+				],
+				"es": [
+					"muestra solicitudes (requests, sf-requests)",
+					"por favor, muestra solicitudes",
+					"quiero muestra solicitudes"
+				],
+				"it": [
+					"mostra richieste (requests, sf-requests)",
+					"per favore, mostra richieste",
+					"voglio mostra richieste"
+				],
+				"pt": [
+					"mostre solicitações (requests, sf-requests)",
+					"por favor, mostre solicitações",
+					"quero mostre solicitações"
+				]
+			}
 		},
 		"requests.open": {
 			"brief": "Open request detail",
 			"description": "Open request detail",
 			"category": "requests",
 			"exposure": "llm",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Open request detail",
+					"Please open request detail",
+					"I want to open request detail (requests in sf-requests)"
+				],
+				"ru": [
+					"открой создай запрос detail (requests, sf-requests)",
+					"пожалуйста, открой создай запрос detail",
+					"мне нужно открой создай запрос detail"
+				],
+				"de": [
+					"öffne erstelle eine Anfrage detail (requests, sf-requests)",
+					"bitte öffne erstelle eine Anfrage detail",
+					"ich möchte öffne erstelle eine Anfrage detail"
+				],
+				"fr": [
+					"ouvre crée une demande detail (requests, sf-requests)",
+					"s’il te plaît, ouvre crée une demande detail",
+					"je veux ouvre crée une demande detail"
+				],
+				"es": [
+					"abre crea una solicitud detail (requests, sf-requests)",
+					"por favor, abre crea una solicitud detail",
+					"quiero abre crea una solicitud detail"
+				],
+				"it": [
+					"apri crea una richiesta detail (requests, sf-requests)",
+					"per favore, apri crea una richiesta detail",
+					"voglio apri crea una richiesta detail"
+				],
+				"pt": [
+					"abra crie uma solicitação detail (requests, sf-requests)",
+					"por favor, abra crie uma solicitação detail",
+					"quero abra crie uma solicitação detail"
+				]
+			}
 		},
 		"requests.model.update": {
 			"brief": "Apply updated request model to the opened request view",
 			"description": "Apply updated request model to the opened request view",
 			"category": "requests",
 			"exposure": "llm",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Apply updated request model to the opened request view",
+					"Please apply updated request model to the opened request view",
+					"I want to request apply updated model to the opened view (requests in sf-requests)"
+				],
+				"ru": [
+					"создай запрос apply updated model to the opened покажи (requests, sf-requests)",
+					"пожалуйста, создай запрос apply updated model to the opened покажи",
+					"мне нужно создай запрос apply updated model to the opened покажи"
+				],
+				"de": [
+					"erstelle eine Anfrage apply updated model to the opened zeige (requests, sf-requests)",
+					"bitte erstelle eine Anfrage apply updated model to the opened zeige",
+					"ich möchte erstelle eine Anfrage apply updated model to the opened zeige"
+				],
+				"fr": [
+					"crée une demande apply updated model to the opened affiche (requests, sf-requests)",
+					"s’il te plaît, crée une demande apply updated model to the opened affiche",
+					"je veux crée une demande apply updated model to the opened affiche"
+				],
+				"es": [
+					"crea una solicitud apply updated model to the opened muestra (requests, sf-requests)",
+					"por favor, crea una solicitud apply updated model to the opened muestra",
+					"quiero crea una solicitud apply updated model to the opened muestra"
+				],
+				"it": [
+					"crea una richiesta apply updated model to the opened mostra (requests, sf-requests)",
+					"per favore, crea una richiesta apply updated model to the opened mostra",
+					"voglio crea una richiesta apply updated model to the opened mostra"
+				],
+				"pt": [
+					"crie uma solicitação apply updated model to the opened mostre (requests, sf-requests)",
+					"por favor, crie uma solicitação apply updated model to the opened mostre",
+					"quero crie uma solicitação apply updated model to the opened mostre"
+				]
+			}
 		},
 		"requests.refresh": {
 			"brief": "Refresh opened request model",
 			"description": "Refresh opened request model",
 			"category": "requests",
 			"exposure": "llm",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Refresh opened request model",
+					"Please refresh opened request model",
+					"I want to request refresh opened model (requests in sf-requests)"
+				],
+				"ru": [
+					"создай запрос refresh opened model (requests, sf-requests)",
+					"пожалуйста, создай запрос refresh opened model",
+					"мне нужно создай запрос refresh opened model"
+				],
+				"de": [
+					"erstelle eine Anfrage refresh opened model (requests, sf-requests)",
+					"bitte erstelle eine Anfrage refresh opened model",
+					"ich möchte erstelle eine Anfrage refresh opened model"
+				],
+				"fr": [
+					"crée une demande refresh opened model (requests, sf-requests)",
+					"s’il te plaît, crée une demande refresh opened model",
+					"je veux crée une demande refresh opened model"
+				],
+				"es": [
+					"crea una solicitud refresh opened model (requests, sf-requests)",
+					"por favor, crea una solicitud refresh opened model",
+					"quiero crea una solicitud refresh opened model"
+				],
+				"it": [
+					"crea una richiesta refresh opened model (requests, sf-requests)",
+					"per favore, crea una richiesta refresh opened model",
+					"voglio crea una richiesta refresh opened model"
+				],
+				"pt": [
+					"crie uma solicitação refresh opened model (requests, sf-requests)",
+					"por favor, crie uma solicitação refresh opened model",
+					"quero crie uma solicitação refresh opened model"
+				]
+			}
 		},
 		"requests.create": {
 			"brief": "Create a manufacturing request",
@@ -69,6 +221,43 @@
 						"description": "Uploaded file display name to rp-files ID"
 					}
 				}
+			},
+			"examples": {
+				"en": [
+					"Create a manufacturing request",
+					"Please create a manufacturing request",
+					"I want to create a manufacturing request (requests in sf-requests)"
+				],
+				"ru": [
+					"создай a manufacturing создай запрос (requests, sf-requests)",
+					"пожалуйста, создай a manufacturing создай запрос",
+					"мне нужно создай a manufacturing создай запрос"
+				],
+				"de": [
+					"erstelle a manufacturing erstelle eine Anfrage (requests, sf-requests)",
+					"bitte erstelle a manufacturing erstelle eine Anfrage",
+					"ich möchte erstelle a manufacturing erstelle eine Anfrage"
+				],
+				"fr": [
+					"crée a manufacturing crée une demande (requests, sf-requests)",
+					"s’il te plaît, crée a manufacturing crée une demande",
+					"je veux crée a manufacturing crée une demande"
+				],
+				"es": [
+					"crea a manufacturing crea una solicitud (requests, sf-requests)",
+					"por favor, crea a manufacturing crea una solicitud",
+					"quiero crea a manufacturing crea una solicitud"
+				],
+				"it": [
+					"crea a manufacturing crea una richiesta (requests, sf-requests)",
+					"per favore, crea a manufacturing crea una richiesta",
+					"voglio crea a manufacturing crea una richiesta"
+				],
+				"pt": [
+					"crie a manufacturing crie uma solicitação (requests, sf-requests)",
+					"por favor, crie a manufacturing crie uma solicitação",
+					"quero crie a manufacturing crie uma solicitação"
+				]
 			}
 		},
 		"requests.request.to-order": {
@@ -115,6 +304,43 @@
 						"type": "string"
 					}
 				}
+			},
+			"examples": {
+				"en": [
+					"Turn a request into a shop order",
+					"Please turn a request into a shop order",
+					"I want to request turn a into a shop order (requests in sf-requests)"
+				],
+				"ru": [
+					"создай запрос turn a into a shop order (requests, sf-requests)",
+					"пожалуйста, создай запрос turn a into a shop order",
+					"мне нужно создай запрос turn a into a shop order"
+				],
+				"de": [
+					"erstelle eine Anfrage turn a into a shop order (requests, sf-requests)",
+					"bitte erstelle eine Anfrage turn a into a shop order",
+					"ich möchte erstelle eine Anfrage turn a into a shop order"
+				],
+				"fr": [
+					"crée une demande turn a into a shop order (requests, sf-requests)",
+					"s’il te plaît, crée une demande turn a into a shop order",
+					"je veux crée une demande turn a into a shop order"
+				],
+				"es": [
+					"crea una solicitud turn a into a shop order (requests, sf-requests)",
+					"por favor, crea una solicitud turn a into a shop order",
+					"quiero crea una solicitud turn a into a shop order"
+				],
+				"it": [
+					"crea una richiesta turn a into a shop order (requests, sf-requests)",
+					"per favore, crea una richiesta turn a into a shop order",
+					"voglio crea una richiesta turn a into a shop order"
+				],
+				"pt": [
+					"crie uma solicitação turn a into a shop order (requests, sf-requests)",
+					"por favor, crie uma solicitação turn a into a shop order",
+					"quero crie uma solicitação turn a into a shop order"
+				]
 			}
 		},
 		"requests.get": {
@@ -131,7 +357,46 @@
 						"description": "Request ID"
 					}
 				},
-				"required": ["requestId"]
+				"required": [
+					"requestId"
+				]
+			},
+			"examples": {
+				"en": [
+					"Get a request",
+					"Please get a request",
+					"I want to get a request (requests in sf-requests)"
+				],
+				"ru": [
+					"получи a создай запрос (requests, sf-requests)",
+					"пожалуйста, получи a создай запрос",
+					"мне нужно получи a создай запрос"
+				],
+				"de": [
+					"rufe ab a erstelle eine Anfrage (requests, sf-requests)",
+					"bitte rufe ab a erstelle eine Anfrage",
+					"ich möchte rufe ab a erstelle eine Anfrage"
+				],
+				"fr": [
+					"récupère a crée une demande (requests, sf-requests)",
+					"s’il te plaît, récupère a crée une demande",
+					"je veux récupère a crée une demande"
+				],
+				"es": [
+					"obtén a crea una solicitud (requests, sf-requests)",
+					"por favor, obtén a crea una solicitud",
+					"quiero obtén a crea una solicitud"
+				],
+				"it": [
+					"recupera a crea una richiesta (requests, sf-requests)",
+					"per favore, recupera a crea una richiesta",
+					"voglio recupera a crea una richiesta"
+				],
+				"pt": [
+					"obtenha a crie uma solicitação (requests, sf-requests)",
+					"por favor, obtenha a crie uma solicitação",
+					"quero obtenha a crie uma solicitação"
+				]
 			}
 		},
 		"requests.update": {
@@ -179,7 +444,46 @@
 						"description": "Uploaded file display name to rp-files ID"
 					}
 				},
-				"required": ["requestId"]
+				"required": [
+					"requestId"
+				]
+			},
+			"examples": {
+				"en": [
+					"Update a request",
+					"Please update a request",
+					"I want to update a request (requests in sf-requests)"
+				],
+				"ru": [
+					"обнови a создай запрос (requests, sf-requests)",
+					"пожалуйста, обнови a создай запрос",
+					"мне нужно обнови a создай запрос"
+				],
+				"de": [
+					"aktualisiere a erstelle eine Anfrage (requests, sf-requests)",
+					"bitte aktualisiere a erstelle eine Anfrage",
+					"ich möchte aktualisiere a erstelle eine Anfrage"
+				],
+				"fr": [
+					"mets à jour a crée une demande (requests, sf-requests)",
+					"s’il te plaît, mets à jour a crée une demande",
+					"je veux mets à jour a crée une demande"
+				],
+				"es": [
+					"actualiza a crea una solicitud (requests, sf-requests)",
+					"por favor, actualiza a crea una solicitud",
+					"quiero actualiza a crea una solicitud"
+				],
+				"it": [
+					"aggiorna a crea una richiesta (requests, sf-requests)",
+					"per favore, aggiorna a crea una richiesta",
+					"voglio aggiorna a crea una richiesta"
+				],
+				"pt": [
+					"atualize a crie uma solicitação (requests, sf-requests)",
+					"por favor, atualize a crie uma solicitação",
+					"quero atualize a crie uma solicitação"
+				]
 			}
 		}
 	}

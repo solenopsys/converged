@@ -1,11 +1,52 @@
 {
+	"root": {
+		"surface": "sf-docs",
+		"baseType": "docs"
+	},
 	"actions": {
 		"docs.show.home": {
 			"brief": "Show docs",
 			"description": "Show docs",
 			"category": "docs",
 			"exposure": "user",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Show docs",
+					"Please show docs",
+					"I want to show docs (docs in sf-docs)"
+				],
+				"ru": [
+					"покажи docs (docs, sf-docs)",
+					"пожалуйста, покажи docs",
+					"мне нужно покажи docs"
+				],
+				"de": [
+					"zeige docs (docs, sf-docs)",
+					"bitte zeige docs",
+					"ich möchte zeige docs"
+				],
+				"fr": [
+					"affiche docs (docs, sf-docs)",
+					"s’il te plaît, affiche docs",
+					"je veux affiche docs"
+				],
+				"es": [
+					"muestra docs (docs, sf-docs)",
+					"por favor, muestra docs",
+					"quiero muestra docs"
+				],
+				"it": [
+					"mostra docs (docs, sf-docs)",
+					"per favore, mostra docs",
+					"voglio mostra docs"
+				],
+				"pt": [
+					"mostre docs (docs, sf-docs)",
+					"por favor, mostre docs",
+					"quero mostre docs"
+				]
+			}
 		}
 	},
 	"patterns": [

@@ -1,130 +1,800 @@
 {
-  "actions": {
-    "workflows.show": {
-      "brief": "Show workflows list",
-      "description": "List the workflows the active Solution publishes",
-      "category": "workflows",
-      "exposure": "user",
-      "priority": "primary"
-    },
-    "workflow.show": {
-      "brief": "Show workflow detail",
-      "description": "Show workflow detail",
-      "category": "workflow",
-      "exposure": "user",
-      "priority": "primary"
-    },
-    "workflow.run": {
-      "brief": "Run a workflow",
-      "description": "Start a workflow by hand with JSON parameters",
-      "category": "workflows",
-      "exposure": "user",
-      "priority": "primary"
-    },
-    "executions.show_list": {
-      "brief": "Show runs list",
-      "description": "List workflow runs and their status",
-      "category": "executions",
-      "exposure": "user",
-      "priority": "primary"
-    },
-    "execution.tree.show": {
-      "brief": "Show a run's tree",
-      "description": "Show what a run did: every node, and the sub-workflows under it",
-      "category": "executions",
-      "exposure": "user",
-      "priority": "primary"
-    },
-    "triggers.show": {
-      "brief": "Show triggers list",
-      "description": "List the bus topics that start a workflow",
-      "category": "triggers",
-      "exposure": "user",
-      "priority": "primary"
-    },
-    "trigger_form.show": {
-      "brief": "Show trigger form",
-      "description": "Create or edit a bus trigger",
-      "category": "triggers",
-      "exposure": "user",
-      "priority": "normal"
-    },
-    "workflows.statistic.show": {
-      "brief": "Show workflows statistic",
-      "description": "Show workflows statistic",
-      "category": "workflows",
-      "exposure": "user",
-      "priority": "normal"
-    },
-    "dag.stats.show": {
-      "brief": "Show DAG statistics",
-      "description": "Show DAG statistics",
-      "category": "dag",
-      "exposure": "user",
-      "priority": "normal"
-    },
-    "vars.show_list": {
-      "brief": "vars.show_list",
-      "description": "Execute vars.show_list.",
-      "category": "vars",
-      "exposure": "llm",
-      "priority": "normal"
-    },
-    "var_form.show": {
-      "brief": "Show variable form",
-      "description": "Show variable form",
-      "category": "var_form",
-      "exposure": "user",
-      "priority": "primary"
-    },
-    "sheduller.stats.show": {
-      "brief": "Show sheduller statistics",
-      "description": "Show sheduller statistics",
-      "category": "analytics",
-      "exposure": "user",
-      "priority": "normal"
-    },
-    "sheduller.history.show": {
-      "brief": "Show history",
-      "description": "Show history",
-      "category": "automation",
-      "exposure": "user",
-      "priority": "normal"
-    },
-    "crons.show": {
-      "brief": "Show crons list",
-      "description": "Show crons list",
-      "category": "automation",
-      "exposure": "user",
-      "priority": "primary"
-    },
-    "cron_form.show": {
-      "brief": "Show cron form",
-      "description": "Show cron form",
-      "category": "automation",
-      "exposure": "user",
-      "priority": "primary"
-    },
-    "webhooks.logs.show": {
-      "brief": "Show webhook logs",
-      "description": "Show webhook logs",
-      "category": "webhooks",
-      "exposure": "user",
-      "priority": "normal"
-    },
-    "webhooks.endpoints.show": {
-      "brief": "Show webhook endpoints",
-      "description": "Show webhook endpoints",
-      "category": "webhooks",
-      "exposure": "user",
-      "priority": "normal"
-    },
-    "webhooks.endpoint_form.show": {
-      "brief": "Show webhook endpoint form",
-      "description": "Show webhook endpoint form",
-      "category": "webhooks",
-      "exposure": "user",
-      "priority": "normal"
-    }
-  }
+	"root": {
+		"surface": "sf-automation",
+		"baseType": "workflows"
+	},
+	"actions": {
+		"workflows.show": {
+			"brief": "Show workflows list",
+			"description": "List the workflows the active Solution publishes",
+			"category": "workflows",
+			"exposure": "user",
+			"priority": "primary",
+			"examples": {
+				"en": [
+					"Show workflows list",
+					"Please show workflows list",
+					"I want to show workflows list (workflows in sf-automation)"
+				],
+				"ru": [
+					"покажи workflows покажи список (workflows, sf-automation)",
+					"пожалуйста, покажи workflows покажи список",
+					"мне нужно покажи workflows покажи список"
+				],
+				"de": [
+					"zeige workflows zeige die Liste (workflows, sf-automation)",
+					"bitte zeige workflows zeige die Liste",
+					"ich möchte zeige workflows zeige die Liste"
+				],
+				"fr": [
+					"affiche workflows affiche la liste (workflows, sf-automation)",
+					"s’il te plaît, affiche workflows affiche la liste",
+					"je veux affiche workflows affiche la liste"
+				],
+				"es": [
+					"muestra workflows muestra la lista (workflows, sf-automation)",
+					"por favor, muestra workflows muestra la lista",
+					"quiero muestra workflows muestra la lista"
+				],
+				"it": [
+					"mostra workflows mostra l’elenco (workflows, sf-automation)",
+					"per favore, mostra workflows mostra l’elenco",
+					"voglio mostra workflows mostra l’elenco"
+				],
+				"pt": [
+					"mostre workflows mostre a lista (workflows, sf-automation)",
+					"por favor, mostre workflows mostre a lista",
+					"quero mostre workflows mostre a lista"
+				]
+			}
+		},
+		"workflow.show": {
+			"brief": "Show workflow detail",
+			"description": "Show workflow detail",
+			"category": "workflow",
+			"exposure": "user",
+			"priority": "primary",
+			"examples": {
+				"en": [
+					"Show workflow detail",
+					"Please show workflow detail",
+					"I want to show workflow detail (workflow in sf-automation)"
+				],
+				"ru": [
+					"покажи workflow detail (workflow, sf-automation)",
+					"пожалуйста, покажи workflow detail",
+					"мне нужно покажи workflow detail"
+				],
+				"de": [
+					"zeige workflow detail (workflow, sf-automation)",
+					"bitte zeige workflow detail",
+					"ich möchte zeige workflow detail"
+				],
+				"fr": [
+					"affiche workflow detail (workflow, sf-automation)",
+					"s’il te plaît, affiche workflow detail",
+					"je veux affiche workflow detail"
+				],
+				"es": [
+					"muestra workflow detail (workflow, sf-automation)",
+					"por favor, muestra workflow detail",
+					"quiero muestra workflow detail"
+				],
+				"it": [
+					"mostra workflow detail (workflow, sf-automation)",
+					"per favore, mostra workflow detail",
+					"voglio mostra workflow detail"
+				],
+				"pt": [
+					"mostre workflow detail (workflow, sf-automation)",
+					"por favor, mostre workflow detail",
+					"quero mostre workflow detail"
+				]
+			}
+		},
+		"workflow.run": {
+			"brief": "Run a workflow",
+			"description": "Start a workflow by hand with JSON parameters",
+			"category": "workflows",
+			"exposure": "user",
+			"priority": "primary",
+			"examples": {
+				"en": [
+					"Run a workflow",
+					"Please run a workflow",
+					"I want to run a workflow (workflows in sf-automation)"
+				],
+				"ru": [
+					"запусти a workflow (workflows, sf-automation)",
+					"пожалуйста, запусти a workflow",
+					"мне нужно запусти a workflow"
+				],
+				"de": [
+					"starte a workflow (workflows, sf-automation)",
+					"bitte starte a workflow",
+					"ich möchte starte a workflow"
+				],
+				"fr": [
+					"lance a workflow (workflows, sf-automation)",
+					"s’il te plaît, lance a workflow",
+					"je veux lance a workflow"
+				],
+				"es": [
+					"ejecuta a workflow (workflows, sf-automation)",
+					"por favor, ejecuta a workflow",
+					"quiero ejecuta a workflow"
+				],
+				"it": [
+					"avvia a workflow (workflows, sf-automation)",
+					"per favore, avvia a workflow",
+					"voglio avvia a workflow"
+				],
+				"pt": [
+					"execute a workflow (workflows, sf-automation)",
+					"por favor, execute a workflow",
+					"quero execute a workflow"
+				]
+			}
+		},
+		"executions.show_list": {
+			"brief": "Show runs list",
+			"description": "List workflow runs and their status",
+			"category": "executions",
+			"exposure": "user",
+			"priority": "primary",
+			"examples": {
+				"en": [
+					"Show runs list",
+					"Please show runs list",
+					"I want to show runs list (executions in sf-automation)"
+				],
+				"ru": [
+					"покажи runs покажи список (executions, sf-automation)",
+					"пожалуйста, покажи runs покажи список",
+					"мне нужно покажи runs покажи список"
+				],
+				"de": [
+					"zeige runs zeige die Liste (executions, sf-automation)",
+					"bitte zeige runs zeige die Liste",
+					"ich möchte zeige runs zeige die Liste"
+				],
+				"fr": [
+					"affiche runs affiche la liste (executions, sf-automation)",
+					"s’il te plaît, affiche runs affiche la liste",
+					"je veux affiche runs affiche la liste"
+				],
+				"es": [
+					"muestra runs muestra la lista (executions, sf-automation)",
+					"por favor, muestra runs muestra la lista",
+					"quiero muestra runs muestra la lista"
+				],
+				"it": [
+					"mostra runs mostra l’elenco (executions, sf-automation)",
+					"per favore, mostra runs mostra l’elenco",
+					"voglio mostra runs mostra l’elenco"
+				],
+				"pt": [
+					"mostre runs mostre a lista (executions, sf-automation)",
+					"por favor, mostre runs mostre a lista",
+					"quero mostre runs mostre a lista"
+				]
+			}
+		},
+		"execution.tree.show": {
+			"brief": "Show a run's tree",
+			"description": "Show what a run did: every node, and the sub-workflows under it",
+			"category": "executions",
+			"exposure": "user",
+			"priority": "primary",
+			"examples": {
+				"en": [
+					"Show a run's tree",
+					"Please show a run's tree",
+					"I want to show a run s tree (executions in sf-automation)"
+				],
+				"ru": [
+					"покажи a запусти s tree (executions, sf-automation)",
+					"пожалуйста, покажи a запусти s tree",
+					"мне нужно покажи a запусти s tree"
+				],
+				"de": [
+					"zeige a starte s tree (executions, sf-automation)",
+					"bitte zeige a starte s tree",
+					"ich möchte zeige a starte s tree"
+				],
+				"fr": [
+					"affiche a lance s tree (executions, sf-automation)",
+					"s’il te plaît, affiche a lance s tree",
+					"je veux affiche a lance s tree"
+				],
+				"es": [
+					"muestra a ejecuta s tree (executions, sf-automation)",
+					"por favor, muestra a ejecuta s tree",
+					"quiero muestra a ejecuta s tree"
+				],
+				"it": [
+					"mostra a avvia s tree (executions, sf-automation)",
+					"per favore, mostra a avvia s tree",
+					"voglio mostra a avvia s tree"
+				],
+				"pt": [
+					"mostre a execute s tree (executions, sf-automation)",
+					"por favor, mostre a execute s tree",
+					"quero mostre a execute s tree"
+				]
+			}
+		},
+		"triggers.show": {
+			"brief": "Show triggers list",
+			"description": "List the bus topics that start a workflow",
+			"category": "triggers",
+			"exposure": "user",
+			"priority": "primary",
+			"examples": {
+				"en": [
+					"Show triggers list",
+					"Please show triggers list",
+					"I want to show triggers list (triggers in sf-automation)"
+				],
+				"ru": [
+					"покажи triggers покажи список (triggers, sf-automation)",
+					"пожалуйста, покажи triggers покажи список",
+					"мне нужно покажи triggers покажи список"
+				],
+				"de": [
+					"zeige triggers zeige die Liste (triggers, sf-automation)",
+					"bitte zeige triggers zeige die Liste",
+					"ich möchte zeige triggers zeige die Liste"
+				],
+				"fr": [
+					"affiche triggers affiche la liste (triggers, sf-automation)",
+					"s’il te plaît, affiche triggers affiche la liste",
+					"je veux affiche triggers affiche la liste"
+				],
+				"es": [
+					"muestra triggers muestra la lista (triggers, sf-automation)",
+					"por favor, muestra triggers muestra la lista",
+					"quiero muestra triggers muestra la lista"
+				],
+				"it": [
+					"mostra triggers mostra l’elenco (triggers, sf-automation)",
+					"per favore, mostra triggers mostra l’elenco",
+					"voglio mostra triggers mostra l’elenco"
+				],
+				"pt": [
+					"mostre triggers mostre a lista (triggers, sf-automation)",
+					"por favor, mostre triggers mostre a lista",
+					"quero mostre triggers mostre a lista"
+				]
+			}
+		},
+		"trigger_form.show": {
+			"brief": "Show trigger form",
+			"description": "Create or edit a bus trigger",
+			"category": "triggers",
+			"exposure": "user",
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Show trigger form",
+					"Please show trigger form",
+					"I want to show trigger form (triggers in sf-automation)"
+				],
+				"ru": [
+					"покажи trigger form (triggers, sf-automation)",
+					"пожалуйста, покажи trigger form",
+					"мне нужно покажи trigger form"
+				],
+				"de": [
+					"zeige trigger form (triggers, sf-automation)",
+					"bitte zeige trigger form",
+					"ich möchte zeige trigger form"
+				],
+				"fr": [
+					"affiche trigger form (triggers, sf-automation)",
+					"s’il te plaît, affiche trigger form",
+					"je veux affiche trigger form"
+				],
+				"es": [
+					"muestra trigger form (triggers, sf-automation)",
+					"por favor, muestra trigger form",
+					"quiero muestra trigger form"
+				],
+				"it": [
+					"mostra trigger form (triggers, sf-automation)",
+					"per favore, mostra trigger form",
+					"voglio mostra trigger form"
+				],
+				"pt": [
+					"mostre trigger form (triggers, sf-automation)",
+					"por favor, mostre trigger form",
+					"quero mostre trigger form"
+				]
+			}
+		},
+		"workflows.statistic.show": {
+			"brief": "Show workflows statistic",
+			"description": "Show workflows statistic",
+			"category": "workflows",
+			"exposure": "user",
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Show workflows statistic",
+					"Please show workflows statistic",
+					"I want to show workflows statistic (workflows in sf-automation)"
+				],
+				"ru": [
+					"покажи workflows статистику (workflows, sf-automation)",
+					"пожалуйста, покажи workflows статистику",
+					"мне нужно покажи workflows статистику"
+				],
+				"de": [
+					"zeige workflows Statistik (workflows, sf-automation)",
+					"bitte zeige workflows Statistik",
+					"ich möchte zeige workflows Statistik"
+				],
+				"fr": [
+					"affiche workflows statistique (workflows, sf-automation)",
+					"s’il te plaît, affiche workflows statistique",
+					"je veux affiche workflows statistique"
+				],
+				"es": [
+					"muestra workflows estadística (workflows, sf-automation)",
+					"por favor, muestra workflows estadística",
+					"quiero muestra workflows estadística"
+				],
+				"it": [
+					"mostra workflows statistica (workflows, sf-automation)",
+					"per favore, mostra workflows statistica",
+					"voglio mostra workflows statistica"
+				],
+				"pt": [
+					"mostre workflows estatística (workflows, sf-automation)",
+					"por favor, mostre workflows estatística",
+					"quero mostre workflows estatística"
+				]
+			}
+		},
+		"dag.stats.show": {
+			"brief": "Show DAG statistics",
+			"description": "Show DAG statistics",
+			"category": "dag",
+			"exposure": "user",
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Show DAG statistics",
+					"Please show dag statistics",
+					"I want to show dag statistics (dag in sf-automation)"
+				],
+				"ru": [
+					"покажи dag статистику (dag, sf-automation)",
+					"пожалуйста, покажи dag статистику",
+					"мне нужно покажи dag статистику"
+				],
+				"de": [
+					"zeige dag Statistiken (dag, sf-automation)",
+					"bitte zeige dag Statistiken",
+					"ich möchte zeige dag Statistiken"
+				],
+				"fr": [
+					"affiche dag statistiques (dag, sf-automation)",
+					"s’il te plaît, affiche dag statistiques",
+					"je veux affiche dag statistiques"
+				],
+				"es": [
+					"muestra dag estadísticas (dag, sf-automation)",
+					"por favor, muestra dag estadísticas",
+					"quiero muestra dag estadísticas"
+				],
+				"it": [
+					"mostra dag statistiche (dag, sf-automation)",
+					"per favore, mostra dag statistiche",
+					"voglio mostra dag statistiche"
+				],
+				"pt": [
+					"mostre dag estatísticas (dag, sf-automation)",
+					"por favor, mostre dag estatísticas",
+					"quero mostre dag estatísticas"
+				]
+			}
+		},
+		"vars.show_list": {
+			"brief": "vars.show_list",
+			"description": "Execute vars.show_list.",
+			"category": "vars",
+			"exposure": "llm",
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"vars.show_list",
+					"Please vars.show_list",
+					"I want to show vars list (vars in sf-automation)"
+				],
+				"ru": [
+					"покажи vars покажи список (vars, sf-automation)",
+					"пожалуйста, покажи vars покажи список",
+					"мне нужно покажи vars покажи список"
+				],
+				"de": [
+					"zeige vars zeige die Liste (vars, sf-automation)",
+					"bitte zeige vars zeige die Liste",
+					"ich möchte zeige vars zeige die Liste"
+				],
+				"fr": [
+					"affiche vars affiche la liste (vars, sf-automation)",
+					"s’il te plaît, affiche vars affiche la liste",
+					"je veux affiche vars affiche la liste"
+				],
+				"es": [
+					"muestra vars muestra la lista (vars, sf-automation)",
+					"por favor, muestra vars muestra la lista",
+					"quiero muestra vars muestra la lista"
+				],
+				"it": [
+					"mostra vars mostra l’elenco (vars, sf-automation)",
+					"per favore, mostra vars mostra l’elenco",
+					"voglio mostra vars mostra l’elenco"
+				],
+				"pt": [
+					"mostre vars mostre a lista (vars, sf-automation)",
+					"por favor, mostre vars mostre a lista",
+					"quero mostre vars mostre a lista"
+				]
+			}
+		},
+		"var_form.show": {
+			"brief": "Show variable form",
+			"description": "Show variable form",
+			"category": "var_form",
+			"exposure": "user",
+			"priority": "primary",
+			"examples": {
+				"en": [
+					"Show variable form",
+					"Please show variable form",
+					"I want to show variable form (var_form in sf-automation)"
+				],
+				"ru": [
+					"покажи variable form (var_form, sf-automation)",
+					"пожалуйста, покажи variable form",
+					"мне нужно покажи variable form"
+				],
+				"de": [
+					"zeige variable form (var_form, sf-automation)",
+					"bitte zeige variable form",
+					"ich möchte zeige variable form"
+				],
+				"fr": [
+					"affiche variable form (var_form, sf-automation)",
+					"s’il te plaît, affiche variable form",
+					"je veux affiche variable form"
+				],
+				"es": [
+					"muestra variable form (var_form, sf-automation)",
+					"por favor, muestra variable form",
+					"quiero muestra variable form"
+				],
+				"it": [
+					"mostra variable form (var_form, sf-automation)",
+					"per favore, mostra variable form",
+					"voglio mostra variable form"
+				],
+				"pt": [
+					"mostre variable form (var_form, sf-automation)",
+					"por favor, mostre variable form",
+					"quero mostre variable form"
+				]
+			}
+		},
+		"sheduller.stats.show": {
+			"brief": "Show sheduller statistics",
+			"description": "Show sheduller statistics",
+			"category": "analytics",
+			"exposure": "user",
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Show sheduller statistics",
+					"Please show sheduller statistics",
+					"I want to show sheduller statistics (analytics in sf-automation)"
+				],
+				"ru": [
+					"покажи sheduller статистику (analytics, sf-automation)",
+					"пожалуйста, покажи sheduller статистику",
+					"мне нужно покажи sheduller статистику"
+				],
+				"de": [
+					"zeige sheduller Statistiken (analytics, sf-automation)",
+					"bitte zeige sheduller Statistiken",
+					"ich möchte zeige sheduller Statistiken"
+				],
+				"fr": [
+					"affiche sheduller statistiques (analytics, sf-automation)",
+					"s’il te plaît, affiche sheduller statistiques",
+					"je veux affiche sheduller statistiques"
+				],
+				"es": [
+					"muestra sheduller estadísticas (analytics, sf-automation)",
+					"por favor, muestra sheduller estadísticas",
+					"quiero muestra sheduller estadísticas"
+				],
+				"it": [
+					"mostra sheduller statistiche (analytics, sf-automation)",
+					"per favore, mostra sheduller statistiche",
+					"voglio mostra sheduller statistiche"
+				],
+				"pt": [
+					"mostre sheduller estatísticas (analytics, sf-automation)",
+					"por favor, mostre sheduller estatísticas",
+					"quero mostre sheduller estatísticas"
+				]
+			}
+		},
+		"sheduller.history.show": {
+			"brief": "Show history",
+			"description": "Show history",
+			"category": "automation",
+			"exposure": "user",
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Show history",
+					"Please show history",
+					"I want to show history (automation in sf-automation)"
+				],
+				"ru": [
+					"покажи history (automation, sf-automation)",
+					"пожалуйста, покажи history",
+					"мне нужно покажи history"
+				],
+				"de": [
+					"zeige history (automation, sf-automation)",
+					"bitte zeige history",
+					"ich möchte zeige history"
+				],
+				"fr": [
+					"affiche history (automation, sf-automation)",
+					"s’il te plaît, affiche history",
+					"je veux affiche history"
+				],
+				"es": [
+					"muestra history (automation, sf-automation)",
+					"por favor, muestra history",
+					"quiero muestra history"
+				],
+				"it": [
+					"mostra history (automation, sf-automation)",
+					"per favore, mostra history",
+					"voglio mostra history"
+				],
+				"pt": [
+					"mostre history (automation, sf-automation)",
+					"por favor, mostre history",
+					"quero mostre history"
+				]
+			}
+		},
+		"crons.show": {
+			"brief": "Show crons list",
+			"description": "Show crons list",
+			"category": "automation",
+			"exposure": "user",
+			"priority": "primary",
+			"examples": {
+				"en": [
+					"Show crons list",
+					"Please show crons list",
+					"I want to show crons list (automation in sf-automation)"
+				],
+				"ru": [
+					"покажи crons покажи список (automation, sf-automation)",
+					"пожалуйста, покажи crons покажи список",
+					"мне нужно покажи crons покажи список"
+				],
+				"de": [
+					"zeige crons zeige die Liste (automation, sf-automation)",
+					"bitte zeige crons zeige die Liste",
+					"ich möchte zeige crons zeige die Liste"
+				],
+				"fr": [
+					"affiche crons affiche la liste (automation, sf-automation)",
+					"s’il te plaît, affiche crons affiche la liste",
+					"je veux affiche crons affiche la liste"
+				],
+				"es": [
+					"muestra crons muestra la lista (automation, sf-automation)",
+					"por favor, muestra crons muestra la lista",
+					"quiero muestra crons muestra la lista"
+				],
+				"it": [
+					"mostra crons mostra l’elenco (automation, sf-automation)",
+					"per favore, mostra crons mostra l’elenco",
+					"voglio mostra crons mostra l’elenco"
+				],
+				"pt": [
+					"mostre crons mostre a lista (automation, sf-automation)",
+					"por favor, mostre crons mostre a lista",
+					"quero mostre crons mostre a lista"
+				]
+			}
+		},
+		"cron_form.show": {
+			"brief": "Show cron form",
+			"description": "Show cron form",
+			"category": "automation",
+			"exposure": "user",
+			"priority": "primary",
+			"examples": {
+				"en": [
+					"Show cron form",
+					"Please show cron form",
+					"I want to show cron form (automation in sf-automation)"
+				],
+				"ru": [
+					"покажи cron form (automation, sf-automation)",
+					"пожалуйста, покажи cron form",
+					"мне нужно покажи cron form"
+				],
+				"de": [
+					"zeige cron form (automation, sf-automation)",
+					"bitte zeige cron form",
+					"ich möchte zeige cron form"
+				],
+				"fr": [
+					"affiche cron form (automation, sf-automation)",
+					"s’il te plaît, affiche cron form",
+					"je veux affiche cron form"
+				],
+				"es": [
+					"muestra cron form (automation, sf-automation)",
+					"por favor, muestra cron form",
+					"quiero muestra cron form"
+				],
+				"it": [
+					"mostra cron form (automation, sf-automation)",
+					"per favore, mostra cron form",
+					"voglio mostra cron form"
+				],
+				"pt": [
+					"mostre cron form (automation, sf-automation)",
+					"por favor, mostre cron form",
+					"quero mostre cron form"
+				]
+			}
+		},
+		"webhooks.logs.show": {
+			"brief": "Show webhook logs",
+			"description": "Show webhook logs",
+			"category": "webhooks",
+			"exposure": "user",
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Show webhook logs",
+					"Please show webhook logs",
+					"I want to show webhook logs (webhooks in sf-automation)"
+				],
+				"ru": [
+					"покажи webhook журналы (webhooks, sf-automation)",
+					"пожалуйста, покажи webhook журналы",
+					"мне нужно покажи webhook журналы"
+				],
+				"de": [
+					"zeige webhook Protokolle (webhooks, sf-automation)",
+					"bitte zeige webhook Protokolle",
+					"ich möchte zeige webhook Protokolle"
+				],
+				"fr": [
+					"affiche webhook journaux (webhooks, sf-automation)",
+					"s’il te plaît, affiche webhook journaux",
+					"je veux affiche webhook journaux"
+				],
+				"es": [
+					"muestra webhook registros (webhooks, sf-automation)",
+					"por favor, muestra webhook registros",
+					"quiero muestra webhook registros"
+				],
+				"it": [
+					"mostra webhook registri (webhooks, sf-automation)",
+					"per favore, mostra webhook registri",
+					"voglio mostra webhook registri"
+				],
+				"pt": [
+					"mostre webhook registros (webhooks, sf-automation)",
+					"por favor, mostre webhook registros",
+					"quero mostre webhook registros"
+				]
+			}
+		},
+		"webhooks.endpoints.show": {
+			"brief": "Show webhook endpoints",
+			"description": "Show webhook endpoints",
+			"category": "webhooks",
+			"exposure": "user",
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Show webhook endpoints",
+					"Please show webhook endpoints",
+					"I want to show webhook endpoints (webhooks in sf-automation)"
+				],
+				"ru": [
+					"покажи webhook endpoints (webhooks, sf-automation)",
+					"пожалуйста, покажи webhook endpoints",
+					"мне нужно покажи webhook endpoints"
+				],
+				"de": [
+					"zeige webhook endpoints (webhooks, sf-automation)",
+					"bitte zeige webhook endpoints",
+					"ich möchte zeige webhook endpoints"
+				],
+				"fr": [
+					"affiche webhook endpoints (webhooks, sf-automation)",
+					"s’il te plaît, affiche webhook endpoints",
+					"je veux affiche webhook endpoints"
+				],
+				"es": [
+					"muestra webhook endpoints (webhooks, sf-automation)",
+					"por favor, muestra webhook endpoints",
+					"quiero muestra webhook endpoints"
+				],
+				"it": [
+					"mostra webhook endpoints (webhooks, sf-automation)",
+					"per favore, mostra webhook endpoints",
+					"voglio mostra webhook endpoints"
+				],
+				"pt": [
+					"mostre webhook endpoints (webhooks, sf-automation)",
+					"por favor, mostre webhook endpoints",
+					"quero mostre webhook endpoints"
+				]
+			}
+		},
+		"webhooks.endpoint_form.show": {
+			"brief": "Show webhook endpoint form",
+			"description": "Show webhook endpoint form",
+			"category": "webhooks",
+			"exposure": "user",
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Show webhook endpoint form",
+					"Please show webhook endpoint form",
+					"I want to show webhook endpoint form (webhooks in sf-automation)"
+				],
+				"ru": [
+					"покажи webhook endpoint form (webhooks, sf-automation)",
+					"пожалуйста, покажи webhook endpoint form",
+					"мне нужно покажи webhook endpoint form"
+				],
+				"de": [
+					"zeige webhook endpoint form (webhooks, sf-automation)",
+					"bitte zeige webhook endpoint form",
+					"ich möchte zeige webhook endpoint form"
+				],
+				"fr": [
+					"affiche webhook endpoint form (webhooks, sf-automation)",
+					"s’il te plaît, affiche webhook endpoint form",
+					"je veux affiche webhook endpoint form"
+				],
+				"es": [
+					"muestra webhook endpoint form (webhooks, sf-automation)",
+					"por favor, muestra webhook endpoint form",
+					"quiero muestra webhook endpoint form"
+				],
+				"it": [
+					"mostra webhook endpoint form (webhooks, sf-automation)",
+					"per favore, mostra webhook endpoint form",
+					"voglio mostra webhook endpoint form"
+				],
+				"pt": [
+					"mostre webhook endpoint form (webhooks, sf-automation)",
+					"por favor, mostre webhook endpoint form",
+					"quero mostre webhook endpoint form"
+				]
+			}
+		}
+	}
 }

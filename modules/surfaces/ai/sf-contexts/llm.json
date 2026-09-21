@@ -1,11 +1,52 @@
 {
+	"root": {
+		"surface": "sf-contexts",
+		"baseType": "contexts"
+	},
 	"actions": {
 		"contexts.show": {
 			"brief": "Show contexts list",
 			"description": "Show contexts list",
 			"category": "contexts",
 			"exposure": "user",
-			"priority": "primary"
+			"priority": "primary",
+			"examples": {
+				"en": [
+					"Show contexts list",
+					"Please show contexts list",
+					"I want to show contexts list (contexts in sf-contexts)"
+				],
+				"ru": [
+					"покажи контексты покажи список (contexts, sf-contexts)",
+					"пожалуйста, покажи контексты покажи список",
+					"мне нужно покажи контексты покажи список"
+				],
+				"de": [
+					"zeige Kontexte zeige die Liste (contexts, sf-contexts)",
+					"bitte zeige Kontexte zeige die Liste",
+					"ich möchte zeige Kontexte zeige die Liste"
+				],
+				"fr": [
+					"affiche contextes affiche la liste (contexts, sf-contexts)",
+					"s’il te plaît, affiche contextes affiche la liste",
+					"je veux affiche contextes affiche la liste"
+				],
+				"es": [
+					"muestra contextos muestra la lista (contexts, sf-contexts)",
+					"por favor, muestra contextos muestra la lista",
+					"quiero muestra contextos muestra la lista"
+				],
+				"it": [
+					"mostra contesti mostra l’elenco (contexts, sf-contexts)",
+					"per favore, mostra contesti mostra l’elenco",
+					"voglio mostra contesti mostra l’elenco"
+				],
+				"pt": [
+					"mostre contextos mostre a lista (contexts, sf-contexts)",
+					"por favor, mostre contextos mostre a lista",
+					"quero mostre contextos mostre a lista"
+				]
+			}
 		}
 	}
 }

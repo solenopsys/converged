@@ -1,39 +1,228 @@
 {
+	"root": {
+		"surface": "sf-calls",
+		"baseType": "calls"
+	},
 	"actions": {
 		"calls.show": {
 			"brief": "Show calls list",
 			"description": "Show calls list",
 			"category": "calls",
 			"exposure": "user",
-			"priority": "primary"
+			"priority": "primary",
+			"examples": {
+				"en": [
+					"Show calls list",
+					"Please show calls list",
+					"I want to show calls list (calls in sf-calls)"
+				],
+				"ru": [
+					"покажи звонки покажи список (calls, sf-calls)",
+					"пожалуйста, покажи звонки покажи список",
+					"мне нужно покажи звонки покажи список"
+				],
+				"de": [
+					"zeige Anrufe zeige die Liste (calls, sf-calls)",
+					"bitte zeige Anrufe zeige die Liste",
+					"ich möchte zeige Anrufe zeige die Liste"
+				],
+				"fr": [
+					"affiche appels affiche la liste (calls, sf-calls)",
+					"s’il te plaît, affiche appels affiche la liste",
+					"je veux affiche appels affiche la liste"
+				],
+				"es": [
+					"muestra llamadas muestra la lista (calls, sf-calls)",
+					"por favor, muestra llamadas muestra la lista",
+					"quiero muestra llamadas muestra la lista"
+				],
+				"it": [
+					"mostra chiamate mostra l’elenco (calls, sf-calls)",
+					"per favore, mostra chiamate mostra l’elenco",
+					"voglio mostra chiamate mostra l’elenco"
+				],
+				"pt": [
+					"mostre chamadas mostre a lista (calls, sf-calls)",
+					"por favor, mostre chamadas mostre a lista",
+					"quero mostre chamadas mostre a lista"
+				]
+			}
 		},
 		"calls.new": {
 			"brief": "Start a new AI call",
 			"description": "Start a new AI call",
 			"category": "calls",
 			"exposure": "user",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Start a new AI call",
+					"Please start a new ai call",
+					"I want to start a new ai call (calls in sf-calls)"
+				],
+				"ru": [
+					"запусти a new ai call (calls, sf-calls)",
+					"пожалуйста, запусти a new ai call",
+					"мне нужно запусти a new ai call"
+				],
+				"de": [
+					"starte a new ai call (calls, sf-calls)",
+					"bitte starte a new ai call",
+					"ich möchte starte a new ai call"
+				],
+				"fr": [
+					"démarre a new ai call (calls, sf-calls)",
+					"s’il te plaît, démarre a new ai call",
+					"je veux démarre a new ai call"
+				],
+				"es": [
+					"inicia a new ai call (calls, sf-calls)",
+					"por favor, inicia a new ai call",
+					"quiero inicia a new ai call"
+				],
+				"it": [
+					"avvia a new ai call (calls, sf-calls)",
+					"per favore, avvia a new ai call",
+					"voglio avvia a new ai call"
+				],
+				"pt": [
+					"inicie a new ai call (calls, sf-calls)",
+					"por favor, inicie a new ai call",
+					"quero inicie a new ai call"
+				]
+			}
 		},
 		"calls.view": {
 			"brief": "View call transcript and recording in the side panel",
 			"description": "View call transcript and recording in the side panel",
 			"category": "calls",
 			"exposure": "user",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"View call transcript and recording in the side panel",
+					"Please view call transcript and recording in the side panel",
+					"I want to view call transcript and recording in the side panel (calls in sf-calls)"
+				],
+				"ru": [
+					"покажи call transcript and recording in the side panel (calls, sf-calls)",
+					"пожалуйста, покажи call transcript and recording in the side panel",
+					"мне нужно покажи call transcript and recording in the side panel"
+				],
+				"de": [
+					"zeige call transcript and recording in the side panel (calls, sf-calls)",
+					"bitte zeige call transcript and recording in the side panel",
+					"ich möchte zeige call transcript and recording in the side panel"
+				],
+				"fr": [
+					"affiche call transcript and recording in the side panel (calls, sf-calls)",
+					"s’il te plaît, affiche call transcript and recording in the side panel",
+					"je veux affiche call transcript and recording in the side panel"
+				],
+				"es": [
+					"muestra call transcript and recording in the side panel (calls, sf-calls)",
+					"por favor, muestra call transcript and recording in the side panel",
+					"quiero muestra call transcript and recording in the side panel"
+				],
+				"it": [
+					"mostra call transcript and recording in the side panel (calls, sf-calls)",
+					"per favore, mostra call transcript and recording in the side panel",
+					"voglio mostra call transcript and recording in the side panel"
+				],
+				"pt": [
+					"mostre call transcript and recording in the side panel (calls, sf-calls)",
+					"por favor, mostre call transcript and recording in the side panel",
+					"quero mostre call transcript and recording in the side panel"
+				]
+			}
 		},
 		"calls.return": {
 			"brief": "Return to calls list",
 			"description": "Return to calls list",
 			"category": "calls",
 			"exposure": "user",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Return to calls list",
+					"Please return to calls list",
+					"I want to list return to calls (calls in sf-calls)"
+				],
+				"ru": [
+					"покажи список return to звонки (calls, sf-calls)",
+					"пожалуйста, покажи список return to звонки",
+					"мне нужно покажи список return to звонки"
+				],
+				"de": [
+					"zeige die Liste return to Anrufe (calls, sf-calls)",
+					"bitte zeige die Liste return to Anrufe",
+					"ich möchte zeige die Liste return to Anrufe"
+				],
+				"fr": [
+					"affiche la liste return to appels (calls, sf-calls)",
+					"s’il te plaît, affiche la liste return to appels",
+					"je veux affiche la liste return to appels"
+				],
+				"es": [
+					"muestra la lista return to llamadas (calls, sf-calls)",
+					"por favor, muestra la lista return to llamadas",
+					"quiero muestra la lista return to llamadas"
+				],
+				"it": [
+					"mostra l’elenco return to chiamate (calls, sf-calls)",
+					"per favore, mostra l’elenco return to chiamate",
+					"voglio mostra l’elenco return to chiamate"
+				],
+				"pt": [
+					"mostre a lista return to chamadas (calls, sf-calls)",
+					"por favor, mostre a lista return to chamadas",
+					"quero mostre a lista return to chamadas"
+				]
+			}
 		},
 		"calls.web.start": {
 			"brief": "Start a website WebRTC call",
 			"description": "Start a website WebRTC call",
 			"category": "calls",
 			"exposure": "user",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Start a website WebRTC call",
+					"Please start a website webrtc call",
+					"I want to start a website webrtc call (calls in sf-calls)"
+				],
+				"ru": [
+					"запусти a website webrtc call (calls, sf-calls)",
+					"пожалуйста, запусти a website webrtc call",
+					"мне нужно запусти a website webrtc call"
+				],
+				"de": [
+					"starte a website webrtc call (calls, sf-calls)",
+					"bitte starte a website webrtc call",
+					"ich möchte starte a website webrtc call"
+				],
+				"fr": [
+					"démarre a website webrtc call (calls, sf-calls)",
+					"s’il te plaît, démarre a website webrtc call",
+					"je veux démarre a website webrtc call"
+				],
+				"es": [
+					"inicia a website webrtc call (calls, sf-calls)",
+					"por favor, inicia a website webrtc call",
+					"quiero inicia a website webrtc call"
+				],
+				"it": [
+					"avvia a website webrtc call (calls, sf-calls)",
+					"per favore, avvia a website webrtc call",
+					"voglio avvia a website webrtc call"
+				],
+				"pt": [
+					"inicie a website webrtc call (calls, sf-calls)",
+					"por favor, inicie a website webrtc call",
+					"quero inicie a website webrtc call"
+				]
+			}
 		}
 	}
 }

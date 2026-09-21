@@ -148,6 +148,10 @@ pub const Provider = struct {
         if (std.mem.eql(u8, name, "context.delete")) {
             return .{ .payload = try self.control.deleteContext(allocator, request.envelope.scope, payload) };
         }
+        if (std.mem.eql(u8, name, "case")) {
+            const reply = try self.llm.complete(allocator, request.payload);
+            return .{ .payload = reply.body };
+        }
         if (std.mem.eql(u8, name, "llm.generate")) {
             return self.control.generate(allocator, request, payload, &self.llm, self.runtime orelse return error.TransportUnavailable);
         }

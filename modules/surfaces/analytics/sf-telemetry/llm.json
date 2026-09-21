@@ -1,25 +1,140 @@
 {
+	"root": {
+		"surface": "sf-telemetry",
+		"baseType": "telemetry"
+	},
 	"actions": {
 		"telemetry.hot.show": {
 			"brief": "Show hot telemetry",
 			"description": "Show hot telemetry",
 			"category": "telemetry",
 			"exposure": "user",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Show hot telemetry",
+					"Please show hot telemetry",
+					"I want to show hot telemetry (telemetry in sf-telemetry)"
+				],
+				"ru": [
+					"покажи hot telemetry (telemetry, sf-telemetry)",
+					"пожалуйста, покажи hot telemetry",
+					"мне нужно покажи hot telemetry"
+				],
+				"de": [
+					"zeige hot telemetry (telemetry, sf-telemetry)",
+					"bitte zeige hot telemetry",
+					"ich möchte zeige hot telemetry"
+				],
+				"fr": [
+					"affiche hot telemetry (telemetry, sf-telemetry)",
+					"s’il te plaît, affiche hot telemetry",
+					"je veux affiche hot telemetry"
+				],
+				"es": [
+					"muestra hot telemetry (telemetry, sf-telemetry)",
+					"por favor, muestra hot telemetry",
+					"quiero muestra hot telemetry"
+				],
+				"it": [
+					"mostra hot telemetry (telemetry, sf-telemetry)",
+					"per favore, mostra hot telemetry",
+					"voglio mostra hot telemetry"
+				],
+				"pt": [
+					"mostre hot telemetry (telemetry, sf-telemetry)",
+					"por favor, mostre hot telemetry",
+					"quero mostre hot telemetry"
+				]
+			}
 		},
 		"telemetry.cold.show": {
 			"brief": "Show cold telemetry",
 			"description": "Show cold telemetry",
 			"category": "telemetry",
 			"exposure": "user",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Show cold telemetry",
+					"Please show cold telemetry",
+					"I want to show cold telemetry (telemetry in sf-telemetry)"
+				],
+				"ru": [
+					"покажи cold telemetry (telemetry, sf-telemetry)",
+					"пожалуйста, покажи cold telemetry",
+					"мне нужно покажи cold telemetry"
+				],
+				"de": [
+					"zeige cold telemetry (telemetry, sf-telemetry)",
+					"bitte zeige cold telemetry",
+					"ich möchte zeige cold telemetry"
+				],
+				"fr": [
+					"affiche cold telemetry (telemetry, sf-telemetry)",
+					"s’il te plaît, affiche cold telemetry",
+					"je veux affiche cold telemetry"
+				],
+				"es": [
+					"muestra cold telemetry (telemetry, sf-telemetry)",
+					"por favor, muestra cold telemetry",
+					"quiero muestra cold telemetry"
+				],
+				"it": [
+					"mostra cold telemetry (telemetry, sf-telemetry)",
+					"per favore, mostra cold telemetry",
+					"voglio mostra cold telemetry"
+				],
+				"pt": [
+					"mostre cold telemetry (telemetry, sf-telemetry)",
+					"por favor, mostre cold telemetry",
+					"quero mostre cold telemetry"
+				]
+			}
 		},
 		"telemetry.stats.show": {
 			"brief": "Show telemetry statistics",
 			"description": "Show telemetry statistics",
 			"category": "telemetry",
 			"exposure": "user",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Show telemetry statistics",
+					"Please show telemetry statistics",
+					"I want to show telemetry statistics (telemetry in sf-telemetry)"
+				],
+				"ru": [
+					"покажи telemetry статистику (telemetry, sf-telemetry)",
+					"пожалуйста, покажи telemetry статистику",
+					"мне нужно покажи telemetry статистику"
+				],
+				"de": [
+					"zeige telemetry Statistiken (telemetry, sf-telemetry)",
+					"bitte zeige telemetry Statistiken",
+					"ich möchte zeige telemetry Statistiken"
+				],
+				"fr": [
+					"affiche telemetry statistiques (telemetry, sf-telemetry)",
+					"s’il te plaît, affiche telemetry statistiques",
+					"je veux affiche telemetry statistiques"
+				],
+				"es": [
+					"muestra telemetry estadísticas (telemetry, sf-telemetry)",
+					"por favor, muestra telemetry estadísticas",
+					"quiero muestra telemetry estadísticas"
+				],
+				"it": [
+					"mostra telemetry statistiche (telemetry, sf-telemetry)",
+					"per favore, mostra telemetry statistiche",
+					"voglio mostra telemetry statistiche"
+				],
+				"pt": [
+					"mostre telemetry estatísticas (telemetry, sf-telemetry)",
+					"por favor, mostre telemetry estatísticas",
+					"quero mostre telemetry estatísticas"
+				]
+			}
 		}
 	}
 }

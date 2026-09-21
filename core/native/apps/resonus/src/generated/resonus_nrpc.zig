@@ -4,23 +4,28 @@ const transport = @import("transport");
 
 pub const service = "resonus";
 
+pub fn bind(runtime: *transport.Runtime, handler: transport.RuntimeHandler) !void {
+    return runtime.bind(service, handler);
+}
+
 /// Server-side NRPC descriptor. A native application calls verifyAndAuthorize
 /// before its handwritten handler; this generated code never knows the handler.
 pub const method_policies = [_]transport.auth.authorize.MethodPolicy{
-    .{ .service = service, .method = "call.offer", .level = .user, .mode = null },
-    .{ .service = service, .method = "call.hangup", .level = .user, .mode = null },
-    .{ .service = service, .method = "call.ice", .level = .user, .mode = null },
-    .{ .service = service, .method = "chat.message", .level = .user, .mode = null },
-    .{ .service = service, .method = "session.open", .level = .user, .mode = null },
-    .{ .service = service, .method = "session.bind", .level = .user, .mode = null },
-    .{ .service = service, .method = "session.close", .level = .user, .mode = null },
-    .{ .service = service, .method = "message.put", .level = .user, .mode = null },
-    .{ .service = service, .method = "context.create", .level = .user, .mode = null },
-    .{ .service = service, .method = "context.replace", .level = .user, .mode = null },
-    .{ .service = service, .method = "context.delete", .level = .user, .mode = null },
-    .{ .service = service, .method = "llm.generate", .level = .user, .mode = null },
-    .{ .service = service, .method = "dictation.start", .level = .user, .mode = null },
-    .{ .service = service, .method = "dictation.stop", .level = .user, .mode = null },
+    .{ .kind = "ap", .service = service, .method = "call.offer", .level = .user, .mode = null },
+    .{ .kind = "ap", .service = service, .method = "call.hangup", .level = .user, .mode = null },
+    .{ .kind = "ap", .service = service, .method = "call.ice", .level = .user, .mode = null },
+    .{ .kind = "ap", .service = service, .method = "chat.message", .level = .user, .mode = null },
+    .{ .kind = "ap", .service = service, .method = "session.open", .level = .user, .mode = null },
+    .{ .kind = "ap", .service = service, .method = "session.bind", .level = .user, .mode = null },
+    .{ .kind = "ap", .service = service, .method = "session.close", .level = .user, .mode = null },
+    .{ .kind = "ap", .service = service, .method = "message.put", .level = .user, .mode = null },
+    .{ .kind = "ap", .service = service, .method = "context.create", .level = .user, .mode = null },
+    .{ .kind = "ap", .service = service, .method = "context.replace", .level = .user, .mode = null },
+    .{ .kind = "ap", .service = service, .method = "context.delete", .level = .user, .mode = null },
+    .{ .kind = "ap", .service = service, .method = "case", .level = .user, .mode = null },
+    .{ .kind = "ap", .service = service, .method = "llm.generate", .level = .user, .mode = null },
+    .{ .kind = "ap", .service = service, .method = "dictation.start", .level = .user, .mode = null },
+    .{ .kind = "ap", .service = service, .method = "dictation.stop", .level = .user, .mode = null },
 };
 
 pub fn policy(method: []const u8) ?transport.auth.authorize.MethodPolicy {
@@ -193,6 +198,20 @@ pub fn context_delete(
     return runtime.request(.{
         .service = service,
         .method = "context.delete",
+        .scope = scope,
+        .body = body,
+    }, completion);
+}
+
+pub fn case(
+    runtime: *transport.Runtime,
+    scope: []const u8,
+    body: []const u8,
+    completion: transport.RuntimeCompletion,
+) !void {
+    return runtime.request(.{
+        .service = service,
+        .method = "case",
         .scope = scope,
         .body = body,
     }, completion);

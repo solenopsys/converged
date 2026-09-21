@@ -70,7 +70,13 @@ function ingestCatalog(
 		// advertise an action the module does not implement.
 		if (!authoritative && !registry.meta(id)) continue;
 		if (authoritative || !owners.has(id)) owners.set(id, module);
-		registry.declare({ id, ...meta });
+		registry.declare({
+			id,
+			...meta,
+			...(catalog.root
+				? { root: catalog.root }
+				: { root: { surface: module, baseType: meta.category } }),
+		});
 	}
 	for (const pattern of catalog.patterns ?? []) {
 		registry.declarePattern(pattern.prefix, pattern.meta);

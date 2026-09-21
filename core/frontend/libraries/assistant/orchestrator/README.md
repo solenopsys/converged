@@ -113,6 +113,26 @@ custom `steps` table replaces the built-in flow entirely — this is the
 extension point; a host with a different scenario composes its own table
 instead of patching the kernel.
 
+### CASE surface flow
+
+`createCaseOrchestrator({ router, ask, prompt, catalog })` is the surface
+variant. CASE chooses the command first; its command id must exist in the
+current catalog. A match runs only `describe -> args -> invoke`, so the model
+fills parameters for one already selected command and never performs
+`route/search/select`. A CASE miss produces `{ kind: "answer" }` for the
+normal conversational fallback.
+
+`createResonusCaseRouter({ transport, context, language? })` connects that
+port to the `resonus.case` nRPC method. Context construction and loading are
+deliberately outside the orchestrator: the host owns the available surfaces and
+uploads a revisioned CASE context before asking it to route.
+
+Build that upload directly from the effector action catalog with
+`buildCaseContext(key, locale, actions)`. It keeps only `exposure: "user"`
+actions and the active locale's examples, grouping commands by
+`root.surface:root.baseType`; `loadResonusCaseContext(transport, context)`
+then sends the compact result through `resonus.case`.
+
 `emptyCatalog` is exported for hosts with nothing to call (e.g. a
 third-party embed widget): `search`/`listCategories` return empty and the run
 ends at `search`, costing exactly one vendor round-trip (`route`) for any

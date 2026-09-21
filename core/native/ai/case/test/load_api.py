@@ -77,15 +77,15 @@ def user_phrases(brief: str, description: str) -> tuple[str, ...]:
 def read_surfaces(paths: list[str], language: str) -> tuple[list[dict[str, Any]], list[Case]]:
     sections: list[dict[str, Any]] = []
     cases: list[Case] = []
-    seen_commands: set[str] = set()
+    seen_commands: set[tuple[str, str]] = set()
     for root in paths:
         if not os.path.isdir(root):
             continue
-        for surface_name in sorted(os.listdir(root)):
-            surface_dir = os.path.join(root, surface_name)
-            path = os.path.join(surface_dir, "llm.json")
-            if not os.path.isfile(path):
+        for surface_dir, _, files in os.walk(root):
+            if "llm.json" not in files:
                 continue
+            path = os.path.join(surface_dir, "llm.json")
+            surface_name = os.path.basename(surface_dir)
             with open(path, encoding="utf-8") as stream:
                 document = json.load(stream)
             actions = document.get("actions") if isinstance(document, dict) else None
@@ -93,9 +93,10 @@ def read_surfaces(paths: list[str], language: str) -> tuple[list[dict[str, Any]]
                 continue
             commands: list[dict[str, Any]] = []
             for command_id, definition in actions.items():
-                if command_id in seen_commands or not isinstance(definition, dict):
+                command_key = (surface_name, command_id)
+                if command_key in seen_commands or not isinstance(definition, dict):
                     continue
-                seen_commands.add(command_id)
+                seen_commands.add(command_key)
                 brief = str(definition.get("brief", ""))
                 phrases = user_phrases(brief, str(definition.get("description", "")))
                 commands.append({"id": command_id, "examples": {language: list(phrases)}})

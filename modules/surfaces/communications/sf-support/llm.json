@@ -1,4 +1,8 @@
 {
+	"root": {
+		"surface": "sf-support",
+		"baseType": "support"
+	},
 	"actions": {
 		"support.ticket.findSimilar": {
 			"brief": "Find features that already ask for this",
@@ -8,8 +12,51 @@
 			"priority": "primary",
 			"parameters": {
 				"type": "object",
-				"properties": { "title": { "type": "string" } },
-				"required": ["title"]
+				"properties": {
+					"title": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"title"
+				]
+			},
+			"examples": {
+				"en": [
+					"Find features that already ask for this",
+					"Please find features that already ask for this",
+					"I want to manage find features that already ask for this (support in sf-support)"
+				],
+				"ru": [
+					"настрой find features that already ask for this (support, sf-support)",
+					"пожалуйста, настрой find features that already ask for this",
+					"мне нужно настрой find features that already ask for this"
+				],
+				"de": [
+					"verwalte find features that already ask for this (support, sf-support)",
+					"bitte verwalte find features that already ask for this",
+					"ich möchte verwalte find features that already ask for this"
+				],
+				"fr": [
+					"gère find features that already ask for this (support, sf-support)",
+					"s’il te plaît, gère find features that already ask for this",
+					"je veux gère find features that already ask for this"
+				],
+				"es": [
+					"gestiona find features that already ask for this (support, sf-support)",
+					"por favor, gestiona find features that already ask for this",
+					"quiero gestiona find features that already ask for this"
+				],
+				"it": [
+					"gestisci find features that already ask for this (support, sf-support)",
+					"per favore, gestisci find features that already ask for this",
+					"voglio gestisci find features that already ask for this"
+				],
+				"pt": [
+					"gerencie find features that already ask for this (support, sf-support)",
+					"por favor, gerencie find features that already ask for this",
+					"quero gerencie find features that already ask for this"
+				]
 			}
 		},
 		"support.ticket.create": {
@@ -21,11 +68,61 @@
 			"parameters": {
 				"type": "object",
 				"properties": {
-					"type": { "type": "string", "enum": ["bug", "feature"] },
-					"title": { "type": "string" },
-					"body": { "type": "string" }
+					"type": {
+						"type": "string",
+						"enum": [
+							"bug",
+							"feature"
+						]
+					},
+					"title": {
+						"type": "string"
+					},
+					"body": {
+						"type": "string"
+					}
 				},
-				"required": ["type", "title"]
+				"required": [
+					"type",
+					"title"
+				]
+			},
+			"examples": {
+				"en": [
+					"Open a bug or a feature ticket",
+					"Please open a bug or a feature ticket",
+					"I want to open a bug or a feature ticket (support in sf-support)"
+				],
+				"ru": [
+					"открой a bug or a feature ticket (support, sf-support)",
+					"пожалуйста, открой a bug or a feature ticket",
+					"мне нужно открой a bug or a feature ticket"
+				],
+				"de": [
+					"öffne a bug or a feature ticket (support, sf-support)",
+					"bitte öffne a bug or a feature ticket",
+					"ich möchte öffne a bug or a feature ticket"
+				],
+				"fr": [
+					"ouvre a bug or a feature ticket (support, sf-support)",
+					"s’il te plaît, ouvre a bug or a feature ticket",
+					"je veux ouvre a bug or a feature ticket"
+				],
+				"es": [
+					"abre a bug or a feature ticket (support, sf-support)",
+					"por favor, abre a bug or a feature ticket",
+					"quiero abre a bug or a feature ticket"
+				],
+				"it": [
+					"apri a bug or a feature ticket (support, sf-support)",
+					"per favore, apri a bug or a feature ticket",
+					"voglio apri a bug or a feature ticket"
+				],
+				"pt": [
+					"abra a bug or a feature ticket (support, sf-support)",
+					"por favor, abra a bug or a feature ticket",
+					"quero abra a bug or a feature ticket"
+				]
 			}
 		},
 		"support.ticket.vote": {
@@ -33,7 +130,44 @@
 			"description": "Add the member's like to a feature — this is what to do when findSimilar turned up what they were about to ask for. One person, one like; liking twice changes nothing. Needs a ticket in context.",
 			"category": "support",
 			"exposure": "llm",
-			"priority": "primary"
+			"priority": "primary",
+			"examples": {
+				"en": [
+					"Like a feature",
+					"Please like a feature",
+					"I want to manage like a feature (support in sf-support)"
+				],
+				"ru": [
+					"настрой like a feature (support, sf-support)",
+					"пожалуйста, настрой like a feature",
+					"мне нужно настрой like a feature"
+				],
+				"de": [
+					"verwalte like a feature (support, sf-support)",
+					"bitte verwalte like a feature",
+					"ich möchte verwalte like a feature"
+				],
+				"fr": [
+					"gère like a feature (support, sf-support)",
+					"s’il te plaît, gère like a feature",
+					"je veux gère like a feature"
+				],
+				"es": [
+					"gestiona like a feature (support, sf-support)",
+					"por favor, gestiona like a feature",
+					"quiero gestiona like a feature"
+				],
+				"it": [
+					"gestisci like a feature (support, sf-support)",
+					"per favore, gestisci like a feature",
+					"voglio gestisci like a feature"
+				],
+				"pt": [
+					"gerencie like a feature (support, sf-support)",
+					"por favor, gerencie like a feature",
+					"quero gerencie like a feature"
+				]
+			}
 		},
 		"support.ticket.setStatus": {
 			"brief": "Move a ticket along",
@@ -46,10 +180,55 @@
 				"properties": {
 					"status": {
 						"type": "string",
-						"enum": ["open", "planned", "in_progress", "done", "rejected"]
+						"enum": [
+							"open",
+							"planned",
+							"in_progress",
+							"done",
+							"rejected"
+						]
 					}
 				},
-				"required": ["status"]
+				"required": [
+					"status"
+				]
+			},
+			"examples": {
+				"en": [
+					"Move a ticket along",
+					"Please move a ticket along",
+					"I want to move a ticket along (support in sf-support)"
+				],
+				"ru": [
+					"перемести a ticket along (support, sf-support)",
+					"пожалуйста, перемести a ticket along",
+					"мне нужно перемести a ticket along"
+				],
+				"de": [
+					"verschiebe a ticket along (support, sf-support)",
+					"bitte verschiebe a ticket along",
+					"ich möchte verschiebe a ticket along"
+				],
+				"fr": [
+					"déplace a ticket along (support, sf-support)",
+					"s’il te plaît, déplace a ticket along",
+					"je veux déplace a ticket along"
+				],
+				"es": [
+					"mueve a ticket along (support, sf-support)",
+					"por favor, mueve a ticket along",
+					"quiero mueve a ticket along"
+				],
+				"it": [
+					"sposta a ticket along (support, sf-support)",
+					"per favore, sposta a ticket along",
+					"voglio sposta a ticket along"
+				],
+				"pt": [
+					"mova a ticket along (support, sf-support)",
+					"por favor, mova a ticket along",
+					"quero mova a ticket along"
+				]
 			}
 		}
 	}

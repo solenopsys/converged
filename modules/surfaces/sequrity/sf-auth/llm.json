@@ -1,46 +1,272 @@
 {
+	"root": {
+		"surface": "sf-auth",
+		"baseType": "auth"
+	},
 	"actions": {
 		"auth.login": {
 			"brief": "Auth user",
 			"description": "Auth user",
 			"category": "auth",
 			"exposure": "llm",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Auth user",
+					"Please auth user",
+					"I want to manage auth user (auth in sf-auth)"
+				],
+				"ru": [
+					"настрой авторизацию пользователя (auth, sf-auth)",
+					"пожалуйста, настрой авторизацию пользователя",
+					"мне нужно настрой авторизацию пользователя"
+				],
+				"de": [
+					"verwalte Authentifizierung Benutzer (auth, sf-auth)",
+					"bitte verwalte Authentifizierung Benutzer",
+					"ich möchte verwalte Authentifizierung Benutzer"
+				],
+				"fr": [
+					"gère authentification utilisateur (auth, sf-auth)",
+					"s’il te plaît, gère authentification utilisateur",
+					"je veux gère authentification utilisateur"
+				],
+				"es": [
+					"gestiona autenticación usuario (auth, sf-auth)",
+					"por favor, gestiona autenticación usuario",
+					"quiero gestiona autenticación usuario"
+				],
+				"it": [
+					"gestisci autenticazione utente (auth, sf-auth)",
+					"per favore, gestisci autenticazione utente",
+					"voglio gestisci autenticazione utente"
+				],
+				"pt": [
+					"gerencie autenticação usuário (auth, sf-auth)",
+					"por favor, gerencie autenticação usuário",
+					"quero gerencie autenticação usuário"
+				]
+			}
 		},
 		"auth.send-magic-link": {
 			"brief": "Send a magic login link",
 			"description": "Send a magic login link to the supplied email address.",
 			"category": "auth",
 			"exposure": "llm",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Send a magic login link",
+					"Please send a magic login link",
+					"I want to send a magic login link (auth in sf-auth)"
+				],
+				"ru": [
+					"отправь a magic login link (auth, sf-auth)",
+					"пожалуйста, отправь a magic login link",
+					"мне нужно отправь a magic login link"
+				],
+				"de": [
+					"sende a magic login link (auth, sf-auth)",
+					"bitte sende a magic login link",
+					"ich möchte sende a magic login link"
+				],
+				"fr": [
+					"envoie a magic login link (auth, sf-auth)",
+					"s’il te plaît, envoie a magic login link",
+					"je veux envoie a magic login link"
+				],
+				"es": [
+					"envía a magic login link (auth, sf-auth)",
+					"por favor, envía a magic login link",
+					"quiero envía a magic login link"
+				],
+				"it": [
+					"invia a magic login link (auth, sf-auth)",
+					"per favore, invia a magic login link",
+					"voglio invia a magic login link"
+				],
+				"pt": [
+					"envie a magic login link (auth, sf-auth)",
+					"por favor, envie a magic login link",
+					"quero envie a magic login link"
+				]
+			}
 		},
 		"auth.ensure-temporary-session": {
 			"brief": "Ensure temporary auth session",
 			"description": "Ensure temporary auth session",
 			"category": "auth",
 			"exposure": "llm",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Ensure temporary auth session",
+					"Please ensure temporary auth session",
+					"I want to manage ensure temporary auth session (auth in sf-auth)"
+				],
+				"ru": [
+					"настрой ensure temporary авторизацию session (auth, sf-auth)",
+					"пожалуйста, настрой ensure temporary авторизацию session",
+					"мне нужно настрой ensure temporary авторизацию session"
+				],
+				"de": [
+					"verwalte ensure temporary Authentifizierung session (auth, sf-auth)",
+					"bitte verwalte ensure temporary Authentifizierung session",
+					"ich möchte verwalte ensure temporary Authentifizierung session"
+				],
+				"fr": [
+					"gère ensure temporary authentification session (auth, sf-auth)",
+					"s’il te plaît, gère ensure temporary authentification session",
+					"je veux gère ensure temporary authentification session"
+				],
+				"es": [
+					"gestiona ensure temporary autenticación session (auth, sf-auth)",
+					"por favor, gestiona ensure temporary autenticación session",
+					"quiero gestiona ensure temporary autenticación session"
+				],
+				"it": [
+					"gestisci ensure temporary autenticazione session (auth, sf-auth)",
+					"per favore, gestisci ensure temporary autenticazione session",
+					"voglio gestisci ensure temporary autenticazione session"
+				],
+				"pt": [
+					"gerencie ensure temporary autenticação session (auth, sf-auth)",
+					"por favor, gerencie ensure temporary autenticação session",
+					"quero gerencie ensure temporary autenticação session"
+				]
+			}
 		},
 		"show_social": {
 			"brief": "Show social login",
 			"description": "Show social login",
 			"category": "show_social",
 			"exposure": "user",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Show social login",
+					"Please show social login",
+					"I want to show social login (show_social in sf-auth)"
+				],
+				"ru": [
+					"покажи social login (show_social, sf-auth)",
+					"пожалуйста, покажи social login",
+					"мне нужно покажи social login"
+				],
+				"de": [
+					"zeige social login (show_social, sf-auth)",
+					"bitte zeige social login",
+					"ich möchte zeige social login"
+				],
+				"fr": [
+					"affiche social login (show_social, sf-auth)",
+					"s’il te plaît, affiche social login",
+					"je veux affiche social login"
+				],
+				"es": [
+					"muestra social login (show_social, sf-auth)",
+					"por favor, muestra social login",
+					"quiero muestra social login"
+				],
+				"it": [
+					"mostra social login (show_social, sf-auth)",
+					"per favore, mostra social login",
+					"voglio mostra social login"
+				],
+				"pt": [
+					"mostre social login (show_social, sf-auth)",
+					"por favor, mostre social login",
+					"quero mostre social login"
+				]
+			}
 		},
 		"auth.logout": {
 			"brief": "Logout user",
 			"description": "Logout user",
 			"category": "auth",
 			"exposure": "user",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Logout user",
+					"Please logout user",
+					"I want to manage logout user (auth in sf-auth)"
+				],
+				"ru": [
+					"настрой logout пользователя (auth, sf-auth)",
+					"пожалуйста, настрой logout пользователя",
+					"мне нужно настрой logout пользователя"
+				],
+				"de": [
+					"verwalte logout Benutzer (auth, sf-auth)",
+					"bitte verwalte logout Benutzer",
+					"ich möchte verwalte logout Benutzer"
+				],
+				"fr": [
+					"gère logout utilisateur (auth, sf-auth)",
+					"s’il te plaît, gère logout utilisateur",
+					"je veux gère logout utilisateur"
+				],
+				"es": [
+					"gestiona logout usuario (auth, sf-auth)",
+					"por favor, gestiona logout usuario",
+					"quiero gestiona logout usuario"
+				],
+				"it": [
+					"gestisci logout utente (auth, sf-auth)",
+					"per favore, gestisci logout utente",
+					"voglio gestisci logout utente"
+				],
+				"pt": [
+					"gerencie logout usuário (auth, sf-auth)",
+					"por favor, gerencie logout usuário",
+					"quero gerencie logout usuário"
+				]
+			}
 		},
 		"auth.show-login": {
 			"brief": "Show login form",
 			"description": "Show login form",
 			"category": "auth",
 			"exposure": "user",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Show login form",
+					"Please show login form",
+					"I want to show login form (auth in sf-auth)"
+				],
+				"ru": [
+					"покажи login form (auth, sf-auth)",
+					"пожалуйста, покажи login form",
+					"мне нужно покажи login form"
+				],
+				"de": [
+					"zeige login form (auth, sf-auth)",
+					"bitte zeige login form",
+					"ich möchte zeige login form"
+				],
+				"fr": [
+					"affiche login form (auth, sf-auth)",
+					"s’il te plaît, affiche login form",
+					"je veux affiche login form"
+				],
+				"es": [
+					"muestra login form (auth, sf-auth)",
+					"por favor, muestra login form",
+					"quiero muestra login form"
+				],
+				"it": [
+					"mostra login form (auth, sf-auth)",
+					"per favore, mostra login form",
+					"voglio mostra login form"
+				],
+				"pt": [
+					"mostre login form (auth, sf-auth)",
+					"por favor, mostre login form",
+					"quero mostre login form"
+				]
+			}
 		}
 	}
 }

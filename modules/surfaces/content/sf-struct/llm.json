@@ -1,11 +1,52 @@
 {
+	"root": {
+		"surface": "sf-struct",
+		"baseType": "struct"
+	},
 	"actions": {
 		"struct.list": {
 			"brief": "Show struct files list",
 			"description": "Show struct files list",
 			"category": "struct",
 			"exposure": "user",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Show struct files list",
+					"Please show struct files list",
+					"I want to show struct files list (struct in sf-struct)"
+				],
+				"ru": [
+					"покажи struct файлы покажи список (struct, sf-struct)",
+					"пожалуйста, покажи struct файлы покажи список",
+					"мне нужно покажи struct файлы покажи список"
+				],
+				"de": [
+					"zeige struct Dateien zeige die Liste (struct, sf-struct)",
+					"bitte zeige struct Dateien zeige die Liste",
+					"ich möchte zeige struct Dateien zeige die Liste"
+				],
+				"fr": [
+					"affiche struct fichiers affiche la liste (struct, sf-struct)",
+					"s’il te plaît, affiche struct fichiers affiche la liste",
+					"je veux affiche struct fichiers affiche la liste"
+				],
+				"es": [
+					"muestra struct archivos muestra la lista (struct, sf-struct)",
+					"por favor, muestra struct archivos muestra la lista",
+					"quiero muestra struct archivos muestra la lista"
+				],
+				"it": [
+					"mostra struct file mostra l’elenco (struct, sf-struct)",
+					"per favore, mostra struct file mostra l’elenco",
+					"voglio mostra struct file mostra l’elenco"
+				],
+				"pt": [
+					"mostre struct arquivos mostre a lista (struct, sf-struct)",
+					"por favor, mostre struct arquivos mostre a lista",
+					"quero mostre struct arquivos mostre a lista"
+				]
+			}
 		}
 	}
 }

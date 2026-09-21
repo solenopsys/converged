@@ -1,46 +1,272 @@
 {
+	"root": {
+		"surface": "sf-assistants",
+		"baseType": "chats"
+	},
 	"actions": {
 		"chats.show_list": {
 			"brief": "Show chats list",
 			"description": "Show chats list",
 			"category": "chats",
 			"exposure": "user",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Show chats list",
+					"Please show chats list",
+					"I want to show chats list (chats in sf-assistants)"
+				],
+				"ru": [
+					"покажи чаты покажи список (chats, sf-assistants)",
+					"пожалуйста, покажи чаты покажи список",
+					"мне нужно покажи чаты покажи список"
+				],
+				"de": [
+					"zeige Chats zeige die Liste (chats, sf-assistants)",
+					"bitte zeige Chats zeige die Liste",
+					"ich möchte zeige Chats zeige die Liste"
+				],
+				"fr": [
+					"affiche discussions affiche la liste (chats, sf-assistants)",
+					"s’il te plaît, affiche discussions affiche la liste",
+					"je veux affiche discussions affiche la liste"
+				],
+				"es": [
+					"muestra chats muestra la lista (chats, sf-assistants)",
+					"por favor, muestra chats muestra la lista",
+					"quiero muestra chats muestra la lista"
+				],
+				"it": [
+					"mostra chat mostra l’elenco (chats, sf-assistants)",
+					"per favore, mostra chat mostra l’elenco",
+					"voglio mostra chat mostra l’elenco"
+				],
+				"pt": [
+					"mostre chats mostre a lista (chats, sf-assistants)",
+					"por favor, mostre chats mostre a lista",
+					"quero mostre chats mostre a lista"
+				]
+			}
 		},
 		"chats.show_commands_list": {
 			"brief": "Show available commands list",
 			"description": "Show available commands list",
 			"category": "chats",
 			"exposure": "user",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Show available commands list",
+					"Please show available commands list",
+					"I want to show available commands list (chats in sf-assistants)"
+				],
+				"ru": [
+					"покажи available commands покажи список (chats, sf-assistants)",
+					"пожалуйста, покажи available commands покажи список",
+					"мне нужно покажи available commands покажи список"
+				],
+				"de": [
+					"zeige available commands zeige die Liste (chats, sf-assistants)",
+					"bitte zeige available commands zeige die Liste",
+					"ich möchte zeige available commands zeige die Liste"
+				],
+				"fr": [
+					"affiche available commands affiche la liste (chats, sf-assistants)",
+					"s’il te plaît, affiche available commands affiche la liste",
+					"je veux affiche available commands affiche la liste"
+				],
+				"es": [
+					"muestra available commands muestra la lista (chats, sf-assistants)",
+					"por favor, muestra available commands muestra la lista",
+					"quiero muestra available commands muestra la lista"
+				],
+				"it": [
+					"mostra available commands mostra l’elenco (chats, sf-assistants)",
+					"per favore, mostra available commands mostra l’elenco",
+					"voglio mostra available commands mostra l’elenco"
+				],
+				"pt": [
+					"mostre available commands mostre a lista (chats, sf-assistants)",
+					"por favor, mostre available commands mostre a lista",
+					"quero mostre available commands mostre a lista"
+				]
+			}
 		},
 		"chats.view": {
 			"brief": "View chat details",
 			"description": "View chat details",
 			"category": "chats",
 			"exposure": "llm",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"View chat details",
+					"Please view chat details",
+					"I want to view chat details (chats in sf-assistants)"
+				],
+				"ru": [
+					"покажи чат details (chats, sf-assistants)",
+					"пожалуйста, покажи чат details",
+					"мне нужно покажи чат details"
+				],
+				"de": [
+					"zeige Chat details (chats, sf-assistants)",
+					"bitte zeige Chat details",
+					"ich möchte zeige Chat details"
+				],
+				"fr": [
+					"affiche discussion details (chats, sf-assistants)",
+					"s’il te plaît, affiche discussion details",
+					"je veux affiche discussion details"
+				],
+				"es": [
+					"muestra chat details (chats, sf-assistants)",
+					"por favor, muestra chat details",
+					"quiero muestra chat details"
+				],
+				"it": [
+					"mostra chat details (chats, sf-assistants)",
+					"per favore, mostra chat details",
+					"voglio mostra chat details"
+				],
+				"pt": [
+					"mostre chat details (chats, sf-assistants)",
+					"por favor, mostre chat details",
+					"quero mostre chat details"
+				]
+			}
 		},
 		"chats.view_tool_call_json": {
 			"brief": "View tool call JSON",
 			"description": "View tool call JSON",
 			"category": "chats",
 			"exposure": "llm",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"View tool call JSON",
+					"Please view tool call json",
+					"I want to view tool call json (chats in sf-assistants)"
+				],
+				"ru": [
+					"покажи tool call json (chats, sf-assistants)",
+					"пожалуйста, покажи tool call json",
+					"мне нужно покажи tool call json"
+				],
+				"de": [
+					"zeige tool call json (chats, sf-assistants)",
+					"bitte zeige tool call json",
+					"ich möchte zeige tool call json"
+				],
+				"fr": [
+					"affiche tool call json (chats, sf-assistants)",
+					"s’il te plaît, affiche tool call json",
+					"je veux affiche tool call json"
+				],
+				"es": [
+					"muestra tool call json (chats, sf-assistants)",
+					"por favor, muestra tool call json",
+					"quiero muestra tool call json"
+				],
+				"it": [
+					"mostra tool call json (chats, sf-assistants)",
+					"per favore, mostra tool call json",
+					"voglio mostra tool call json"
+				],
+				"pt": [
+					"mostre tool call json (chats, sf-assistants)",
+					"por favor, mostre tool call json",
+					"quero mostre tool call json"
+				]
+			}
 		},
 		"chats.edit": {
 			"brief": "Edit chat",
 			"description": "Edit chat",
 			"category": "chats",
 			"exposure": "llm",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Edit chat",
+					"Please edit chat",
+					"I want to edit chat (chats in sf-assistants)"
+				],
+				"ru": [
+					"измени чат (chats, sf-assistants)",
+					"пожалуйста, измени чат",
+					"мне нужно измени чат"
+				],
+				"de": [
+					"bearbeite Chat (chats, sf-assistants)",
+					"bitte bearbeite Chat",
+					"ich möchte bearbeite Chat"
+				],
+				"fr": [
+					"modifie discussion (chats, sf-assistants)",
+					"s’il te plaît, modifie discussion",
+					"je veux modifie discussion"
+				],
+				"es": [
+					"edita chat (chats, sf-assistants)",
+					"por favor, edita chat",
+					"quiero edita chat"
+				],
+				"it": [
+					"modifica chat (chats, sf-assistants)",
+					"per favore, modifica chat",
+					"voglio modifica chat"
+				],
+				"pt": [
+					"edite chat (chats, sf-assistants)",
+					"por favor, edite chat",
+					"quero edite chat"
+				]
+			}
 		},
 		"chats.delete": {
 			"brief": "Delete chat",
 			"description": "Delete chat",
 			"category": "chats",
 			"exposure": "llm",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Delete chat",
+					"Please delete chat",
+					"I want to delete chat (chats in sf-assistants)"
+				],
+				"ru": [
+					"удали чат (chats, sf-assistants)",
+					"пожалуйста, удали чат",
+					"мне нужно удали чат"
+				],
+				"de": [
+					"lösche Chat (chats, sf-assistants)",
+					"bitte lösche Chat",
+					"ich möchte lösche Chat"
+				],
+				"fr": [
+					"supprime discussion (chats, sf-assistants)",
+					"s’il te plaît, supprime discussion",
+					"je veux supprime discussion"
+				],
+				"es": [
+					"elimina chat (chats, sf-assistants)",
+					"por favor, elimina chat",
+					"quiero elimina chat"
+				],
+				"it": [
+					"elimina chat (chats, sf-assistants)",
+					"per favore, elimina chat",
+					"voglio elimina chat"
+				],
+				"pt": [
+					"exclua chat (chats, sf-assistants)",
+					"por favor, exclua chat",
+					"quero exclua chat"
+				]
+			}
 		}
 	}
 }

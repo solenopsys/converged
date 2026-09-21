@@ -1,32 +1,184 @@
 {
+	"root": {
+		"surface": "sf-classifier",
+		"baseType": "classifier"
+	},
 	"actions": {
 		"classifier.dashboard.show": {
 			"brief": "Show classifier dashboard",
 			"description": "Show classifier dashboard",
 			"category": "classifier",
 			"exposure": "user",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Show classifier dashboard",
+					"Please show classifier dashboard",
+					"I want to show classifier dashboard (classifier in sf-classifier)"
+				],
+				"ru": [
+					"покажи classifier дашборд (classifier, sf-classifier)",
+					"пожалуйста, покажи classifier дашборд",
+					"мне нужно покажи classifier дашборд"
+				],
+				"de": [
+					"zeige classifier Dashboard (classifier, sf-classifier)",
+					"bitte zeige classifier Dashboard",
+					"ich möchte zeige classifier Dashboard"
+				],
+				"fr": [
+					"affiche classifier tableau de bord (classifier, sf-classifier)",
+					"s’il te plaît, affiche classifier tableau de bord",
+					"je veux affiche classifier tableau de bord"
+				],
+				"es": [
+					"muestra classifier panel (classifier, sf-classifier)",
+					"por favor, muestra classifier panel",
+					"quiero muestra classifier panel"
+				],
+				"it": [
+					"mostra classifier dashboard (classifier, sf-classifier)",
+					"per favore, mostra classifier dashboard",
+					"voglio mostra classifier dashboard"
+				],
+				"pt": [
+					"mostre classifier painel (classifier, sf-classifier)",
+					"por favor, mostre classifier painel",
+					"quero mostre classifier painel"
+				]
+			}
 		},
 		"classifier.mappings.show": {
 			"brief": "Show classifier mappings",
 			"description": "Show classifier mappings",
 			"category": "classifier",
 			"exposure": "user",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Show classifier mappings",
+					"Please show classifier mappings",
+					"I want to show classifier mappings (classifier in sf-classifier)"
+				],
+				"ru": [
+					"покажи classifier mappings (classifier, sf-classifier)",
+					"пожалуйста, покажи classifier mappings",
+					"мне нужно покажи classifier mappings"
+				],
+				"de": [
+					"zeige classifier mappings (classifier, sf-classifier)",
+					"bitte zeige classifier mappings",
+					"ich möchte zeige classifier mappings"
+				],
+				"fr": [
+					"affiche classifier mappings (classifier, sf-classifier)",
+					"s’il te plaît, affiche classifier mappings",
+					"je veux affiche classifier mappings"
+				],
+				"es": [
+					"muestra classifier mappings (classifier, sf-classifier)",
+					"por favor, muestra classifier mappings",
+					"quiero muestra classifier mappings"
+				],
+				"it": [
+					"mostra classifier mappings (classifier, sf-classifier)",
+					"per favore, mostra classifier mappings",
+					"voglio mostra classifier mappings"
+				],
+				"pt": [
+					"mostre classifier mappings (classifier, sf-classifier)",
+					"por favor, mostre classifier mappings",
+					"quero mostre classifier mappings"
+				]
+			}
 		},
 		"classifier.nodes.show": {
 			"brief": "Show classifier entities",
 			"description": "Show classifier entities",
 			"category": "classifier",
 			"exposure": "user",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Show classifier entities",
+					"Please show classifier entities",
+					"I want to show classifier entities (classifier in sf-classifier)"
+				],
+				"ru": [
+					"покажи classifier entities (classifier, sf-classifier)",
+					"пожалуйста, покажи classifier entities",
+					"мне нужно покажи classifier entities"
+				],
+				"de": [
+					"zeige classifier entities (classifier, sf-classifier)",
+					"bitte zeige classifier entities",
+					"ich möchte zeige classifier entities"
+				],
+				"fr": [
+					"affiche classifier entities (classifier, sf-classifier)",
+					"s’il te plaît, affiche classifier entities",
+					"je veux affiche classifier entities"
+				],
+				"es": [
+					"muestra classifier entities (classifier, sf-classifier)",
+					"por favor, muestra classifier entities",
+					"quiero muestra classifier entities"
+				],
+				"it": [
+					"mostra classifier entities (classifier, sf-classifier)",
+					"per favore, mostra classifier entities",
+					"voglio mostra classifier entities"
+				],
+				"pt": [
+					"mostre classifier entities (classifier, sf-classifier)",
+					"por favor, mostre classifier entities",
+					"quero mostre classifier entities"
+				]
+			}
 		},
 		"classifier.tree.show": {
 			"brief": "Show classifier tree",
 			"description": "Show classifier tree",
 			"category": "classifier",
 			"exposure": "user",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Show classifier tree",
+					"Please show classifier tree",
+					"I want to show classifier tree (classifier in sf-classifier)"
+				],
+				"ru": [
+					"покажи classifier tree (classifier, sf-classifier)",
+					"пожалуйста, покажи classifier tree",
+					"мне нужно покажи classifier tree"
+				],
+				"de": [
+					"zeige classifier tree (classifier, sf-classifier)",
+					"bitte zeige classifier tree",
+					"ich möchte zeige classifier tree"
+				],
+				"fr": [
+					"affiche classifier tree (classifier, sf-classifier)",
+					"s’il te plaît, affiche classifier tree",
+					"je veux affiche classifier tree"
+				],
+				"es": [
+					"muestra classifier tree (classifier, sf-classifier)",
+					"por favor, muestra classifier tree",
+					"quiero muestra classifier tree"
+				],
+				"it": [
+					"mostra classifier tree (classifier, sf-classifier)",
+					"per favore, mostra classifier tree",
+					"voglio mostra classifier tree"
+				],
+				"pt": [
+					"mostre classifier tree (classifier, sf-classifier)",
+					"por favor, mostre classifier tree",
+					"quero mostre classifier tree"
+				]
+			}
 		}
 	}
 }

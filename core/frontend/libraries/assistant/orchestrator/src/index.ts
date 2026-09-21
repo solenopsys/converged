@@ -1,5 +1,5 @@
 import { createMachine } from "./machine";
-import { createFunctionSteps } from "./steps";
+import { createFunctionSteps, createSelectedFunctionSteps } from "./steps";
 import type {
 	OneShotAsk,
 	OrchestratorCatalog,
@@ -23,6 +23,21 @@ export { parseJsonObject, readString } from "./json";
 export type { Machine, MachineOptions } from "./machine";
 export { createMachine } from "./machine";
 export type {
+	CaseDecision,
+	CaseRouter,
+	ResonusCaseRouterOptions,
+} from "./case-router";
+export { createResonusCaseRouter, loadResonusCaseContext } from "./case-router";
+export type {
+	CaseAction,
+	CaseActionRoot,
+	CaseContext,
+	CaseLanguage,
+} from "./case-context";
+export { buildCaseContext, caseLanguage } from "./case-context";
+export type { CaseOrchestratorOptions } from "./case-orchestrator";
+export { createCaseOrchestrator } from "./case-orchestrator";
+export type {
 	ResonusCommandTransport,
 	ResonusSession,
 	ResonusSessionOptions,
@@ -39,7 +54,7 @@ export { createResonusCommandTransport } from "./resonus-transport";
 // budget and the engine that drives one turn end to end.
 export * from "./state";
 export type { FunctionStepsOptions } from "./steps";
-export { createFunctionSteps } from "./steps";
+export { createFunctionSteps, createSelectedFunctionSteps } from "./steps";
 export type { FilesIntent, FilesStepOptions, TurnFile } from "./steps-files";
 export { createFilesStep } from "./steps-files";
 export type {

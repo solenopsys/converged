@@ -1,18 +1,96 @@
 {
+	"root": {
+		"surface": "sf-threads",
+		"baseType": "threads"
+	},
 	"actions": {
 		"threads.show": {
 			"brief": "Show threads dashboard",
 			"description": "Show threads dashboard",
 			"category": "threads",
 			"exposure": "user",
-			"priority": "primary"
+			"priority": "primary",
+			"examples": {
+				"en": [
+					"Show threads dashboard",
+					"Please show threads dashboard",
+					"I want to show threads dashboard (threads in sf-threads)"
+				],
+				"ru": [
+					"покажи threads дашборд (threads, sf-threads)",
+					"пожалуйста, покажи threads дашборд",
+					"мне нужно покажи threads дашборд"
+				],
+				"de": [
+					"zeige threads Dashboard (threads, sf-threads)",
+					"bitte zeige threads Dashboard",
+					"ich möchte zeige threads Dashboard"
+				],
+				"fr": [
+					"affiche threads tableau de bord (threads, sf-threads)",
+					"s’il te plaît, affiche threads tableau de bord",
+					"je veux affiche threads tableau de bord"
+				],
+				"es": [
+					"muestra threads panel (threads, sf-threads)",
+					"por favor, muestra threads panel",
+					"quiero muestra threads panel"
+				],
+				"it": [
+					"mostra threads dashboard (threads, sf-threads)",
+					"per favore, mostra threads dashboard",
+					"voglio mostra threads dashboard"
+				],
+				"pt": [
+					"mostre threads painel (threads, sf-threads)",
+					"por favor, mostre threads painel",
+					"quero mostre threads painel"
+				]
+			}
 		},
 		"threads.view": {
 			"brief": "View a single thread",
 			"description": "View a single thread",
 			"category": "threads",
 			"exposure": "user",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"View a single thread",
+					"Please view a single thread",
+					"I want to view a single thread (threads in sf-threads)"
+				],
+				"ru": [
+					"покажи a single thread (threads, sf-threads)",
+					"пожалуйста, покажи a single thread",
+					"мне нужно покажи a single thread"
+				],
+				"de": [
+					"zeige a single thread (threads, sf-threads)",
+					"bitte zeige a single thread",
+					"ich möchte zeige a single thread"
+				],
+				"fr": [
+					"affiche a single thread (threads, sf-threads)",
+					"s’il te plaît, affiche a single thread",
+					"je veux affiche a single thread"
+				],
+				"es": [
+					"muestra a single thread (threads, sf-threads)",
+					"por favor, muestra a single thread",
+					"quiero muestra a single thread"
+				],
+				"it": [
+					"mostra a single thread (threads, sf-threads)",
+					"per favore, mostra a single thread",
+					"voglio mostra a single thread"
+				],
+				"pt": [
+					"mostre a single thread (threads, sf-threads)",
+					"por favor, mostre a single thread",
+					"quero mostre a single thread"
+				]
+			}
 		}
 	}
 }

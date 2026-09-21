@@ -188,6 +188,10 @@ export interface DecodeTable {
 export interface TurnRequest {
 	model: string;
 	maxTokens: number;
+	/** Adapter-defined operation; ordinary chat providers leave it absent. */
+	operation?: string;
+	/** Adapter-defined JSON input, passed through by the core without inspection. */
+	input?: unknown;
 	temperature?: number;
 	messages: UniformMessage[];
 	tools: UniformTool[];
@@ -210,6 +214,8 @@ export interface UniformTool {
 
 /** What an encoding hook returns: everything needed to put one request on the wire. */
 export interface WireRequest {
+	/** Optional path appended to the descriptor transport base URL. */
+	path?: string;
 	/** Absent for a session-oriented transport that already has its endpoint. */
 	url?: string;
 	method?: "POST" | "GET";

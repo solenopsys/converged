@@ -1,11 +1,52 @@
 {
+	"root": {
+		"surface": "sf-landing",
+		"baseType": "landing"
+	},
 	"actions": {
 		"landing.show.default": {
 			"brief": "Show landing",
 			"description": "Show landing",
 			"category": "landing",
 			"exposure": "user",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Show landing",
+					"Please show landing",
+					"I want to show landing (landing in sf-landing)"
+				],
+				"ru": [
+					"покажи лендинг (landing, sf-landing)",
+					"пожалуйста, покажи лендинг",
+					"мне нужно покажи лендинг"
+				],
+				"de": [
+					"zeige Landingpage (landing, sf-landing)",
+					"bitte zeige Landingpage",
+					"ich möchte zeige Landingpage"
+				],
+				"fr": [
+					"affiche page d’accueil (landing, sf-landing)",
+					"s’il te plaît, affiche page d’accueil",
+					"je veux affiche page d’accueil"
+				],
+				"es": [
+					"muestra página de inicio (landing, sf-landing)",
+					"por favor, muestra página de inicio",
+					"quiero muestra página de inicio"
+				],
+				"it": [
+					"mostra pagina iniziale (landing, sf-landing)",
+					"per favore, mostra pagina iniziale",
+					"voglio mostra pagina iniziale"
+				],
+				"pt": [
+					"mostre página inicial (landing, sf-landing)",
+					"por favor, mostre página inicial",
+					"quero mostre página inicial"
+				]
+			}
 		}
 	}
 }

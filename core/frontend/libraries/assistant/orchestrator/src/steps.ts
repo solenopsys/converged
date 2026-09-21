@@ -598,6 +598,19 @@ export function createFunctionSteps({
 	return [route, search, select, describe, args, invoke];
 }
 
+/**
+ * The tail used once a trusted router has already selected a catalog function.
+ * It deliberately contains no route/search/select step: only schema loading,
+ * argument extraction and the local invocation remain.
+ */
+export function createSelectedFunctionSteps(
+	options: FunctionStepsOptions,
+): ReadonlyArray<Step<PlanContext>> {
+	return createFunctionSteps(options).filter((step) =>
+		["describe", "args", "invoke"].includes(step.name),
+	);
+}
+
 function mergeCandidates(
 	catalog: OrchestratorCatalog,
 	userText: string,

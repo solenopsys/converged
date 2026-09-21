@@ -84,6 +84,11 @@ export function createResonusCommandTransport(
 			const reply = await channel.requestEnvelope(message(method, payload));
 			assertReply(method, reply);
 		},
+		async request(method, payload): Promise<unknown> {
+			const reply = await channel.requestEnvelope(message(method, payload));
+			assertReply(method, reply);
+			return reply.payload;
+		},
 		async *stream(method, payload): AsyncIterable<unknown> {
 			for await (const reply of channel.requestEnvelopeStream(
 				message(method, payload),

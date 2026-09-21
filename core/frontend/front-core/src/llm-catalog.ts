@@ -4,6 +4,18 @@ export type LlmCatalogParameters = {
 	required?: string[];
 };
 
+/** The stable surface boundary used by CASE to keep overlapping actions apart. */
+export type LlmCatalogRoot = {
+	surface: string;
+	baseType: string;
+};
+
+/** User utterances grouped by the UI language codes supported by the shell. */
+export type LlmCatalogExamples = Partial<Record<
+	"en" | "ru" | "de" | "fr" | "es" | "it" | "pt",
+	string[]
+>>;
+
 export type SurfaceLlmAction = {
 	brief: string;
 	category: string;
@@ -13,11 +25,13 @@ export type SurfaceLlmAction = {
 	access?: "public";
 	capability?: string;
 	parameters?: LlmCatalogParameters;
+	examples?: LlmCatalogExamples;
 };
 
 export type SurfaceLlmCatalog = {
 	/** Optional hand-written module summary; action descriptions are the fallback. */
 	description?: string;
+	root?: LlmCatalogRoot;
 	actions: Record<string, SurfaceLlmAction>;
 	patterns?: Array<{
 		prefix: string;

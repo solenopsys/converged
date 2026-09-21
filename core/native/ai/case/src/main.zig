@@ -5,6 +5,7 @@ const router = @import("router.zig");
 const Tokenizer = @import("tokenizer.zig").Tokenizer;
 
 const max_request_bytes = 2 * 1024 * 1024;
+const context_encode_batch_size = 32;
 
 pub fn main() !void {
     var gpa_state = std.heap.DebugAllocator(.{}){};
@@ -135,7 +136,7 @@ fn handleContext(allocator: std.mem.Allocator, model: *Model, contexts: *context
         index.deinit();
         allocator.destroy(index);
     }
-    const vectors = model.encode(texts.items) catch return respond(request, "{\"error\":\"model failed\"}", .internal_server_error);
+    const vectors = encodeContext(model, allocator, texts.items) catch return respond(request, "{\"error\":\"model failed\"}", .internal_server_error);
     defer allocator.free(vectors);
     if (meta.items.len > 0) {
         const dim = vectors.len / meta.items.len;
@@ -147,6 +148,22 @@ fn handleContext(allocator: std.mem.Allocator, model: *Model, contexts: *context
     const reply = try std.fmt.allocPrint(allocator, "{{\"key\":{f},\"sections\":{d},\"commands\":{d},\"vectors\":{d},\"enc_ms\":0.0,\"rss_mb\":{d}}}", .{ std.json.fmt(key, .{}), sections.len, command_count, index.entries.items.len, rssMb() });
     defer allocator.free(reply);
     return respond(request, reply, .ok);
+}
+
+// Keep context uploads bounded. ONNX Runtime retains its peak arena, so one
+// giant batch makes memory depend on the total number of examples.
+fn encodeContext(model: *Model, allocator: std.mem.Allocator, texts: []const []const u8) ![]f32 {
+    var vectors: std.ArrayList(f32) = .empty;
+    errdefer vectors.deinit(allocator);
+    var offset: usize = 0;
+    while (offset < texts.len) {
+        const end = @min(offset + context_encode_batch_size, texts.len);
+        const batch = try model.encode(texts[offset..end]);
+        defer allocator.free(batch);
+        try vectors.appendSlice(allocator, batch);
+        offset = end;
+    }
+    return vectors.toOwnedSlice(allocator);
 }
 
 fn handleRoute(allocator: std.mem.Allocator, model: *Model, contexts: *context.Contexts, request: *std.http.Server.Request, body: []const u8) !void {

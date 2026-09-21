@@ -18,6 +18,11 @@ bun run "$CONVERGED_ROOT/tools/nrpc/src/zig-generator.ts" \
     "$CONVERGED_ROOT/core/native/apps/resonus/src/generated/resonus_client.zig" \
     "transport"
 
+bun run "$CONVERGED_ROOT/tools/nrpc/src/zig-generator.ts" \
+    "$CONVERGED_ROOT/core/native/types/resonus.ts" \
+    "$CONVERGED_ROOT/core/native/apps/resonus/src/generated/resonus_nrpc.zig" \
+    "transport"
+
 # providers/dist is a build output, not a checked-in artifact: hooks.js and the
 # decode tables are what the gate evaluates at startup, and `zig build test`
 # embeds the tables to keep the format and its reader in sync.

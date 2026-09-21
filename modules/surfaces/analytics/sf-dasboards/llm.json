@@ -1,18 +1,96 @@
 {
+	"root": {
+		"surface": "sf-dasboards",
+		"baseType": "dashboard"
+	},
 	"actions": {
 		"dashboard.mount": {
 			"brief": "Mount dashboard",
 			"description": "Mount dashboard",
 			"category": "dashboard",
 			"exposure": "llm",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Mount dashboard",
+					"Please mount dashboard",
+					"I want to mount dashboard (dashboard in sf-dasboards)"
+				],
+				"ru": [
+					"открой дашборд (dashboard, sf-dasboards)",
+					"пожалуйста, открой дашборд",
+					"мне нужно открой дашборд"
+				],
+				"de": [
+					"öffne Dashboard (dashboard, sf-dasboards)",
+					"bitte öffne Dashboard",
+					"ich möchte öffne Dashboard"
+				],
+				"fr": [
+					"ouvre tableau de bord (dashboard, sf-dasboards)",
+					"s’il te plaît, ouvre tableau de bord",
+					"je veux ouvre tableau de bord"
+				],
+				"es": [
+					"abre panel (dashboard, sf-dasboards)",
+					"por favor, abre panel",
+					"quiero abre panel"
+				],
+				"it": [
+					"apri dashboard (dashboard, sf-dasboards)",
+					"per favore, apri dashboard",
+					"voglio apri dashboard"
+				],
+				"pt": [
+					"abra painel (dashboard, sf-dasboards)",
+					"por favor, abra painel",
+					"quero abra painel"
+				]
+			}
 		},
 		"dashboard.register_widget": {
 			"brief": "Register widget for dashboard",
 			"description": "Register widget for dashboard",
 			"category": "dashboard",
 			"exposure": "llm",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Register widget for dashboard",
+					"Please register widget for dashboard",
+					"I want to register widget for dashboard (dashboard in sf-dasboards)"
+				],
+				"ru": [
+					"зарегистрируй widget for дашборд (dashboard, sf-dasboards)",
+					"пожалуйста, зарегистрируй widget for дашборд",
+					"мне нужно зарегистрируй widget for дашборд"
+				],
+				"de": [
+					"registriere widget for Dashboard (dashboard, sf-dasboards)",
+					"bitte registriere widget for Dashboard",
+					"ich möchte registriere widget for Dashboard"
+				],
+				"fr": [
+					"enregistre widget for tableau de bord (dashboard, sf-dasboards)",
+					"s’il te plaît, enregistre widget for tableau de bord",
+					"je veux enregistre widget for tableau de bord"
+				],
+				"es": [
+					"registra widget for panel (dashboard, sf-dasboards)",
+					"por favor, registra widget for panel",
+					"quiero registra widget for panel"
+				],
+				"it": [
+					"registra widget for dashboard (dashboard, sf-dasboards)",
+					"per favore, registra widget for dashboard",
+					"voglio registra widget for dashboard"
+				],
+				"pt": [
+					"registre widget for painel (dashboard, sf-dasboards)",
+					"por favor, registre widget for painel",
+					"quero registre widget for painel"
+				]
+			}
 		}
 	}
 }

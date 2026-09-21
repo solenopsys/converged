@@ -1,25 +1,140 @@
 {
+	"root": {
+		"surface": "sf-logs",
+		"baseType": "logs"
+	},
 	"actions": {
 		"logs.hot.show": {
 			"brief": "Open the live log stream",
 			"description": "Open recent operational events, errors, warnings and activity still in hot storage.",
 			"category": "logs",
 			"exposure": "user",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Open the live log stream",
+					"Please open the live log stream",
+					"I want to open the live log stream (logs in sf-logs)"
+				],
+				"ru": [
+					"открой the live log stream (logs, sf-logs)",
+					"пожалуйста, открой the live log stream",
+					"мне нужно открой the live log stream"
+				],
+				"de": [
+					"öffne the live log stream (logs, sf-logs)",
+					"bitte öffne the live log stream",
+					"ich möchte öffne the live log stream"
+				],
+				"fr": [
+					"ouvre the live log stream (logs, sf-logs)",
+					"s’il te plaît, ouvre the live log stream",
+					"je veux ouvre the live log stream"
+				],
+				"es": [
+					"abre the live log stream (logs, sf-logs)",
+					"por favor, abre the live log stream",
+					"quiero abre the live log stream"
+				],
+				"it": [
+					"apri the live log stream (logs, sf-logs)",
+					"per favore, apri the live log stream",
+					"voglio apri the live log stream"
+				],
+				"pt": [
+					"abra the live log stream (logs, sf-logs)",
+					"por favor, abra the live log stream",
+					"quero abra the live log stream"
+				]
+			}
 		},
 		"logs.cold.show": {
 			"brief": "Open archived logs",
 			"description": "Open older operational events that are no longer in the live log stream.",
 			"category": "logs",
 			"exposure": "user",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Open archived logs",
+					"Please open archived logs",
+					"I want to open archived logs (logs in sf-logs)"
+				],
+				"ru": [
+					"открой archived журналы (logs, sf-logs)",
+					"пожалуйста, открой archived журналы",
+					"мне нужно открой archived журналы"
+				],
+				"de": [
+					"öffne archived Protokolle (logs, sf-logs)",
+					"bitte öffne archived Protokolle",
+					"ich möchte öffne archived Protokolle"
+				],
+				"fr": [
+					"ouvre archived journaux (logs, sf-logs)",
+					"s’il te plaît, ouvre archived journaux",
+					"je veux ouvre archived journaux"
+				],
+				"es": [
+					"abre archived registros (logs, sf-logs)",
+					"por favor, abre archived registros",
+					"quiero abre archived registros"
+				],
+				"it": [
+					"apri archived registri (logs, sf-logs)",
+					"per favore, apri archived registri",
+					"voglio apri archived registri"
+				],
+				"pt": [
+					"abra archived registros (logs, sf-logs)",
+					"por favor, abra archived registros",
+					"quero abra archived registros"
+				]
+			}
 		},
 		"logs.stats.show": {
 			"brief": "Open log volume statistics",
 			"description": "Open aggregate log counts for hot and archived storage, errors and warnings.",
 			"category": "logs",
 			"exposure": "user",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Open log volume statistics",
+					"Please open log volume statistics",
+					"I want to open log volume statistics (logs in sf-logs)"
+				],
+				"ru": [
+					"открой log volume статистику (logs, sf-logs)",
+					"пожалуйста, открой log volume статистику",
+					"мне нужно открой log volume статистику"
+				],
+				"de": [
+					"öffne log volume Statistiken (logs, sf-logs)",
+					"bitte öffne log volume Statistiken",
+					"ich möchte öffne log volume Statistiken"
+				],
+				"fr": [
+					"ouvre log volume statistiques (logs, sf-logs)",
+					"s’il te plaît, ouvre log volume statistiques",
+					"je veux ouvre log volume statistiques"
+				],
+				"es": [
+					"abre log volume estadísticas (logs, sf-logs)",
+					"por favor, abre log volume estadísticas",
+					"quiero abre log volume estadísticas"
+				],
+				"it": [
+					"apri log volume statistiche (logs, sf-logs)",
+					"per favore, apri log volume statistiche",
+					"voglio apri log volume statistiche"
+				],
+				"pt": [
+					"abra log volume estatísticas (logs, sf-logs)",
+					"por favor, abra log volume estatísticas",
+					"quero abra log volume estatísticas"
+				]
+			}
 		}
 	}
 }

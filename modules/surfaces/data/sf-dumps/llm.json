@@ -1,18 +1,96 @@
 {
+	"root": {
+		"surface": "sf-dumps",
+		"baseType": "dumps"
+	},
 	"actions": {
 		"dumps.list.show": {
 			"brief": "Show dump files",
 			"description": "Show dump files",
 			"category": "dumps",
 			"exposure": "user",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Show dump files",
+					"Please show dump files",
+					"I want to show dump files (dumps in sf-dumps)"
+				],
+				"ru": [
+					"покажи dump файлы (dumps, sf-dumps)",
+					"пожалуйста, покажи dump файлы",
+					"мне нужно покажи dump файлы"
+				],
+				"de": [
+					"zeige dump Dateien (dumps, sf-dumps)",
+					"bitte zeige dump Dateien",
+					"ich möchte zeige dump Dateien"
+				],
+				"fr": [
+					"affiche dump fichiers (dumps, sf-dumps)",
+					"s’il te plaît, affiche dump fichiers",
+					"je veux affiche dump fichiers"
+				],
+				"es": [
+					"muestra dump archivos (dumps, sf-dumps)",
+					"por favor, muestra dump archivos",
+					"quiero muestra dump archivos"
+				],
+				"it": [
+					"mostra dump file (dumps, sf-dumps)",
+					"per favore, mostra dump file",
+					"voglio mostra dump file"
+				],
+				"pt": [
+					"mostre dump arquivos (dumps, sf-dumps)",
+					"por favor, mostre dump arquivos",
+					"quero mostre dump arquivos"
+				]
+			}
 		},
 		"dumps.storages.show": {
 			"brief": "Show storage stats",
 			"description": "Show storage stats",
 			"category": "dumps",
 			"exposure": "user",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Show storage stats",
+					"Please show storage stats",
+					"I want to show storage stats (dumps in sf-dumps)"
+				],
+				"ru": [
+					"покажи storage статистику (dumps, sf-dumps)",
+					"пожалуйста, покажи storage статистику",
+					"мне нужно покажи storage статистику"
+				],
+				"de": [
+					"zeige storage Statistiken (dumps, sf-dumps)",
+					"bitte zeige storage Statistiken",
+					"ich möchte zeige storage Statistiken"
+				],
+				"fr": [
+					"affiche storage statistiques (dumps, sf-dumps)",
+					"s’il te plaît, affiche storage statistiques",
+					"je veux affiche storage statistiques"
+				],
+				"es": [
+					"muestra storage estadísticas (dumps, sf-dumps)",
+					"por favor, muestra storage estadísticas",
+					"quiero muestra storage estadísticas"
+				],
+				"it": [
+					"mostra storage statistiche (dumps, sf-dumps)",
+					"per favore, mostra storage statistiche",
+					"voglio mostra storage statistiche"
+				],
+				"pt": [
+					"mostre storage estatísticas (dumps, sf-dumps)",
+					"por favor, mostre storage estatísticas",
+					"quero mostre storage estatísticas"
+				]
+			}
 		}
 	}
 }

@@ -1,4 +1,8 @@
 {
+	"root": {
+		"surface": "sf-chats",
+		"baseType": "chats"
+	},
 	"description": "Chat rooms, their conversations and their membership.",
 	"actions": {
 		"chats.chat.create": {
@@ -6,28 +10,176 @@
 			"description": "Create a chat room and add its first members",
 			"category": "chats",
 			"exposure": "user",
-			"priority": "primary"
+			"priority": "primary",
+			"examples": {
+				"en": [
+					"Create a chat room",
+					"Please create a chat room",
+					"I want to create a chat room (chats in sf-chats)"
+				],
+				"ru": [
+					"создай a чат room (chats, sf-chats)",
+					"пожалуйста, создай a чат room",
+					"мне нужно создай a чат room"
+				],
+				"de": [
+					"erstelle a Chat room (chats, sf-chats)",
+					"bitte erstelle a Chat room",
+					"ich möchte erstelle a Chat room"
+				],
+				"fr": [
+					"crée a discussion room (chats, sf-chats)",
+					"s’il te plaît, crée a discussion room",
+					"je veux crée a discussion room"
+				],
+				"es": [
+					"crea a chat room (chats, sf-chats)",
+					"por favor, crea a chat room",
+					"quiero crea a chat room"
+				],
+				"it": [
+					"crea a chat room (chats, sf-chats)",
+					"per favore, crea a chat room",
+					"voglio crea a chat room"
+				],
+				"pt": [
+					"crie a chat room (chats, sf-chats)",
+					"por favor, crie a chat room",
+					"quero crie a chat room"
+				]
+			}
 		},
 		"chats.chat.members": {
 			"brief": "Show room members",
 			"description": "Open the membership of a chat room as its own tab",
 			"category": "chats",
 			"exposure": "user",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Show room members",
+					"Please show room members",
+					"I want to show room members (chats in sf-chats)"
+				],
+				"ru": [
+					"покажи room участников (chats, sf-chats)",
+					"пожалуйста, покажи room участников",
+					"мне нужно покажи room участников"
+				],
+				"de": [
+					"zeige room members (chats, sf-chats)",
+					"bitte zeige room members",
+					"ich möchte zeige room members"
+				],
+				"fr": [
+					"affiche room members (chats, sf-chats)",
+					"s’il te plaît, affiche room members",
+					"je veux affiche room members"
+				],
+				"es": [
+					"muestra room members (chats, sf-chats)",
+					"por favor, muestra room members",
+					"quiero muestra room members"
+				],
+				"it": [
+					"mostra room members (chats, sf-chats)",
+					"per favore, mostra room members",
+					"voglio mostra room members"
+				],
+				"pt": [
+					"mostre room members (chats, sf-chats)",
+					"por favor, mostre room members",
+					"quero mostre room members"
+				]
+			}
 		},
 		"chats.member.add": {
 			"brief": "Add a member to a room",
 			"description": "Add a user to a chat room, optionally with a role",
 			"category": "chats",
 			"exposure": "user",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Add a member to a room",
+					"Please add a member to a room",
+					"I want to add a member to a room (chats in sf-chats)"
+				],
+				"ru": [
+					"добавь a участника to a room (chats, sf-chats)",
+					"пожалуйста, добавь a участника to a room",
+					"мне нужно добавь a участника to a room"
+				],
+				"de": [
+					"füge hinzu a member to a room (chats, sf-chats)",
+					"bitte füge hinzu a member to a room",
+					"ich möchte füge hinzu a member to a room"
+				],
+				"fr": [
+					"ajoute a member to a room (chats, sf-chats)",
+					"s’il te plaît, ajoute a member to a room",
+					"je veux ajoute a member to a room"
+				],
+				"es": [
+					"añade a member to a room (chats, sf-chats)",
+					"por favor, añade a member to a room",
+					"quiero añade a member to a room"
+				],
+				"it": [
+					"aggiungi a member to a room (chats, sf-chats)",
+					"per favore, aggiungi a member to a room",
+					"voglio aggiungi a member to a room"
+				],
+				"pt": [
+					"adicione a member to a room (chats, sf-chats)",
+					"por favor, adicione a member to a room",
+					"quero adicione a member to a room"
+				]
+			}
 		},
 		"chats.member.remove": {
 			"brief": "Remove a member from a room",
 			"description": "Remove a user from a chat room",
 			"category": "chats",
 			"exposure": "user",
-			"priority": "secondary"
+			"priority": "secondary",
+			"examples": {
+				"en": [
+					"Remove a member from a room",
+					"Please remove a member from a room",
+					"I want to remove a member from a room (chats in sf-chats)"
+				],
+				"ru": [
+					"удали a участника from a room (chats, sf-chats)",
+					"пожалуйста, удали a участника from a room",
+					"мне нужно удали a участника from a room"
+				],
+				"de": [
+					"entferne a member from a room (chats, sf-chats)",
+					"bitte entferne a member from a room",
+					"ich möchte entferne a member from a room"
+				],
+				"fr": [
+					"retire a member from a room (chats, sf-chats)",
+					"s’il te plaît, retire a member from a room",
+					"je veux retire a member from a room"
+				],
+				"es": [
+					"quita a member from a room (chats, sf-chats)",
+					"por favor, quita a member from a room",
+					"quiero quita a member from a room"
+				],
+				"it": [
+					"rimuovi a member from a room (chats, sf-chats)",
+					"per favore, rimuovi a member from a room",
+					"voglio rimuovi a member from a room"
+				],
+				"pt": [
+					"remova a member from a room (chats, sf-chats)",
+					"por favor, remova a member from a room",
+					"quero remova a member from a room"
+				]
+			}
 		}
 	}
 }

@@ -75,6 +75,40 @@ QuickJS should be business logic, and anything heavy stays in Zig.
 | `anthropic` | Messages | `${secret:anthropic}` → `ANTHROPIC_API_KEY` |
 | `gemini` | generateContent | `${secret:gemini}` → `GEMINI_API_KEY` |
 | `openai-realtime` | Realtime WebSocket + SDP | `${secret:openai}` → `OPENAI_API_KEY` |
+| `case` | CASE command router | `CASE_URL` |
+
+### CASE operations
+
+CASE is an adapter, not a Zig special case. The base provider request carries
+an optional `operation` and JSON `input`; the descriptor chooses the endpoint
+path and encodes the request. The generic engine owns the HTTP call.
+
+Load an in-memory CASE context:
+
+```json
+{
+  "provider": "case",
+  "model": "case",
+  "maxTokens": 1,
+  "messages": [],
+  "operation": "context.load",
+  "input": { "key": "club", "sections": [] }
+}
+```
+
+Route a user message. `input.text` is optional; without it the adapter uses
+the last `user` message. An `EXECUTE` response is returned as a normal uniform
+tool call whose `name` is the CASE command id.
+
+```json
+{
+  "provider": "case",
+  "model": "case",
+  "maxTokens": 1,
+  "messages": [{ "role": "user", "content": "show incoming mail" }],
+  "input": { "context": "club", "language": "en" }
+}
+```
 
 `openrouter` shares OpenAI's decode table verbatim — same `choices[].delta`
 frames, same `[DONE]` sentinel — and differs only in the request body, which its

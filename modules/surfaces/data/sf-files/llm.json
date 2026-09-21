@@ -1,4 +1,8 @@
 {
+	"root": {
+		"surface": "sf-files",
+		"baseType": "files"
+	},
 	"actions": {
 		"files.file.upload": {
 			"brief": "Upload files from the console",
@@ -6,7 +10,47 @@
 			"category": "files",
 			"exposure": "llm",
 			"priority": "primary",
-			"parameters": { "type": "object", "properties": {} }
+			"parameters": {
+				"type": "object",
+				"properties": {}
+			},
+			"examples": {
+				"en": [
+					"Upload files from the console",
+					"Please upload files from the console",
+					"I want to upload files from the console (files in sf-files)"
+				],
+				"ru": [
+					"загрузи файлы from the console (files, sf-files)",
+					"пожалуйста, загрузи файлы from the console",
+					"мне нужно загрузи файлы from the console"
+				],
+				"de": [
+					"lade hoch Dateien from the console (files, sf-files)",
+					"bitte lade hoch Dateien from the console",
+					"ich möchte lade hoch Dateien from the console"
+				],
+				"fr": [
+					"téléverse fichiers from the console (files, sf-files)",
+					"s’il te plaît, téléverse fichiers from the console",
+					"je veux téléverse fichiers from the console"
+				],
+				"es": [
+					"sube archivos from the console (files, sf-files)",
+					"por favor, sube archivos from the console",
+					"quiero sube archivos from the console"
+				],
+				"it": [
+					"carica file from the console (files, sf-files)",
+					"per favore, carica file from the console",
+					"voglio carica file from the console"
+				],
+				"pt": [
+					"envie arquivos from the console (files, sf-files)",
+					"por favor, envie arquivos from the console",
+					"quero envie arquivos from the console"
+				]
+			}
 		},
 		"files.file.download": {
 			"brief": "Download a file",
@@ -14,7 +58,47 @@
 			"category": "files",
 			"exposure": "llm",
 			"priority": "primary",
-			"parameters": { "type": "object", "properties": {} }
+			"parameters": {
+				"type": "object",
+				"properties": {}
+			},
+			"examples": {
+				"en": [
+					"Download a file",
+					"Please download a file",
+					"I want to download a file (files in sf-files)"
+				],
+				"ru": [
+					"скачай a файл (files, sf-files)",
+					"пожалуйста, скачай a файл",
+					"мне нужно скачай a файл"
+				],
+				"de": [
+					"lade herunter a Datei (files, sf-files)",
+					"bitte lade herunter a Datei",
+					"ich möchte lade herunter a Datei"
+				],
+				"fr": [
+					"télécharge a fichier (files, sf-files)",
+					"s’il te plaît, télécharge a fichier",
+					"je veux télécharge a fichier"
+				],
+				"es": [
+					"descarga a archivo (files, sf-files)",
+					"por favor, descarga a archivo",
+					"quiero descarga a archivo"
+				],
+				"it": [
+					"scarica a file (files, sf-files)",
+					"per favore, scarica a file",
+					"voglio scarica a file"
+				],
+				"pt": [
+					"baixe a arquivo (files, sf-files)",
+					"por favor, baixe a arquivo",
+					"quero baixe a arquivo"
+				]
+			}
 		},
 		"files.file.setCollection": {
 			"brief": "Move a file into a collection",
@@ -25,8 +109,47 @@
 			"parameters": {
 				"type": "object",
 				"properties": {
-					"collectionId": { "type": "string" }
+					"collectionId": {
+						"type": "string"
+					}
 				}
+			},
+			"examples": {
+				"en": [
+					"Move a file into a collection",
+					"Please move a file into a collection",
+					"I want to move a file into a collection (files in sf-files)"
+				],
+				"ru": [
+					"перемести a файл into a коллекцию (files, sf-files)",
+					"пожалуйста, перемести a файл into a коллекцию",
+					"мне нужно перемести a файл into a коллекцию"
+				],
+				"de": [
+					"verschiebe a Datei into a Sammlung (files, sf-files)",
+					"bitte verschiebe a Datei into a Sammlung",
+					"ich möchte verschiebe a Datei into a Sammlung"
+				],
+				"fr": [
+					"déplace a fichier into a collection (files, sf-files)",
+					"s’il te plaît, déplace a fichier into a collection",
+					"je veux déplace a fichier into a collection"
+				],
+				"es": [
+					"mueve a archivo into a colección (files, sf-files)",
+					"por favor, mueve a archivo into a colección",
+					"quiero mueve a archivo into a colección"
+				],
+				"it": [
+					"sposta a file into a raccolta (files, sf-files)",
+					"per favore, sposta a file into a raccolta",
+					"voglio sposta a file into a raccolta"
+				],
+				"pt": [
+					"mova a arquivo into a coleção (files, sf-files)",
+					"por favor, mova a arquivo into a coleção",
+					"quero mova a arquivo into a coleção"
+				]
 			}
 		},
 		"files.file.delete": {
@@ -35,7 +158,47 @@
 			"category": "files",
 			"exposure": "llm",
 			"priority": "normal",
-			"parameters": { "type": "object", "properties": {} }
+			"parameters": {
+				"type": "object",
+				"properties": {}
+			},
+			"examples": {
+				"en": [
+					"Delete a file",
+					"Please delete a file",
+					"I want to delete a file (files in sf-files)"
+				],
+				"ru": [
+					"удали a файл (files, sf-files)",
+					"пожалуйста, удали a файл",
+					"мне нужно удали a файл"
+				],
+				"de": [
+					"lösche a Datei (files, sf-files)",
+					"bitte lösche a Datei",
+					"ich möchte lösche a Datei"
+				],
+				"fr": [
+					"supprime a fichier (files, sf-files)",
+					"s’il te plaît, supprime a fichier",
+					"je veux supprime a fichier"
+				],
+				"es": [
+					"elimina a archivo (files, sf-files)",
+					"por favor, elimina a archivo",
+					"quiero elimina a archivo"
+				],
+				"it": [
+					"elimina a file (files, sf-files)",
+					"per favore, elimina a file",
+					"voglio elimina a file"
+				],
+				"pt": [
+					"exclua a arquivo (files, sf-files)",
+					"por favor, exclua a arquivo",
+					"quero exclua a arquivo"
+				]
+			}
 		},
 		"files.collection.create": {
 			"brief": "Create a file collection",
@@ -46,10 +209,53 @@
 			"parameters": {
 				"type": "object",
 				"properties": {
-					"name": { "type": "string" },
-					"description": { "type": "string" }
+					"name": {
+						"type": "string"
+					},
+					"description": {
+						"type": "string"
+					}
 				},
-				"required": ["name"]
+				"required": [
+					"name"
+				]
+			},
+			"examples": {
+				"en": [
+					"Create a file collection",
+					"Please create a file collection",
+					"I want to create a file collection (files in sf-files)"
+				],
+				"ru": [
+					"создай a файл коллекцию (files, sf-files)",
+					"пожалуйста, создай a файл коллекцию",
+					"мне нужно создай a файл коллекцию"
+				],
+				"de": [
+					"erstelle a Datei Sammlung (files, sf-files)",
+					"bitte erstelle a Datei Sammlung",
+					"ich möchte erstelle a Datei Sammlung"
+				],
+				"fr": [
+					"crée a fichier collection (files, sf-files)",
+					"s’il te plaît, crée a fichier collection",
+					"je veux crée a fichier collection"
+				],
+				"es": [
+					"crea a archivo colección (files, sf-files)",
+					"por favor, crea a archivo colección",
+					"quiero crea a archivo colección"
+				],
+				"it": [
+					"crea a file raccolta (files, sf-files)",
+					"per favore, crea a file raccolta",
+					"voglio crea a file raccolta"
+				],
+				"pt": [
+					"crie a arquivo coleção (files, sf-files)",
+					"por favor, crie a arquivo coleção",
+					"quero crie a arquivo coleção"
+				]
 			}
 		}
 	}

@@ -1,18 +1,96 @@
 {
+	"root": {
+		"surface": "sf-markdown",
+		"baseType": "markdown"
+	},
 	"actions": {
 		"markdown.list": {
 			"brief": "Show markdown files list",
 			"description": "Show markdown files list",
 			"category": "markdown",
 			"exposure": "user",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Show markdown files list",
+					"Please show markdown files list",
+					"I want to show markdown files list (markdown in sf-markdown)"
+				],
+				"ru": [
+					"покажи Markdown файлы покажи список (markdown, sf-markdown)",
+					"пожалуйста, покажи Markdown файлы покажи список",
+					"мне нужно покажи Markdown файлы покажи список"
+				],
+				"de": [
+					"zeige Markdown Dateien zeige die Liste (markdown, sf-markdown)",
+					"bitte zeige Markdown Dateien zeige die Liste",
+					"ich möchte zeige Markdown Dateien zeige die Liste"
+				],
+				"fr": [
+					"affiche Markdown fichiers affiche la liste (markdown, sf-markdown)",
+					"s’il te plaît, affiche Markdown fichiers affiche la liste",
+					"je veux affiche Markdown fichiers affiche la liste"
+				],
+				"es": [
+					"muestra Markdown archivos muestra la lista (markdown, sf-markdown)",
+					"por favor, muestra Markdown archivos muestra la lista",
+					"quiero muestra Markdown archivos muestra la lista"
+				],
+				"it": [
+					"mostra Markdown file mostra l’elenco (markdown, sf-markdown)",
+					"per favore, mostra Markdown file mostra l’elenco",
+					"voglio mostra Markdown file mostra l’elenco"
+				],
+				"pt": [
+					"mostre Markdown arquivos mostre a lista (markdown, sf-markdown)",
+					"por favor, mostre Markdown arquivos mostre a lista",
+					"quero mostre Markdown arquivos mostre a lista"
+				]
+			}
 		},
 		"markdown.edit": {
 			"brief": "Edit markdown file",
 			"description": "Edit markdown file",
 			"category": "markdown",
 			"exposure": "llm",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Edit markdown file",
+					"Please edit markdown file",
+					"I want to edit markdown file (markdown in sf-markdown)"
+				],
+				"ru": [
+					"измени Markdown файл (markdown, sf-markdown)",
+					"пожалуйста, измени Markdown файл",
+					"мне нужно измени Markdown файл"
+				],
+				"de": [
+					"bearbeite Markdown Datei (markdown, sf-markdown)",
+					"bitte bearbeite Markdown Datei",
+					"ich möchte bearbeite Markdown Datei"
+				],
+				"fr": [
+					"modifie Markdown fichier (markdown, sf-markdown)",
+					"s’il te plaît, modifie Markdown fichier",
+					"je veux modifie Markdown fichier"
+				],
+				"es": [
+					"edita Markdown archivo (markdown, sf-markdown)",
+					"por favor, edita Markdown archivo",
+					"quiero edita Markdown archivo"
+				],
+				"it": [
+					"modifica Markdown file (markdown, sf-markdown)",
+					"per favore, modifica Markdown file",
+					"voglio modifica Markdown file"
+				],
+				"pt": [
+					"edite Markdown arquivo (markdown, sf-markdown)",
+					"por favor, edite Markdown arquivo",
+					"quero edite Markdown arquivo"
+				]
+			}
 		}
 	}
 }

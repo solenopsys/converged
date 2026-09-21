@@ -1,4 +1,8 @@
 {
+	"root": {
+		"surface": "sf-community",
+		"baseType": "community"
+	},
 	"description": "Forum sections and topics. A section lists its topics; a topic is one discussion thread.",
 	"actions": {
 		"community.section.create": {
@@ -6,28 +10,176 @@
 			"description": "Add a forum section and open the list of its topics",
 			"category": "community",
 			"exposure": "user",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Create a forum section",
+					"Please create a forum section",
+					"I want to create a forum section (community in sf-community)"
+				],
+				"ru": [
+					"создай a forum section (community, sf-community)",
+					"пожалуйста, создай a forum section",
+					"мне нужно создай a forum section"
+				],
+				"de": [
+					"erstelle a forum section (community, sf-community)",
+					"bitte erstelle a forum section",
+					"ich möchte erstelle a forum section"
+				],
+				"fr": [
+					"crée a forum section (community, sf-community)",
+					"s’il te plaît, crée a forum section",
+					"je veux crée a forum section"
+				],
+				"es": [
+					"crea a forum section (community, sf-community)",
+					"por favor, crea a forum section",
+					"quiero crea a forum section"
+				],
+				"it": [
+					"crea a forum section (community, sf-community)",
+					"per favore, crea a forum section",
+					"voglio crea a forum section"
+				],
+				"pt": [
+					"crie a forum section (community, sf-community)",
+					"por favor, crie a forum section",
+					"quero crie a forum section"
+				]
+			}
 		},
 		"community.section.delete": {
 			"brief": "Delete a forum section",
 			"description": "Delete a section together with every topic under it",
 			"category": "community",
 			"exposure": "user",
-			"priority": "secondary"
+			"priority": "secondary",
+			"examples": {
+				"en": [
+					"Delete a forum section",
+					"Please delete a forum section",
+					"I want to delete a forum section (community in sf-community)"
+				],
+				"ru": [
+					"удали a forum section (community, sf-community)",
+					"пожалуйста, удали a forum section",
+					"мне нужно удали a forum section"
+				],
+				"de": [
+					"lösche a forum section (community, sf-community)",
+					"bitte lösche a forum section",
+					"ich möchte lösche a forum section"
+				],
+				"fr": [
+					"supprime a forum section (community, sf-community)",
+					"s’il te plaît, supprime a forum section",
+					"je veux supprime a forum section"
+				],
+				"es": [
+					"elimina a forum section (community, sf-community)",
+					"por favor, elimina a forum section",
+					"quiero elimina a forum section"
+				],
+				"it": [
+					"elimina a forum section (community, sf-community)",
+					"per favore, elimina a forum section",
+					"voglio elimina a forum section"
+				],
+				"pt": [
+					"exclua a forum section (community, sf-community)",
+					"por favor, exclua a forum section",
+					"quero exclua a forum section"
+				]
+			}
 		},
 		"community.topic.create": {
 			"brief": "Start a forum topic",
 			"description": "Create a topic in a section and write its opening post",
 			"category": "community",
 			"exposure": "user",
-			"priority": "primary"
+			"priority": "primary",
+			"examples": {
+				"en": [
+					"Start a forum topic",
+					"Please start a forum topic",
+					"I want to start a forum topic (community in sf-community)"
+				],
+				"ru": [
+					"запусти a forum topic (community, sf-community)",
+					"пожалуйста, запусти a forum topic",
+					"мне нужно запусти a forum topic"
+				],
+				"de": [
+					"starte a forum topic (community, sf-community)",
+					"bitte starte a forum topic",
+					"ich möchte starte a forum topic"
+				],
+				"fr": [
+					"démarre a forum topic (community, sf-community)",
+					"s’il te plaît, démarre a forum topic",
+					"je veux démarre a forum topic"
+				],
+				"es": [
+					"inicia a forum topic (community, sf-community)",
+					"por favor, inicia a forum topic",
+					"quiero inicia a forum topic"
+				],
+				"it": [
+					"avvia a forum topic (community, sf-community)",
+					"per favore, avvia a forum topic",
+					"voglio avvia a forum topic"
+				],
+				"pt": [
+					"inicie a forum topic (community, sf-community)",
+					"por favor, inicie a forum topic",
+					"quero inicie a forum topic"
+				]
+			}
 		},
 		"community.topic.set-flags": {
 			"brief": "Pin, lock or archive a topic",
 			"description": "Change the moderation flags of one forum topic",
 			"category": "community",
 			"exposure": "user",
-			"priority": "normal"
+			"priority": "normal",
+			"examples": {
+				"en": [
+					"Pin, lock or archive a topic",
+					"Please pin, lock or archive a topic",
+					"I want to manage pin lock or archive a topic (community in sf-community)"
+				],
+				"ru": [
+					"настрой pin lock or archive a topic (community, sf-community)",
+					"пожалуйста, настрой pin lock or archive a topic",
+					"мне нужно настрой pin lock or archive a topic"
+				],
+				"de": [
+					"verwalte pin lock or archive a topic (community, sf-community)",
+					"bitte verwalte pin lock or archive a topic",
+					"ich möchte verwalte pin lock or archive a topic"
+				],
+				"fr": [
+					"gère pin lock or archive a topic (community, sf-community)",
+					"s’il te plaît, gère pin lock or archive a topic",
+					"je veux gère pin lock or archive a topic"
+				],
+				"es": [
+					"gestiona pin lock or archive a topic (community, sf-community)",
+					"por favor, gestiona pin lock or archive a topic",
+					"quiero gestiona pin lock or archive a topic"
+				],
+				"it": [
+					"gestisci pin lock or archive a topic (community, sf-community)",
+					"per favore, gestisci pin lock or archive a topic",
+					"voglio gestisci pin lock or archive a topic"
+				],
+				"pt": [
+					"gerencie pin lock or archive a topic (community, sf-community)",
+					"por favor, gerencie pin lock or archive a topic",
+					"quero gerencie pin lock or archive a topic"
+				]
+			}
 		}
 	}
 }

@@ -33,6 +33,7 @@ function transport(
 					throw new Error(options.failCommand.reason);
 				}
 			},
+			request: async () => ({}),
 			stream: async function* (method, payload) {
 				const attempt = streams.length;
 				streams.push({ method, payload });

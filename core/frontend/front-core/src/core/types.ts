@@ -19,6 +19,16 @@ export type ActionParameters = {
 	required?: string[];
 };
 
+export type ActionRoot = {
+	surface: string;
+	baseType: string;
+};
+
+export type ActionExamples = Partial<Record<
+	"en" | "ru" | "de" | "fr" | "es" | "it" | "pt",
+	string[]
+>>;
+
 export type ActionMeta = {
 	id: string;
 	/** Public actions are the exception. Every other action requires an account session. */
@@ -35,6 +45,9 @@ export type ActionMeta = {
 	priority?: ActionPriority;
 	/** Argument schema exposed to the assistant before the action is invoked. */
 	parameters?: ActionParameters;
+	/** Surface boundary and language-specific user utterances for CASE routing. */
+	root?: ActionRoot;
+	examples?: ActionExamples;
 };
 
 export type Widget<V = Record<string, unknown>> = {
