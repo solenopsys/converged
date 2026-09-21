@@ -1,6 +1,7 @@
 const std = @import("std");
 
 const wrapper_out_dir = "../../wrappers/ai/onnxruntime/zig-out";
+const opus_out_dir = "../../wrappers/protocols/opus/zig-out";
 
 fn targetTriple(b: *std.Build, target: std.Build.ResolvedTarget) []const u8 {
     const arch = switch (target.result.cpu.arch) {
@@ -14,6 +15,25 @@ fn targetTriple(b: *std.Build, target: std.Build.ResolvedTarget) []const u8 {
         else => @panic("SPEACH supports gnu and musl Linux only"),
     };
     return b.fmt("{s}-linux-{s}", .{ arch, abi });
+}
+
+// Vendored libopus, same per-target idea as the ONNX wrapper above:
+// wrappers/protocols/opus/zig-out/lib/libopus-<arch>-<libc>.so
+// (`zig build -Dall=true` over there also drops plain libopus.so for the
+// native triple; the container build uses the explicit triple name).
+fn opusLibPath(b: *std.Build, target: std.Build.ResolvedTarget) []const u8 {
+    _ = target;
+    return b.fmt("{s}/lib/libopus.so", .{opus_out_dir});
+}
+
+fn linkOpus(b: *std.Build, exe: *std.Build.Step.Compile, target: std.Build.ResolvedTarget) void {
+    _ = target;
+    // Link against the plain-soname build of the current triple; build.zig
+    // installs it as libopus.so so DT_NEEDED is triple-independent and the
+    // container only carries one file. (The triple-suffixed copies in the
+    // wrapper's zig-out are for the -Dall=true artifacts flow.)
+    exe.root_module.addLibraryPath(.{ .cwd_relative = b.fmt("{s}/lib", .{opus_out_dir}) });
+    exe.root_module.linkSystemLibrary("opus", .{});
 }
 
 pub fn build(b: *std.Build) void {
@@ -39,6 +59,7 @@ pub fn build(b: *std.Build) void {
     exe.root_module.addLibraryPath(.{ .cwd_relative = lib_dir });
     exe.root_module.addRPathSpecial("$ORIGIN/lib");
     exe.root_module.linkSystemLibrary("onnxruntime", .{});
+    linkOpus(b, exe, target);
     exe.root_module.link_libc = true;
     const install_lib = b.addInstallFileWithDir(
         .{ .cwd_relative = b.fmt("{s}/libonnxruntime.so", .{lib_dir}) },
@@ -46,6 +67,12 @@ pub fn build(b: *std.Build) void {
         "libonnxruntime.so",
     );
     b.getInstallStep().dependOn(&install_lib.step);
+    const install_opus = b.addInstallFileWithDir(
+        .{ .cwd_relative = opusLibPath(b, target) },
+        .lib,
+        "libopus.so",
+    );
+    b.getInstallStep().dependOn(&install_opus.step);
     b.installArtifact(exe);
     const run = b.addRunArtifact(exe);
     run.step.dependOn(b.getInstallStep());

@@ -31,8 +31,7 @@
       "message.put": "w",
       "context.create": "w",
       "context.delete": "w",
-      "case": "w",
-      "params": "w",
+      "provider.complete": "w",
       "llm.generate": "w"
     }
   },

@@ -25,7 +25,7 @@ export async function loadResonusCaseContext(
 	transport: ResonusCommandTransport,
 	context: CaseContext,
 ): Promise<void> {
-	await transport.request("case", {
+	await transport.request("provider.complete", {
 		provider: "case",
 		model: "case",
 		maxTokens: 1,
@@ -46,7 +46,7 @@ export function createResonusCaseRouter({
 }: ResonusCaseRouterOptions): CaseRouter {
 	return {
 		async route(text): Promise<CaseDecision | undefined> {
-			const reply = (await transport.request("case", {
+			const reply = (await transport.request("provider.complete", {
 				provider: "case",
 				model: "case",
 				maxTokens: 1,

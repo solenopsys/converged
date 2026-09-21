@@ -22,8 +22,7 @@ pub const method_policies = [_]transport.auth.authorize.MethodPolicy{
     .{ .kind = "ap", .service = service, .method = "context.create", .level = .user, .mode = null },
     .{ .kind = "ap", .service = service, .method = "context.replace", .level = .user, .mode = null },
     .{ .kind = "ap", .service = service, .method = "context.delete", .level = .user, .mode = null },
-    .{ .kind = "ap", .service = service, .method = "case", .level = .user, .mode = null },
-    .{ .kind = "ap", .service = service, .method = "params", .level = .user, .mode = null },
+    .{ .kind = "ap", .service = service, .method = "provider.complete", .level = .user, .mode = null },
     .{ .kind = "ap", .service = service, .method = "llm.generate", .level = .user, .mode = null },
     .{ .kind = "ap", .service = service, .method = "dictation.start", .level = .user, .mode = null },
     .{ .kind = "ap", .service = service, .method = "dictation.stop", .level = .user, .mode = null },
@@ -204,7 +203,7 @@ pub fn context_delete(
     }, completion);
 }
 
-pub fn case(
+pub fn provider_complete(
     runtime: *transport.Runtime,
     scope: []const u8,
     body: []const u8,
@@ -212,21 +211,7 @@ pub fn case(
 ) !void {
     return runtime.request(.{
         .service = service,
-        .method = "case",
-        .scope = scope,
-        .body = body,
-    }, completion);
-}
-
-pub fn params(
-    runtime: *transport.Runtime,
-    scope: []const u8,
-    body: []const u8,
-    completion: transport.RuntimeCompletion,
-) !void {
-    return runtime.request(.{
-        .service = service,
-        .method = "params",
+        .method = "provider.complete",
         .scope = scope,
         .body = body,
     }, completion);

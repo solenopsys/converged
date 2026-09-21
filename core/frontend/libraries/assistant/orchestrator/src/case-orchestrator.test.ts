@@ -51,7 +51,7 @@ describe("CASE surface flow", () => {
 		});
 		expect(requests).toEqual([
 			{
-				method: "case",
+				method: "provider.complete",
 				payload: {
 					provider: "case",
 					model: "case",
@@ -79,7 +79,7 @@ describe("CASE surface flow", () => {
 		});
 		expect(requests).toEqual([
 			{
-				method: "case",
+				method: "provider.complete",
 				payload: {
 					provider: "case",
 					model: "case",

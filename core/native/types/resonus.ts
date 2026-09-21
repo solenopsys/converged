@@ -12,8 +12,7 @@ export interface ResonusService {
   "context.create"(payload: Record<string, unknown>): Promise<unknown>;
   "context.replace"(payload: Record<string, unknown>): Promise<unknown>;
   "context.delete"(payload: Record<string, unknown>): Promise<unknown>;
-  "case"(payload: Record<string, unknown>): Promise<unknown>;
-  "params"(payload: Record<string, unknown>): Promise<unknown>;
+  "provider.complete"(payload: Record<string, unknown>): Promise<unknown>;
   "llm.generate"(payload: Record<string, unknown>): Promise<unknown>;
   "dictation.start"(payload: Record<string, unknown>): Promise<unknown>;
   "dictation.stop"(payload: Record<string, unknown>): Promise<unknown>;
