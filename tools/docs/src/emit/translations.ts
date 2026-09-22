@@ -58,6 +58,14 @@ export async function emitTranslations(
 	} = config.translation;
 	const dir = target.replace(/\/[^/]+$/, "");
 	const projects: Project[] = [];
+	const sectionOwners = new Map<string, Set<string>>();
+	for (const root of summary.roots) {
+		for (const section of root.sections) {
+			const owners = sectionOwners.get(section) ?? new Set<string>();
+			owners.add(root.owner);
+			sectionOwners.set(section, owners);
+		}
+	}
 	const sourceFiles = (root: DocsRoot): string[] =>
 		[
 			...new Set(
@@ -72,6 +80,15 @@ export async function emitTranslations(
 
 	for (const root of summary.roots) {
 		const docsCache = config.docsCaches.get(root.project) ?? "";
+		// syncCaches namespaces shared sections as <section>/<owner>/<file>.
+		// Keep translation-control on that same layout for standalone owners
+		// such as ai/case; otherwise translations land in <section>/<file> and
+		// the site continues reading the untouched English duplicate.
+		const sharedSection =
+			root.sections.length === 1 &&
+			sectionOwners.get(root.sections[0] ?? "")?.size > 1
+				? root.sections[0]
+				: undefined;
 		const cache = docsCache
 			? {
 					targetRoot: relativeTo(dir, docsCache),
@@ -79,7 +96,12 @@ export async function emitTranslations(
 						? {
 								targetPrefix: `modules/${root.owner}`,
 								targetStripPrefix: "modules",
-							}
+						  }
+						: sharedSection
+							? {
+									targetPrefix: `${sharedSection}/${root.owner}`,
+									targetStripPrefix: sharedSection,
+							  }
 						: {}),
 					translationIndex: relativeTo(dir, join(docsCache, ".index")),
 				}

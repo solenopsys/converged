@@ -109,6 +109,42 @@ async function requestFile(
 	return translations;
 }
 
+type WholeFileRequest = {
+	translations: Map<string, Map<string, string>>;
+	error?: unknown;
+};
+
+/** Retry incomplete model envelopes without failing the whole translation run. */
+async function requestFileResilient(
+	jobs: Job[],
+	client: Client,
+	file: string,
+	locale: string,
+): Promise<WholeFileRequest> {
+	let lastError: unknown;
+	for (let attempt = 0; attempt < 3; attempt += 1) {
+		if (attempt > 0) {
+			client.tally.retries += 1;
+			console.log(`    ${file}/${locale}: retry ${attempt}/2 (incomplete response)`);
+		}
+		try {
+			return {
+				translations: await withRetry(() => requestFile(jobs, client), {
+					onRetry: (n, delay) => {
+						client.tally.retries += 1;
+						console.log(
+							`    ${file}/${locale}: retry ${n} in ${delay}ms (transport/rate limit)`,
+						);
+					},
+				}),
+			};
+		} catch (error) {
+			lastError = error;
+		}
+	}
+	return { translations: new Map(), error: lastError };
+}
+
 type StringItem = { job: Job; path: string; text: string };
 
 /**
@@ -512,45 +548,60 @@ export async function translateProject(
 		);
 	}
 
-	// Parallelism is per source file: one file (all its locales) is one
-	// pool task, one request. Different files fly concurrently; inside
-	// a file there is nothing sequential — the model returns every
-	// locale in a single answer.
-	const byFile = new Map<string, Job[]>();
+	// Parallelism is per file and locale. A six-locale file therefore creates
+	// six independent requests, allowing the configured pool to stay busy.
+	const byFileLocale = new Map<string, { file: string; locale: string; jobs: Job[] }>();
 	for (const job of queue) {
 		if (routeFor(job) !== "whole-file") continue;
-		byFile.set(job.file, [...(byFile.get(job.file) ?? []), job]);
+		const key = `${job.file}\0${job.locale}`;
+		const batch = byFileLocale.get(key) ?? {
+			file: job.file,
+			locale: job.locale,
+			jobs: [],
+		};
+		batch.jobs.push(job);
+		byFileLocale.set(key, batch);
 	}
-	const files = [...byFile.entries()];
-	if (files.length > 0) {
+	const batches = [...byFileLocale.values()];
+	if (batches.length > 0) {
 		console.log(
-			`  ${config.name}: ${files.length} files (${Math.min(concurrency, files.length)} at a time)`,
+			`  ${config.name}: ${batches.length} file/locale batches ` +
+				`(${Math.min(concurrency, batches.length)} at a time)`,
 		);
 		let done = 0;
-		const answers = await pool(files, concurrency, async ([file, jobs]) => {
+		const answers = await pool(batches, concurrency, async (batch) => {
 			const started = Date.now();
-			console.log(`    ${config.name} ${file} → translating (${jobs.length} locales)…`);
-			const translations = await withRetry(() => requestFile(jobs, client), {
-				onRetry: (n, delay) => {
-					tally.retries += 1;
-					console.log(
-						`    ${file}: retry ${n} in ${delay}ms (transport/rate limit)`,
-					);
-				},
-			});
+			console.log(`    ${config.name} ${batch.file} → ${batch.locale} translating…`);
+			const result = await requestFileResilient(
+				batch.jobs,
+				client,
+				batch.file,
+				batch.locale,
+			);
 			done += 1;
 			const ms = Date.now() - started;
 			console.log(
-				`    ${config.name} ${file} done (${ms}ms, ${done}/${files.length})`,
+				`    ${config.name} ${batch.file} ${batch.locale} ` +
+					`done (${ms}ms, ${done}/${batches.length})`,
 			);
-			return { jobs, translations, ms };
+			return { ...batch, ...result, ms };
 		});
 
 		// Writes happen after the network, on one thread, in input order — so
 		// a run is reproducible and the index never sees a partial batch.
 		for (const answer of answers) {
 			for (const job of answer.jobs) {
-				const content = answer.translations.get(job.id)?.get(job.locale) as string;
+				const content = answer.translations.get(job.id)?.get(job.locale);
+				if (typeof content !== "string" || content.length === 0) {
+					const detail = answer.error
+						? answer.error instanceof Error
+							? answer.error.message
+							: String(answer.error)
+						: "model returned no translation";
+					console.log(`    skipped ${job.file}/${job.locale}: ${detail}`);
+					client.tally.skipped += 1;
+					continue;
+				}
 				if (
 					saveWholeFile(
 						config,

@@ -3,6 +3,22 @@
   "sourceLocale": "en",
   "docs": [
     {
+      "owner": "bambu-local",
+      "path": "core/native/wrappers/adapters/bambu-local/docs",
+      "sections": [
+        {
+          "id": "adapters",
+          "index": "core/native/wrappers/adapters/bambu-local/docs/adapters/index.json",
+          "articles": [
+            {
+              "slug": "bambu-local",
+              "file": "core/native/wrappers/adapters/bambu-local/docs/adapters/bambu-local.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "owner": "behemoth",
       "path": "core/native/apps/behemoth/docs",
       "sections": [
@@ -13,6 +29,22 @@
             {
               "slug": "behemoth",
               "file": "core/native/apps/behemoth/docs/system/behemoth.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "case",
+      "path": "core/native/ai/case/docs",
+      "sections": [
+        {
+          "id": "ai",
+          "index": "core/native/ai/case/docs/ai/index.json",
+          "articles": [
+            {
+              "slug": "case",
+              "file": "core/native/ai/case/docs/ai/case.md"
             }
           ]
         }
@@ -45,6 +77,26 @@
             {
               "slug": "cli",
               "file": "tools/cli/docs/system/cli.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "column",
+      "path": "core/native/wrappers/dbs/column/docs",
+      "sections": [
+        {
+          "id": "dbs",
+          "index": "core/native/wrappers/dbs/column/docs/dbs/index.json",
+          "articles": [
+            {
+              "slug": "sqlite",
+              "file": "core/native/wrappers/dbs/column/docs/dbs/sqlite.md"
+            },
+            {
+              "slug": "column",
+              "file": "core/native/wrappers/dbs/column/docs/dbs/column.md"
             }
           ]
         }
@@ -145,6 +197,38 @@
             {
               "slug": "module-catalog",
               "file": "docs/system/module-catalog.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "cppagent",
+      "path": "core/native/wrappers/adapters/cppagent/docs",
+      "sections": [
+        {
+          "id": "adapters",
+          "index": "core/native/wrappers/adapters/cppagent/docs/adapters/index.json",
+          "articles": [
+            {
+              "slug": "cppagent",
+              "file": "core/native/wrappers/adapters/cppagent/docs/adapters/cppagent.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "curaengine",
+      "path": "core/native/wrappers/slicers/curaengine/docs",
+      "sections": [
+        {
+          "id": "slicers",
+          "index": "core/native/wrappers/slicers/curaengine/docs/slicers/index.json",
+          "articles": [
+            {
+              "slug": "curaengine",
+              "file": "core/native/wrappers/slicers/curaengine/docs/slicers/curaengine.md"
             }
           ]
         }
@@ -295,6 +379,38 @@
       ]
     },
     {
+      "owner": "lmdbx",
+      "path": "core/native/wrappers/dbs/lmdbx/docs",
+      "sections": [
+        {
+          "id": "dbs",
+          "index": "core/native/wrappers/dbs/lmdbx/docs/dbs/index.json",
+          "articles": [
+            {
+              "slug": "lmdbx",
+              "file": "core/native/wrappers/dbs/lmdbx/docs/dbs/lmdbx.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "marlin-octoprint",
+      "path": "core/native/wrappers/adapters/marlin-octoprint/docs",
+      "sections": [
+        {
+          "id": "adapters",
+          "index": "core/native/wrappers/adapters/marlin-octoprint/docs/adapters/index.json",
+          "articles": [
+            {
+              "slug": "marlin-octoprint",
+              "file": "core/native/wrappers/adapters/marlin-octoprint/docs/adapters/marlin-octoprint.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "owner": "nrpc",
       "path": "tools/nrpc/docs",
       "sections": [
@@ -305,6 +421,38 @@
             {
               "slug": "nrpc",
               "file": "tools/nrpc/docs/system/nrpc.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "opencamlib",
+      "path": "core/native/wrappers/slicers/opencamlib/docs",
+      "sections": [
+        {
+          "id": "slicers",
+          "index": "core/native/wrappers/slicers/opencamlib/docs/slicers/index.json",
+          "articles": [
+            {
+              "slug": "opencamlib",
+              "file": "core/native/wrappers/slicers/opencamlib/docs/slicers/opencamlib.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "params",
+      "path": "core/native/ai/params/docs",
+      "sections": [
+        {
+          "id": "ai",
+          "index": "core/native/ai/params/docs/ai/index.json",
+          "articles": [
+            {
+              "slug": "params",
+              "file": "core/native/ai/params/docs/ai/params.md"
             }
           ]
         }
@@ -1019,6 +1167,22 @@
       ]
     },
     {
+      "owner": "ryugraph",
+      "path": "core/native/wrappers/dbs/ryugraph/docs",
+      "sections": [
+        {
+          "id": "dbs",
+          "index": "core/native/wrappers/dbs/ryugraph/docs/dbs/index.json",
+          "articles": [
+            {
+              "slug": "ryugraph",
+              "file": "core/native/wrappers/dbs/ryugraph/docs/dbs/ryugraph.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "owner": "sf-assistants",
       "path": "modules/surfaces/ai/sf-assistants/docs",
       "sections": [
@@ -1461,6 +1625,70 @@
             {
               "slug": "sf-usage",
               "file": "modules/surfaces/analytics/sf-usage/docs/sf-usage.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "speach",
+      "path": "core/native/ai/speach/docs",
+      "sections": [
+        {
+          "id": "ai",
+          "index": "core/native/ai/speach/docs/ai/index.json",
+          "articles": [
+            {
+              "slug": "speach",
+              "file": "core/native/ai/speach/docs/ai/speach.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "sqlite-vec",
+      "path": "core/native/wrappers/dbs/sqlite-vec/docs",
+      "sections": [
+        {
+          "id": "dbs",
+          "index": "core/native/wrappers/dbs/sqlite-vec/docs/dbs/index.json",
+          "articles": [
+            {
+              "slug": "sqlite-vec",
+              "file": "core/native/wrappers/dbs/sqlite-vec/docs/dbs/sqlite-vec.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "uvtools-direct",
+      "path": "core/native/wrappers/adapters/uvtools-direct/docs",
+      "sections": [
+        {
+          "id": "adapters",
+          "index": "core/native/wrappers/adapters/uvtools-direct/docs/adapters/index.json",
+          "articles": [
+            {
+              "slug": "uvtools-direct",
+              "file": "core/native/wrappers/adapters/uvtools-direct/docs/adapters/uvtools-direct.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "valkey",
+      "path": "core/native/wrappers/dbs/valkey/docs",
+      "sections": [
+        {
+          "id": "dbs",
+          "index": "core/native/wrappers/dbs/valkey/docs/dbs/index.json",
+          "articles": [
+            {
+              "slug": "valkey",
+              "file": "core/native/wrappers/dbs/valkey/docs/dbs/valkey.md"
             }
           ]
         }

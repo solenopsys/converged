@@ -84,7 +84,10 @@ function parseArgs(argv: string[]): Args {
 
 	for (let i = 0; i < argv.length; i += 1) {
 		const arg = argv[i] as string;
-		switch (arg) {
+		// Russian keyboard layouts can produce Cyrillic "с" in the short
+		// copy-cache flag; treat it exactly like Latin "c".
+		const option = arg === "-с" ? "-c" : arg;
+		switch (option) {
 			case "--config":
 				args.config = argv[++i];
 				break;

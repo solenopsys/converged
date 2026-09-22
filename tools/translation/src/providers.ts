@@ -62,8 +62,11 @@ const TRANSLATION_SCHEMA = {
 
 function batchInput(jobs: Job[]): string {
 	return JSON.stringify({
-		locales: [...new Set(jobs.map((job) => job.locale))],
+		format: "json",
 		items: jobs.map(({ id, type, content }) => ({ id, type, content })),
+		// Keep the changing locale list after the invariant source content so
+		// prompt caching can reuse the large document prefix across locales.
+		locales: [...new Set(jobs.map((job) => job.locale))],
 	});
 }
 
@@ -122,6 +125,7 @@ export const SHARED_INSTRUCTIONS =
 	"Translate every item from English into each requested locale. " +
 	"Preserve the exact document format. For JSON, keep every key, type, array order, ID, slug, URL, path, icon and code value; translate only human-readable string values. " +
 	"For Markdown, preserve heading levels, links, URLs, placeholders, inline code and fenced code. " +
+	"The response must be a valid json object. " +
 	'Return ONLY this JSON, no prose: {"items": [{"id": "<input id>", "translations": {"<locale>": "<translated full document>"}}]}. ' +
 	'Example: input {"locales": ["ru", "de"], "items": [{"id": "f", "type": "markdown", "content": "# Hello"}]} ' +
 	'→ {"items": [{"id": "f", "translations": {"ru": "# Привет", "de": "# Hallo"}}]}. ' +
@@ -203,7 +207,10 @@ export function resolveProvider(env = process.env): ResolvedProvider {
 		body: (jobs) => ({
 			model,
 			store: false,
+			prompt_cache_key: "docs-translation-v1",
 			instructions: SHARED_INSTRUCTIONS,
+			// Responses JSON mode validates the input message itself for the
+			// literal word "json"; batchInput keeps it in the JSON payload.
 			input: batchInput(jobs),
 			// No structured-output schema here: dynamic locale keys are
 			// rejected by some providers (Meta 400). Validated locally.

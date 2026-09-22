@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare Laya with CASE using the real localized examples from llm.json files.
+"""Compare tournament-based Laya routing with CASE using localized examples.
 
 The Laya run is independent from Resonus. CASE is optional and is enabled with
 --case-url. Every source command is covered at least once before --requests is
@@ -12,6 +12,7 @@ import argparse
 import json
 import os
 import random
+import resource
 import statistics
 import time
 import urllib.error
@@ -86,18 +87,39 @@ def load_commands(roots: list[Path]) -> list[Command]:
 
 
 def make_queries(commands: list[Command], requests: int, seed: int) -> list[Query]:
+    if requests < 1:
+        raise ValueError("requests must be positive")
     rng = random.Random(seed)
-    base: list[Query] = []
+    by_command: dict[str, list[Query]] = defaultdict(list)
+    seen_texts: set[str] = set()
     for command in commands:
         for language in LANGUAGES:
             for phrase in command.examples[language]:
-                base.append(Query(command.key, language, phrase))
-    if not base:
+                text = phrase.strip()
+                if text and text not in seen_texts:
+                    seen_texts.add(text)
+                    by_command[command.key].append(Query(command.key, language, text))
+    if not seen_texts:
         raise RuntimeError("no localized examples were found")
-    rng.shuffle(base)
-    if requests <= len(base):
-        return base[:requests]
-    return [base[index % len(base)] for index in range(requests)]
+
+    # Start with one distinct example per command so a short benchmark still
+    # measures the whole catalog instead of whichever commands shuffle first.
+    command_keys = list(by_command)
+    rng.shuffle(command_keys)
+    covered = [rng.choice(by_command[key]) for key in command_keys]
+    remaining = [
+        query
+        for key, queries_for_command in by_command.items()
+        for query in queries_for_command
+        if query not in covered
+    ]
+    rng.shuffle(remaining)
+    pool = covered + remaining
+    if requests > len(pool):
+        raise ValueError(
+            f"requested {requests} queries, but only {len(pool)} unique example texts are available"
+        )
+    return pool[:requests]
 
 
 def chunks(items: list[Command], size: int) -> list[list[Command]]:
@@ -151,7 +173,9 @@ def run_laya_with_commands(agent: Any, commands: list[Command], queries: list[Qu
     for query in queries:
         started = time.perf_counter()
         try:
-            command_key, command_confidence = laya_choice(agent, query, commands, "command")
+            command_key, command_confidence = choose_tournament(
+                agent, query, commands, "command"
+            )
         except Exception as error:  # keep the benchmark running and report bad cases
             if len(errors) < 20:
                 errors.append({"expected": query.key, "language": query.language, "error": str(error)})
@@ -177,6 +201,7 @@ def run_laya_with_commands(agent: Any, commands: list[Command], queries: list[Qu
         "end_to_end_accuracy": end_to_end / count if count else 0.0,
         "mean_confidence": statistics.mean(confidence) if confidence else 0.0,
         "latency_ms": percentiles(durations),
+        "peak_rss_mb": round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024, 2),
         "language_accuracy": {
             language: per_language_hits[language] / per_language[language]
             for language in sorted(per_language)
@@ -275,7 +300,7 @@ def main() -> int:
     args.report.parent.mkdir(parents=True, exist_ok=True)
     args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps(report, ensure_ascii=False, indent=2))
-    print("verdict: this is a flat all-command baseline; compare command_accuracy and latency with CASE")
+    print("verdict: this is an 18-option tournament; compare command_accuracy and latency with CASE")
     return 0
 
 

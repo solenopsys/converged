@@ -99,6 +99,12 @@ test("translates actionable files and writes the locale target", async () => {
 		"# Руководство\n\nРусский текст.\n",
 	);
 	expect(requestBody.model).toBe("test-translation-model");
+	expect(requestBody.prompt_cache_key).toBe("docs-translation-v1");
+	expect(String(requestBody.instructions)).toContain("valid json object");
+	expect(String(requestBody.input).toLowerCase()).toContain("json");
+	expect(String(requestBody.input).indexOf('"items"')).toBeLessThan(
+		String(requestBody.input).indexOf('"locales"'),
+	);
 	expect(store.read("a".repeat(64))?.translations.ru).toHaveLength(1);
 });
 
@@ -450,11 +456,8 @@ test("large JSON goes string-by-string and keeps structure", async () => {
 	expect(target.coords).toHaveLength(5000);
 });
 
-/**
- * One file (all locales) is one request and one pool task: files fly
- * concurrently, each returning every locale in a single answer.
- */
-test("each file translates all locales in one request, files in parallel", async () => {
+/** Each file/locale pair is a request and the pool keeps them parallel. */
+test("translates file/locale batches in parallel", async () => {
 	const locales = ["ru", "de", "es", "fr", "it", "pt"];
 	for (let i = 0; i < 12; i += 1) {
 		writeFileSync(join(root, "docs", `doc-${i}.md`), `# Doc ${i}\n`);
@@ -523,12 +526,11 @@ test("each file translates all locales in one request, files in parallel", async
 	);
 
 	expect(translated).toBe(72);
-	// 12 files, one multi-locale request each; the pool runs files
-	// concurrently.
-	expect(requests).toBe(12);
+	// 12 files × 6 locales; the pool runs three requests concurrently.
+	expect(requests).toBe(72);
 	expect(peak).toBe(3);
 	expect(peak).toBeLessThanOrEqual(3);
-	expect(tally.requests).toBe(12);
+	expect(tally.requests).toBe(72);
 	expect(tally.translated).toBe(72);
 	expect(readFileSync(join(root, "cache", "pt", "doc-0.md"), "utf8")).toBe(
 		"# Doc 0\ntranslated-pt\n",

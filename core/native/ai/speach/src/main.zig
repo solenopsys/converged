@@ -166,9 +166,8 @@ pub fn feedOgg(allocator: std.mem.Allocator, session: *session_mod.Session, data
                 session.pushOpus(packet.items, seq, rtp_stamp);
                 seq +%= 1;
                 rtp_stamp +%= 960;
-            } else {
-                packet.clearRetainingCapacity();
             }
+            packet.clearRetainingCapacity();
             packet_index += 1;
         }
         cursor = payload_cursor;

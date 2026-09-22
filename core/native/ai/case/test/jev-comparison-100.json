@@ -1,0 +1,28 @@
+{
+  "model": "jev-latest",
+  "commands": 174,
+  "surfaces": 36,
+  "base_types": 35,
+  "queries": 100,
+  "jev": {
+    "requests": 100,
+    "command_accuracy": 1.0,
+    "mean_confidence": 0.9997,
+    "latency_ms": {
+      "p50": 10435.08,
+      "p95": 11468.27,
+      "p99": 11775.93,
+      "max": 11981.28
+    },
+    "language_accuracy": {
+      "de": 1.0,
+      "en": 1.0,
+      "es": 1.0,
+      "fr": 1.0,
+      "it": 1.0,
+      "pt": 1.0,
+      "ru": 1.0
+    },
+    "errors": []
+  }
+}

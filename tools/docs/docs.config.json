@@ -16,6 +16,30 @@
 				"ru": "Система"
 			}
 		},
+		"ai": {
+			"title": {
+				"en": "AI",
+				"ru": "ИИ"
+			}
+		},
+		"dbs": {
+			"title": {
+				"en": "Database engines",
+				"ru": "Движки баз данных"
+			}
+		},
+		"adapters": {
+			"title": {
+				"en": "Equipment adapters",
+				"ru": "Адаптеры оборудования"
+			}
+		},
+		"slicers": {
+			"title": {
+				"en": "Slicers and CAM",
+				"ru": "Слайсеры и CAM"
+			}
+		},
 		"product": {
 			"title": {
 				"en": "Product",

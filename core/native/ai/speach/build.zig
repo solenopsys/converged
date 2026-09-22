@@ -22,8 +22,19 @@ fn targetTriple(b: *std.Build, target: std.Build.ResolvedTarget) []const u8 {
 // (`zig build -Dall=true` over there also drops plain libopus.so for the
 // native triple; the container build uses the explicit triple name).
 fn opusLibPath(b: *std.Build, target: std.Build.ResolvedTarget) []const u8 {
-    _ = target;
-    return b.fmt("{s}/lib/libopus.so", .{opus_out_dir});
+    // Per-triple file in the opus wrapper (`-Dall=true` layout), installed
+    // here as plain libopus.so so DT_NEEDED stays triple-independent.
+    const arch = switch (target.result.cpu.arch) {
+        .x86_64 => "x86_64",
+        .aarch64 => "aarch64",
+        else => @panic("SPEACH supports x86_64 and aarch64 Linux only"),
+    };
+    const abi = switch (target.result.abi) {
+        .gnu, .gnueabi, .gnueabihf => "gnu",
+        .musl, .musleabi, .musleabihf => "musl",
+        else => @panic("SPEACH supports gnu and musl Linux only"),
+    };
+    return b.fmt("{s}/lib/libopus-{s}-{s}.so", .{ opus_out_dir, arch, abi });
 }
 
 fn linkOpus(b: *std.Build, exe: *std.Build.Step.Compile, target: std.Build.ResolvedTarget) void {
