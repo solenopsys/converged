@@ -37,11 +37,25 @@ import type {
 	PlatformSpec,
 	ReconcileInput,
 	ReconcileOutput,
+	SharedAppsSpec,
 } from "./types.ts";
 import { require } from "./types.ts";
 
 const UI_PORT = 3000;
 const MS_PORT = 3001;
+
+const DEFAULT_SHARED_APPS: Record<string, NativeApp> = {
+	case: {
+		image: "public.ecr.aws/i5x9u8b2/case:latest",
+		ports: { http: 8000 },
+		portEnv: { http: "CASE_PORT" },
+	},
+	params: {
+		image: "public.ecr.aws/i5x9u8b2/params:latest",
+		ports: { http: 8001 },
+		portEnv: { http: "PARAMS_PORT" },
+	},
+};
 
 /** Fujin is the single router; every other native peer dials its ZMQ socket. */
 function fujinEndpoint(platform: string, spec: PlatformSpec): string {
@@ -254,6 +268,73 @@ function nativeApp(
 	return objects;
 }
 
+/** Shared solution peers live in their own namespace but keep the same owner. */
+function sharedApp(
+	platform: string,
+	spec: PlatformSpec,
+	owner: string,
+	name: string,
+	app: NativeApp,
+): KubeObject[] {
+	const shared = spec.sharedApps;
+	if (!shared) return [];
+	const resourceName = name;
+	const component = `ai-${name}`;
+	const labels = n.labels(platform, component, owner);
+	const selector = n.selector(platform, component);
+	const ports = Object.entries(app.ports ?? {}).map(([portName, port]) => ({
+		name: portName,
+		port,
+	}));
+	const env: Record<string, string> = { ...(app.env ?? {}) };
+	for (const [portName, envName] of Object.entries(app.portEnv ?? {})) {
+		const port = app.ports?.[portName];
+		if (port !== undefined) env[envName] = String(port);
+	}
+
+	const resources: KubeObject[] = [
+		k8s.deployment({
+			name: resourceName,
+			namespace: shared.namespace,
+			labels,
+			selector,
+			replicas: app.replicas ?? 1,
+			containers: [
+				{
+					name,
+					image: app.image,
+					env,
+					ports,
+					resources: app.resources,
+					probePort: ports[0]?.port,
+				},
+			],
+		}),
+	];
+	if (ports.length > 0) {
+		resources.push(
+			k8s.service(resourceName, shared.namespace, labels, selector, ports),
+		);
+	}
+	return resources;
+}
+
+function sharedAppEnv(
+	platform: string,
+	shared: SharedAppsSpec | undefined,
+): Record<string, string> {
+	if (!shared) return {};
+	const env: Record<string, string> = {};
+	for (const [name, app] of Object.entries(shared.apps)) {
+		const port = Object.values(app.ports ?? {})[0];
+		if (port !== undefined) {
+			env[`${name.toUpperCase()}_URL`] =
+				`http://${name}.${shared.namespace}.svc.cluster.local:${port}`;
+		}
+	}
+	return env;
+}
+
 export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 	const platform = input.object.metadata.name;
 	const spec = input.object.spec as PlatformSpec;
@@ -266,6 +347,36 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 	const baseEnvFor = (port: number, extra: Record<string, string>) =>
 		baseEnv(platform, spec, port, extra, input.controllerNamespace);
 	const merged = mergeSolutions(selectSolutions(input.solutions, platform));
+	const selectedSolutions = selectSolutions(input.solutions, platform);
+	const sharedContainerNames = new Set(
+		selectedSolutions.flatMap(
+			(solution) =>
+				((solution.spec ?? {}) as { containers?: Record<string, string[]> })
+					.containers?.ai ?? [],
+		),
+	);
+	const configuredSharedApps =
+		spec.sharedApps ??
+		(sharedContainerNames.size > 0
+			? {
+					namespace: "ai",
+					apps: Object.fromEntries(
+						[...sharedContainerNames]
+							.filter((name) => DEFAULT_SHARED_APPS[name])
+							.map((name) => [name, DEFAULT_SHARED_APPS[name]]),
+					),
+				}
+			: undefined);
+	const sharedApps = configuredSharedApps
+		? {
+				...configuredSharedApps,
+				apps: Object.fromEntries(
+					Object.entries(configuredSharedApps.apps).filter(([name]) =>
+						sharedContainerNames.has(name),
+					),
+				),
+			}
+		: undefined;
 	// A solution can name a peer the platform never declared — most often one
 	// processor renamed on one platform and not on the other. That used to
 	// throw, and throwing returns an empty desired set: a single unknown name
@@ -338,6 +449,20 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 		resources.push(
 			...nativeApp(platform, spec, owner, name, app, rollout, accessSecrets),
 		);
+	}
+
+	if (sharedApps) {
+		resources.push({
+			apiVersion: "v1",
+			kind: "Namespace",
+			metadata: {
+				name: sharedApps.namespace,
+				labels: n.labels(platform, "shared-apps", owner),
+			},
+		});
+		for (const [name, app] of Object.entries(sharedApps.apps)) {
+			resources.push(...sharedApp(platform, spec, owner, name, app));
+		}
 	}
 
 	// Processors are peers like any other, but they exist only while a solution
@@ -428,6 +553,7 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 					image: spec.images.ms,
 					env: baseEnvFor(MS_PORT, {
 						...solutionEnv,
+						...sharedAppEnv(platform, sharedApps),
 						FUJIN_TARGET: "services",
 						// The backend calls its own HTTP surface for service-to-service
 						// hops, and the startup checklist requires the value whether

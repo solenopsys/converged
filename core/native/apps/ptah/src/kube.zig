@@ -39,7 +39,8 @@ pub const reclaim_annotation = "ptah.io/reclaim";
 pub const reclaim_delete = "delete";
 
 pub const resources = [_]Resource{
-    .{ .api_version = "v1", .kind = "ConfigMap", .plural = "configmaps", .namespaced = true },
+    .{ .api_version = "v1", .kind = "Namespace", .plural = "namespaces", .namespaced = false, .data_bearing = true },
+	.{ .api_version = "v1", .kind = "ConfigMap", .plural = "configmaps", .namespaced = true },
     .{ .api_version = "v1", .kind = "Secret", .plural = "secrets", .namespaced = true },
     .{ .api_version = "v1", .kind = "Service", .plural = "services", .namespaced = true },
     .{ .api_version = "v1", .kind = "PersistentVolumeClaim", .plural = "persistentvolumeclaims", .namespaced = true, .data_bearing = true },

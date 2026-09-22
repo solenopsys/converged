@@ -19,6 +19,7 @@ export function solutionManifest(
 		kind: "Solution",
 		metadata: { name },
 		spec: {
+			containers: solution.spec.containers,
 			platform: options.platform,
 			repositories: solution.spec.repositories,
 			lambdas: solution.spec.lambdas,

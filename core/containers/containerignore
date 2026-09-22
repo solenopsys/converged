@@ -3,6 +3,10 @@
 # node_modules is rebuilt by `bun install` in the builder stage: copying the
 # host's would import binaries built against the host libc.
 **/node_modules
+
+# Nothing in the UI build needs hidden host state or hidden build caches.
+.*
+**/.*
 **/.git
 **/.zig-cache
 **/zig-cache
@@ -10,6 +14,50 @@
 **/dist
 **/.turbo
 **/.next
+
+# The UI image never reads local runtime data, ML environments or model
+# weights. They can otherwise add many gigabytes to the build context.
+data
+rd
+**/.venv
+**/.venv-*
+**/models
+
+# Neither the UI nor MS image builds these project-local tools or content.
+# The landing assets used by the image live under core/frontend/landing.
+club/content
+club/tools
+club/dist
+converged/dist
+
+# The UI build does not compile or import the native workspace. The Containerfile
+# only copies the prebuilt shared libraries below into the runtime image.
+converged/core/native/*
+!converged/core/native/libs/
+converged/core/native/libs/*
+!converged/core/native/libs/cruller-md4c/
+!converged/core/native/libs/cruller-md4c/bin-libs/
+!converged/core/native/libs/cruller-md4c/package.json
+!converged/core/native/libs/cruller-transport/
+!converged/core/native/libs/cruller-transport/bin-libs/
+!converged/core/native/libs/cruller-transport/package.json
+
+# The bin-libs above are symlinks into this content-addressed artifact store.
+!converged/core/native/wrappers/
+converged/core/native/wrappers/*
+!converged/core/native/wrappers/artifacts/
+converged/core/native/wrappers/artifacts/*
+!converged/core/native/wrappers/artifacts/libs/
+
+# Bun's root workspace manifest requires this package during install. Keep
+# only its manifest; the UI build never imports the providers source.
+!converged/core/native/apps/
+converged/core/native/apps/*
+!converged/core/native/apps/resonus/
+converged/core/native/apps/resonus/*
+!converged/core/native/apps/resonus/providers/
+converged/core/native/apps/resonus/providers/*
+!converged/core/native/apps/resonus/providers/package.json
 
 # Vendored native sources: hundreds of megabytes of upstream trees that no ui
 # or ms code path reads.

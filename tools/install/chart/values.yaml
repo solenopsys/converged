@@ -148,6 +148,27 @@ processors:
     fujinTarget: opencamlib
     fujinEndpointEnv: OPENCAMLIB_FUJIN_ZMQ_ENDPOINT
 
+# Native services shared by every platform workspace. These are selected by
+# the solution's `containers.ai` group and run in their own namespace.
+sharedApps:
+  namespace: ai
+  # Only this Platform owns the shared namespace. Other workspaces reference
+  # the same Services and do not redeploy the AI containers.
+  ownerPlatform: converged
+  apps:
+    case:
+      repository: case
+      ports:
+        http: 8000
+      portEnv:
+        http: CASE_PORT
+    params:
+      repository: params
+      ports:
+        http: 8001
+      portEnv:
+        http: PARAMS_PORT
+
 storage:
   size: 5Gi
 
@@ -238,6 +259,18 @@ shards: []
 # platform contract and deliberately has the same name as that product.
 solutions:
   converged:
+    containers:
+      converged:
+        - ui
+        - ms
+        - resonus
+        - behemoth
+        - ptah
+        - fujin
+        - centimanus
+      ai:
+        - case
+        - params
     repositories:
       - access
       - auth

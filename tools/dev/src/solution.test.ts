@@ -153,3 +153,22 @@ test("resolves the configured solution set and workflow links", () => {
 		expect(workflow.paramsExample).toBeObject();
 	}
 });
+
+test("keeps native containers grouped by workspace", () => {
+	const resolved = resolveSolutionConfig(
+		resolve(PROJECT_ROOT, "modules/solutions/converged.json"),
+	);
+
+	expect(resolved.containers).toEqual({
+		converged: [
+			"ui",
+			"ms",
+			"resonus",
+			"behemoth",
+			"ptah",
+			"fujin",
+			"centimanus",
+		],
+		ai: ["case", "params"],
+	});
+});

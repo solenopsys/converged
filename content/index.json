@@ -1177,6 +1177,10 @@
             {
               "slug": "ryugraph",
               "file": "core/native/wrappers/dbs/ryugraph/docs/dbs/ryugraph.md"
+            },
+            {
+              "slug": "motivation",
+              "file": "core/native/wrappers/dbs/ryugraph/docs/dbs/motivation.md"
             }
           ]
         }

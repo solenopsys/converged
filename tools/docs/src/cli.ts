@@ -41,6 +41,7 @@ import { emitSite } from "./emit/site";
 import { emitTranslations } from "./emit/translations";
 import { Manifest, Writer } from "./fs";
 import { build } from "./model";
+import { findDocsRoots } from "./discover";
 import type { Registry } from "./registry";
 import { readRegistry } from "./registry";
 import { scaffoldModuleDocs } from "./scaffold/modules";
@@ -203,26 +204,23 @@ if (missingDocs.length > 0 && !args.dryRun) {
 	console.log(`[docs] scaffold: ${scaffolded.created.length} modules created`);
 }
 assertModuleDocs(registry, config.projects);
+
+// Synchronize authored docs before the first model scan. This also repairs a
+// cache left with a new index entry but without its locale markdown file.
+if (!args.list) {
+	const synced = await syncCaches(
+		findDocsRoots(config.projects),
+		config,
+		args.dryRun,
+		false,
+	);
+	console.log(`[docs] cache: ${synced} files synchronized`);
+}
+
 let { books, summary } = await build(config, {
 	sections: args.sections,
 	langs: args.langs,
 });
-
-if (!args.list) {
-	const synced = await syncCaches(
-		summary.roots,
-		config,
-		args.dryRun,
-		args.translate,
-	);
-	console.log(`[docs] cache: ${synced} files synchronized`);
-	if (synced > 0 && !args.dryRun) {
-		({ books, summary } = await build(config, {
-			sections: args.sections,
-			langs: args.langs,
-		}));
-	}
-}
 
 if (args.list) {
 	console.log(`[docs] scanned: ${config.projects.join(", ")}`);
@@ -283,6 +281,19 @@ if (args.translate) {
 	const exitCode = await child.exited;
 	if (exitCode !== 0)
 		throw new Error(`Translation failed with exit code ${exitCode}`);
+	// Publish any structural changes made while the translation run was active
+	// before the final site build validates the cache again.
+	const postTranslationSync = await syncCaches(
+		summary.roots,
+		config,
+		args.dryRun,
+		false,
+	);
+	if (postTranslationSync > 0) {
+		console.log(
+			`[docs] cache: ${postTranslationSync} files synchronized after translation`,
+		);
+	}
 
 	({ books, summary } = await build(config, {
 		sections: args.sections,

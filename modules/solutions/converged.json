@@ -13,13 +13,19 @@
 		"production",
 		"billing"
 	],
-	"containers": [
-		"ui",
-		"ms",
-		"resonus",
-		"behemoth",
-		"ptah",
-		"fujin",
-		"centimanus"
-	]
+	"containers": {
+		"converged": [
+			"ui",
+			"ms",
+			"resonus",
+			"behemoth",
+			"ptah",
+			"fujin",
+			"centimanus"
+		],
+		"ai": [
+			"case",
+			"params"
+		]
+	}
 }

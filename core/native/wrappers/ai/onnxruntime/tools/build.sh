@@ -33,9 +33,20 @@ cmake -S "$ROOT" -B "$BUILD" -G Ninja \
   "-DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE" \
   -DCMAKE_SYSTEM_PROCESSOR="$PROCESSOR" \
   -DCMAKE_TOOLCHAIN_FILE="$ROOT/tools/zig-toolchain.cmake" \
+  -DCMAKE_C_FLAGS_RELEASE='-O3 -DNDEBUG -g0 -ffunction-sections -fdata-sections' \
+  -DCMAKE_CXX_FLAGS_RELEASE='-O3 -DNDEBUG -g0 -ffunction-sections -fdata-sections' \
+  -DCMAKE_SHARED_LINKER_FLAGS_RELEASE='-Wl,--gc-sections -Wl,--strip-debug' \
   -DFETCHCONTENT_TRY_FIND_PACKAGE_MODE=NEVER \
   -DCMAKE_FIND_USE_PACKAGE_REGISTRY=FALSE \
   -DCMAKE_FIND_USE_SYSTEM_PACKAGE_REGISTRY=FALSE \
   -DCMAKE_CXX_FLAGS=-Wno-error=deprecated-literal-operator
 cmake --build "$BUILD" --target onnxruntime_wrapper --parallel
 cmake --install "$BUILD" --component Unspecified --prefix "$OUT"
+
+# Release builds still retain C/C++ debug sections when Zig drives CMake.
+# They are useless in the runtime image and make the shared library hundreds
+# of megabytes larger than the executable code. Keep symbols in Debug builds,
+# strip every packaged release artifact.
+if [[ "$OPTIMIZE" != Debug ]]; then
+  strip --strip-unneeded "$OUT/lib/libonnxruntime.so"
+fi

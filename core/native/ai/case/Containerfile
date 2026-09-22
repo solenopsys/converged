@@ -1,14 +1,12 @@
 FROM alpine:3.22
 WORKDIR /app
 
-COPY zig-out/bin/case /app/case
-COPY zig-out/lib/libonnxruntime.so /app/lib/libonnxruntime.so
+COPY --chmod=755 zig-out/bin/case /app/case
+COPY --chmod=644 zig-out/lib/libonnxruntime.so /app/lib/libonnxruntime.so
 COPY models/granite97.onnx /app/models/granite97.onnx
 COPY models/granite97.onnx.data /app/models/granite97.onnx.data
 COPY models/tokenizer.json /app/models/tokenizer.json
-RUN chmod 755 /app/case \
-    && chmod 644 /app/lib/libonnxruntime.so \
-    && adduser -D -H -u 1000 case
+RUN adduser -D -H -u 1000 case
 
 USER case
 ENV CASE_HOST=0.0.0.0 \

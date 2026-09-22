@@ -24,6 +24,9 @@ rules:
   # Everything ptah owns. `patch` covers server-side apply, which is how every
   # object is written; `delete` is what prune needs.
   - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
     resources: ["configmaps", "secrets", "services", "persistentvolumeclaims"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
   - apiGroups: [""]

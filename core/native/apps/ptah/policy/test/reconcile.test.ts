@@ -83,6 +83,85 @@ describe("platform", () => {
 		expect(status.observedGeneration).toBe(3);
 	});
 
+	test("shared AI apps run in their configured namespace", () => {
+		const { resources } = reconcile(
+			input({
+				kind: "Platform",
+				solutions: [solution("ai", { containers: { ai: ["case", "params"] } })],
+				object: platform("mono", {
+					sharedApps: {
+						namespace: "ai",
+						apps: {
+							case: { image: "reg/case:1", ports: { http: 8000 } },
+							params: { image: "reg/params:1", ports: { http: 8001 } },
+						},
+					},
+				}),
+			}),
+		);
+
+		for (const name of ["case", "params"]) {
+			const deployment = find(resources, "Deployment", name);
+			const service = find(resources, "Service", name);
+			expect(deployment?.metadata.namespace).toBe("ai");
+			expect(service?.metadata.namespace).toBe("ai");
+		}
+
+		const services = specOf<{
+			template: {
+				spec: { containers: { env: { name: string; value: string }[] }[] };
+			};
+		}>(resources, "Deployment", "converged-services");
+		const env = Object.fromEntries(
+			services.template.spec.containers[0].env.map((entry) => [
+				entry.name,
+				entry.value,
+			]),
+		);
+		expect(env.CASE_URL).toBe("http://case.ai.svc.cluster.local:8000");
+		expect(env.PARAMS_URL).toBe("http://params.ai.svc.cluster.local:8001");
+	});
+
+	test("every workspace can use the shared AI services", () => {
+		const object = platform("mono", {
+			sharedApps: {
+				namespace: "ai",
+				ownerPlatform: "converged",
+				apps: { case: { image: "reg/case:1", ports: { http: 8000 } } },
+			},
+		});
+		object.metadata.name = "club";
+		const { resources } = reconcile(
+			input({
+				kind: "Platform",
+				solutions: [
+					solution("ai", {
+						platform: "club",
+						containers: { ai: ["case"] },
+					}),
+				],
+				object,
+			}),
+		);
+
+		expect(find(resources, "Deployment", "case")?.metadata.namespace).toBe(
+			"ai",
+		);
+		expect(find(resources, "Namespace", "ai")?.metadata.name).toBe("ai");
+		const services = specOf<{
+			template: {
+				spec: { containers: { env: { name: string; value: string }[] }[] };
+			};
+		}>(resources, "Deployment", "club-services");
+		const env = Object.fromEntries(
+			services.template.spec.containers[0].env.map((entry) => [
+				entry.name,
+				entry.value,
+			]),
+		);
+		expect(env.CASE_URL).toBe("http://case.ai.svc.cluster.local:8000");
+	});
+
 	test("mono publishes a scope index too, so every profile resolves the same way", () => {
 		const { resources } = reconcile(
 			input({ kind: "Platform", object: platform("mono") }),

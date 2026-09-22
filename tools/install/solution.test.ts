@@ -19,6 +19,7 @@ test("the chart bootstrap solution matches the converged product", () => {
 	) as ChartValues;
 
 	expect(values.solutions?.converged).toEqual({
+		containers: configured.spec.containers,
 		repositories: configured.spec.repositories,
 		lambdas: configured.spec.lambdas,
 		surfaces: configured.spec.surfaces,

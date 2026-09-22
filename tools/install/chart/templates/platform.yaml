@@ -114,6 +114,12 @@ computes wrongly for a particular cluster without waiting for a new operator.
   processors:
     {{- include "ptah.nativePeers" (dict "root" . "peers" .Values.processors) | trim | nindent 4 }}
 
+  sharedApps:
+    namespace: {{ .Values.sharedApps.namespace | quote }}
+    ownerPlatform: {{ .Values.sharedApps.ownerPlatform | default (include "ptah.workspace" .) | quote }}
+    apps:
+      {{- include "ptah.nativePeers" (dict "root" . "peers" .Values.sharedApps.apps) | trim | nindent 6 }}
+
   gateway:
     className: {{ .Values.gateway.className }}
     httpsPort: {{ .Values.gateway.httpsPort }}

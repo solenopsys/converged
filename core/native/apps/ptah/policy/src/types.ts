@@ -85,6 +85,14 @@ export interface NativeApp {
 	env?: Record<string, string>;
 }
 
+/** Shared native services, deployed outside the platform namespace. */
+export interface SharedAppsSpec {
+	namespace: string;
+	/** Platform that owns the shared namespace and its workloads. */
+	ownerPlatform?: string;
+	apps: Record<string, NativeApp>;
+}
+
 /**
  * Storage, ConfigMaps and Secrets a Platform or Solution declares directly.
  * These exist so a script can manage cluster state without a code change:
@@ -217,6 +225,8 @@ export interface PlatformSpec extends ExtraResources {
 	registry?: RegistrySpec;
 	/** Always-on peers of the bus: fujin, centimanus, resonus. */
 	apps: Record<string, NativeApp>;
+	/** Optional cluster-shared peers such as the native AI services. */
+	sharedApps?: SharedAppsSpec;
 	/**
 	 * Log and telemetry collection inside the Fujin pod. Absent means off: the
 	 * forward port stays closed and nothing is written to the analytics
@@ -273,6 +283,8 @@ export interface WorkflowRef {
 export interface SolutionSpec extends ExtraResources {
 	/** Platform this solution is layered onto. */
 	platform: string;
+	/** Native containers grouped by their deployment workspace. */
+	containers?: Record<string, string[]>;
 	enabled?: boolean;
 	repositories?: string[];
 	lambdas?: string[];

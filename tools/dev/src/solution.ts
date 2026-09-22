@@ -31,6 +31,7 @@ export type ResolvedSolution = {
 	kind: string;
 	metadata: { name: string };
 	spec: {
+		containers: Record<string, string[]>;
 		mappings: Record<string, MappingEntry[]>;
 		surfaces: string[];
 		repositories: string[];
@@ -41,7 +42,8 @@ export type ResolvedSolution = {
 };
 
 export type SolutionConfig = {
-	containers: string[];
+	/** Container names grouped by the workspace/namespace that owns them. */
+	containers: Record<string, string[]>;
 	solutionNames: string[];
 	solution: ResolvedSolution;
 };
@@ -69,6 +71,36 @@ function strings(value: unknown, path: string): string[] {
 
 function unique(values: string[]): string[] {
 	return [...new Set(values)];
+}
+
+function containerGroups(
+	value: unknown,
+	path: string,
+): Record<string, string[]> {
+	if (value === undefined) return {};
+	if (Array.isArray(value)) {
+		return { converged: strings(value, path) };
+	}
+	if (!value || typeof value !== "object") {
+		throw new Error(`[dev] ${path} must be an array or an object of arrays`);
+	}
+	const groups: Record<string, string[]> = {};
+	for (const [group, names] of Object.entries(value as JsonObject)) {
+		groups[group] = unique(strings(names, `${path}.${group}`));
+	}
+	return groups;
+}
+
+function mergeContainerGroups(
+	groups: Array<Record<string, string[]>>,
+): Record<string, string[]> {
+	const merged: Record<string, string[]> = {};
+	for (const group of groups) {
+		for (const [name, containers] of Object.entries(group)) {
+			merged[name] = unique([...(merged[name] ?? []), ...containers]);
+		}
+	}
+	return merged;
 }
 
 function mergeMappings(
@@ -210,7 +242,10 @@ export function resolveSolutionConfig(configPath: string): SolutionConfig {
 			? (metadata as JsonObject).name
 			: undefined;
 	const name = typeof metadataName === "string" ? metadataName : "converged";
-	const containers = strings(root.containers, `${configPath}.containers`);
+	const containers = containerGroups(
+		root.containers,
+		`${configPath}.containers`,
+	);
 	const mappingsPath = resolve(rootDir, "mapping.json");
 	const mappings = mappingsFrom(readObject(mappingsPath), mappingsPath);
 
@@ -278,9 +313,9 @@ export function resolveSolutionConfig(configPath: string): SolutionConfig {
 	]);
 
 	return {
-		containers: unique([
-			...extensions.flatMap((extension) => extension.containers),
-			...containers,
+		containers: mergeContainerGroups([
+			...extensions.map((extension) => extension.containers),
+			containers,
 		]),
 		solutionNames: [
 			...extensions.flatMap((extension) => extension.solutionNames),
@@ -291,6 +326,10 @@ export function resolveSolutionConfig(configPath: string): SolutionConfig {
 			kind: "Solution",
 			metadata: { name },
 			spec: {
+				containers: mergeContainerGroups([
+					...extensions.map((extension) => extension.solution.spec.containers),
+					containers,
+				]),
 				mappings: allMappings,
 				surfaces: unique([
 					...extensions.flatMap(
