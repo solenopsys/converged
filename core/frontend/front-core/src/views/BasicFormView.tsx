@@ -9,6 +9,7 @@ import { Button } from "../components/ui/button";
 import { Checkbox } from "../components/ui/checkbox";
 import { FormLayout } from "../components/FormLayout";
 import { Save, X } from "../icons";
+import { EntityDropBox } from "../components/EntityDropBox";
 import {
 	Select,
 	SelectContent,
@@ -304,7 +305,7 @@ export const BasicFormView: React.FC<BasicFormViewProps> = ({
 
 		if (field.formVisible === false) return null;
 
-		if (field.readonly) {
+		if (field.readonly || (field.readonlyOnEdit && Boolean(entity))) {
 			return (
 				<div key={field.id} className="space-y-2">
 					<Label className="text-sm font-medium">{field.title}</Label>
@@ -457,6 +458,38 @@ export const BasicFormView: React.FC<BasicFormViewProps> = ({
 							)}
 						</Label>
 						{error && <p className="text-xs text-destructive ml-2">{error}</p>}
+					</div>
+				);
+
+			case FIELD_TYPES.TAGS:
+				return (
+					<div key={field.id} className="space-y-2">
+						<Label htmlFor={field.id}>
+							{field.title}
+							{field.required && (
+								<span className="text-destructive ml-1">*</span>
+							)}
+						</Label>
+						{field.entityType ? (
+							<EntityDropBox
+								objectType={field.entityType}
+								value={Array.isArray(value)
+									? value
+										.map((item) =>
+											typeof item === "string" ? item : item?.id,
+										)
+										.filter((id): id is string => typeof id === "string")
+									: []}
+								onValueChange={(next) => handleChange(field.id, next)}
+								multiple
+								placeholder={field.placeholder}
+							/>
+						) : (
+							<p className="text-xs text-destructive">
+								Tag field requires an entity type
+							</p>
+						)}
+						{error && <p className="text-xs text-destructive">{error}</p>}
 					</div>
 				);
 

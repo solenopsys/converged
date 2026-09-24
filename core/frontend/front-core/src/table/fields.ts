@@ -20,9 +20,11 @@ export interface FieldConfig {
 	tableRender?: (value: any, rowData: any) => any;
 	required?: boolean;
 	readonly?: boolean;
+	readonlyOnEdit?: boolean;
 	placeholder?: string;
 	rows?: number;
 	options?: Array<{ value: string | number; label: string }>;
+	entityType?: string;
 	defaultValue?: any;
 	formGroup?: string;
 	helpText?: string;

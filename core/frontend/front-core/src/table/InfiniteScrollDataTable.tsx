@@ -218,6 +218,14 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 		onScrollOffsetChange: handleScrollPositionChange,
 	});
 	const { remainingBelowViewport } = rowVirtualizer;
+	const saveScrollPosition = useCallback(
+		() =>
+			setInfinityTableScrollPosition(
+				tableId,
+				rowVirtualizer.getScrollOffset(),
+			),
+		[rowVirtualizer.getScrollOffset, tableId],
+	);
 
 	const maybeLoadMore = useCallback(
 		(fromScroll: boolean) => {
@@ -685,6 +693,7 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 	return (
 		<div
 			ref={containerRef}
+			onClickCapture={saveScrollPosition}
 			class={cn(
 				"relative flex h-full min-h-0 w-full flex-col overflow-hidden bg-background",
 				className,

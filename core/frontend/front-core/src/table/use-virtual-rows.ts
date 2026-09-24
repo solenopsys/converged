@@ -60,6 +60,7 @@ type UseVirtualRowsParams = {
 export type VirtualRows = {
 	virtualItems: VirtualItem[];
 	totalSize: number;
+	getScrollOffset: () => number;
 	/** px of rendered content still below the viewport bottom, null if unmeasurable */
 	remainingBelowViewport: () => number | null;
 	remeasure: () => void;
@@ -149,6 +150,11 @@ export const useVirtualRows = ({
 		return rect.bottom - view.bottom;
 	}, [containerRef]);
 
+	const getScrollOffset = useCallback(() => {
+		const container = containerRef.current;
+		return container ? scrollOffset(container) : 0;
+	}, [containerRef]);
+
 	useLayoutEffect(() => {
 		restoreScroll();
 		measure();
@@ -209,6 +215,7 @@ export const useVirtualRows = ({
 	return {
 		virtualItems,
 		totalSize: count * rowSize,
+		getScrollOffset,
 		remainingBelowViewport,
 		remeasure: measure,
 	};
