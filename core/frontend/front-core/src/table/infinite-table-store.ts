@@ -36,6 +36,7 @@ export type InfiniteTableState<TItem = any> = {
 	sortConfig: InfiniteTableSortConfig;
 	filters: InfiniteTableFilters;
 	header: InfiniteTableHeaderState;
+	scrollPositions: Record<string, number>;
 	isInitialized: boolean;
 };
 
@@ -65,6 +66,7 @@ const initialState: InfiniteTableState = {
 		activeTabId: "",
 		referenceKey: "",
 	},
+	scrollPositions: {},
 	isInitialized: false,
 };
 
@@ -76,6 +78,11 @@ const tableStateChanged = createEvent<{
 	key: string;
 	state: InfiniteTableState;
 }>("INFINITY_TABLE_STATE_CHANGED");
+const tableScrollPositionChanged = createEvent<{
+	stateKey: string;
+	tableId: string;
+	scrollTop: number;
+}>("INFINITY_TABLE_SCROLL_POSITION_CHANGED");
 
 /** All visited infinity tables and their state, keyed by stable projection identity. */
 export const $infinityTables = createStore<TableMap>(
@@ -88,7 +95,23 @@ export const $infinityTables = createStore<TableMap>(
 	.on(tableStateChanged, (tables, { key, state }) => ({
 		...tables,
 		[key]: state,
-	}));
+	}))
+	.on(
+		tableScrollPositionChanged,
+		(tables, { stateKey, tableId, scrollTop }) => {
+			const state = tables[stateKey] ?? initialState;
+			const position = Math.max(0, scrollTop);
+			if (Math.abs((state.scrollPositions[tableId] ?? 0) - position) < 4)
+				return tables;
+			return {
+				...tables,
+				[stateKey]: {
+					...state,
+					scrollPositions: { ...state.scrollPositions, [tableId]: position },
+				},
+			};
+		},
+	);
 
 type TableController<TItem> = {
 	$state: Store<InfiniteTableState<TItem>>;
@@ -108,7 +131,59 @@ type TableController<TItem> = {
 
 const controllers = new Map<string, TableController<unknown>>();
 const dataSources = new Map<string, InfiniteTableDataFunction<unknown>>();
+const tableKeysById = new Map<string, string>();
+const scrollPositionStores = new Map<string, Store<number>>();
 let nextGeneratedKey = 1;
+
+function registerTableAlias(stableKey: string, stateKey: string): void {
+	tableKeysById.set(stableKey, stateKey);
+	try {
+		const parsed: unknown = JSON.parse(stableKey);
+		if (parsed && typeof parsed === "object") {
+			const tableId = (parsed as { tableId?: unknown }).tableId;
+			if (typeof tableId === "string") tableKeysById.set(tableId, stateKey);
+		}
+	} catch {
+		// Simple stable keys are also the renderer's table id.
+	}
+}
+
+function tableStateKey(tableId: string): string {
+	const exact = tableKeysById.get(tableId);
+	if (exact) return exact;
+	const alias = [...tableKeysById.keys()]
+		.filter((candidate) => tableId.startsWith(`${candidate}:`))
+		.sort((left, right) => right.length - left.length)[0];
+	if (alias) return tableKeysById.get(alias)!;
+	const key = `table:${tableId}`;
+	tableKeysById.set(tableId, key);
+	return key;
+}
+
+/** A cached selector into the one shared Infinity state map. */
+export function infinityTableScrollPosition(tableId: string): Store<number> {
+	const stateKey = tableStateKey(tableId);
+	const selectorKey = `${stateKey}:${tableId}`;
+	const existing = scrollPositionStores.get(selectorKey);
+	if (existing) return existing;
+	const $position = combine(
+		$infinityTables,
+		(tables) => tables[stateKey]?.scrollPositions[tableId] ?? 0,
+	);
+	scrollPositionStores.set(selectorKey, $position);
+	return $position;
+}
+
+export function setInfinityTableScrollPosition(
+	tableId: string,
+	scrollTop: number,
+): void {
+	tableScrollPositionChanged({
+		stateKey: tableStateKey(tableId),
+		tableId,
+		scrollTop,
+	});
+}
 
 // biome-ignore lint/suspicious/noExplicitAny: legacy call sites pass untyped rows
 export const createInfiniteTableStore = <TItem = any>(
@@ -117,6 +192,7 @@ export const createInfiniteTableStore = <TItem = any>(
 	stableKey?: string,
 ) => {
 	const key = stableKey ? `table:${stableKey}` : `domain:${nextGeneratedKey++}`;
+	if (stableKey) registerTableAlias(stableKey, key);
 
 	const existing = controllers.get(key);
 	if (existing) {

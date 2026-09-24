@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from "preact/hooks";
+import {
+	useCallback,
+	useEffect,
+	useLayoutEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "preact/hooks";
 import type { RefObject } from "preact";
 
 export type VirtualItem = { index: number; start: number; size: number };
@@ -36,10 +43,18 @@ const viewportBox = (target: ScrollTarget): ViewportBox => {
 	return { top: rect.top, bottom: rect.bottom, height: rect.height };
 };
 
+const scrollOffset = (container: HTMLElement): number => {
+	const view = viewportBox(resolveScrollTarget(container));
+	return Math.max(0, view.top - container.getBoundingClientRect().top);
+};
+
 type UseVirtualRowsParams = {
 	count: number;
 	rowSize: number;
 	containerRef: RefObject<HTMLElement | null>;
+	restoreKey: string;
+	initialScrollOffset: number;
+	onScrollOffsetChange?: (offset: number) => void;
 };
 
 export type VirtualRows = {
@@ -54,8 +69,50 @@ export const useVirtualRows = ({
 	count,
 	rowSize,
 	containerRef,
+	restoreKey,
+	initialScrollOffset,
+	onScrollOffsetChange,
 }: UseVirtualRowsParams): VirtualRows => {
 	const [range, setRange] = useState({ start: 0, end: 0 });
+	const initialOffsetRef = useRef(initialScrollOffset);
+	const onOffsetChangeRef = useRef(onScrollOffsetChange);
+	const restoredKeyRef = useRef<string | null>(null);
+	const lastReportedOffsetRef = useRef(initialScrollOffset);
+	const latestOffsetRef = useRef(initialScrollOffset);
+	const reportTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	initialOffsetRef.current = initialScrollOffset;
+	onOffsetChangeRef.current = onScrollOffsetChange;
+
+	const restoreScroll = useCallback(() => {
+		if (restoredKeyRef.current === restoreKey) return;
+		const container = containerRef.current;
+		if (!container || container.getBoundingClientRect().height <= 0) return;
+
+		const target = resolveScrollTarget(container);
+		const currentOffset = scrollOffset(container);
+		const delta = initialOffsetRef.current - currentOffset;
+		if (Math.abs(delta) > 1) {
+			if (target === window) window.scrollBy(0, delta);
+			else (target as HTMLElement).scrollTop += delta;
+		}
+		restoredKeyRef.current = restoreKey;
+		lastReportedOffsetRef.current = initialOffsetRef.current;
+		latestOffsetRef.current = initialOffsetRef.current;
+	}, [containerRef, restoreKey]);
+
+	const reportScroll = useCallback((offset: number) => {
+		latestOffsetRef.current = offset;
+		if (reportTimerRef.current !== null) {
+			clearTimeout(reportTimerRef.current);
+			reportTimerRef.current = null;
+		}
+		if (Math.abs(offset - lastReportedOffsetRef.current) < 4) return;
+		reportTimerRef.current = setTimeout(() => {
+			reportTimerRef.current = null;
+			lastReportedOffsetRef.current = latestOffsetRef.current;
+			onOffsetChangeRef.current?.(latestOffsetRef.current);
+		}, 100);
+	}, []);
 
 	const measure = useCallback(() => {
 		const container = containerRef.current;
@@ -92,7 +149,13 @@ export const useVirtualRows = ({
 		return rect.bottom - view.bottom;
 	}, [containerRef]);
 
+	useLayoutEffect(() => {
+		restoreScroll();
+		measure();
+	}, [measure, restoreScroll]);
+
 	useEffect(() => {
+		restoreScroll();
 		measure();
 
 		let frame = 0;
@@ -100,7 +163,10 @@ export const useVirtualRows = ({
 			if (frame) return;
 			frame = requestAnimationFrame(() => {
 				frame = 0;
+				restoreScroll();
 				measure();
+				const container = containerRef.current;
+				if (container) reportScroll(scrollOffset(container));
 			});
 		};
 
@@ -117,7 +183,19 @@ export const useVirtualRows = ({
 			window.removeEventListener("resize", schedule);
 			resizeObserver.disconnect();
 		};
-	}, [measure, containerRef]);
+	}, [measure, containerRef, reportScroll, restoreScroll]);
+
+	useEffect(
+		() => () => {
+			if (reportTimerRef.current !== null)
+				clearTimeout(reportTimerRef.current);
+			reportTimerRef.current = null;
+			const container = containerRef.current;
+			if (container && restoredKeyRef.current === restoreKey)
+				onScrollOffsetChange?.(scrollOffset(container));
+		},
+		[containerRef, restoreKey, onScrollOffsetChange],
+	);
 
 	const virtualItems = useMemo(() => {
 		const end = Math.min(range.end, count);

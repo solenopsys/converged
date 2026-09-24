@@ -25,6 +25,10 @@ export {
 	setColumnWidthAtIndex,
 	setColumnWidths,
 } from "./columns-store";
+export {
+	infinityTableScrollPosition,
+	setInfinityTableScrollPosition,
+} from "./infinite-table-store";
 export type { TableColumnsState } from "./columns-store";
 export { CellRenderer } from "./CellRenderer";
 export { DefaultRowCard } from "./DefaultRowCard";

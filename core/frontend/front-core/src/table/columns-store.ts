@@ -18,6 +18,10 @@ export const setColumnWidthAtIndex = createEvent<{
 export const resetColumnWidths = createEvent<{ tableId: string }>();
 export const columnWidthsRestored = createEvent<TableColumnsState>();
 
+const emptyState = (): TableColumnsState => ({
+	columnWidths: {},
+});
+
 function storage(): Storage | null {
 	try {
 		return typeof localStorage === "undefined" ? null : localStorage;
@@ -29,10 +33,11 @@ function storage(): Storage | null {
 function parseState(raw: string | null): TableColumnsState {
 	try {
 		const parsed: unknown = JSON.parse(raw ?? "{}");
-		if (!parsed || typeof parsed !== "object") return { columnWidths: {} };
-		const source = (parsed as { columnWidths?: unknown }).columnWidths;
+		if (!parsed || typeof parsed !== "object") return emptyState();
+		const value = parsed as { columnWidths?: unknown };
+		const source = value.columnWidths;
 		if (!source || typeof source !== "object" || Array.isArray(source))
-			return { columnWidths: {} };
+			return emptyState();
 
 		const columnWidths: Record<string, number[]> = {};
 		for (const [tableId, widths] of Object.entries(source)) {
@@ -47,7 +52,7 @@ function parseState(raw: string | null): TableColumnsState {
 		}
 		return { columnWidths };
 	} catch {
-		return { columnWidths: {} };
+		return emptyState();
 	}
 }
 
@@ -55,7 +60,7 @@ function readState(): TableColumnsState {
 	try {
 		return parseState(storage()?.getItem(STORAGE_KEY) ?? null);
 	} catch {
-		return { columnWidths: {} };
+		return emptyState();
 	}
 }
 
@@ -78,7 +83,7 @@ export const $tableColumnsState = createStore<TableColumnsState>(readState(), {
 		const { [tableId]: _, ...columnWidths } = state.columnWidths;
 		return { ...state, columnWidths };
 	})
-	.on(columnWidthsRestored, (_, state) => state);
+	.on(columnWidthsRestored, (_, state) => state)
 
 export const persistTableColumnWidthsFx = createEffect(
 	(state: TableColumnsState) => {

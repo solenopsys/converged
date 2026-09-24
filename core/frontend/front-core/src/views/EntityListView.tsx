@@ -562,7 +562,6 @@ export function EntityListView<TData extends object = Record<string, unknown>>({
 	const handleSort = (columnId: string, direction: "asc" | "desc") => {
 		activeStore.setSort({ key: columnId, direction });
 	};
-
 	return (
 		<HeaderPanelLayout config={headerConfig} className={className}>
 			{/* The layout slot is a plain block, so the table only gets a bounded

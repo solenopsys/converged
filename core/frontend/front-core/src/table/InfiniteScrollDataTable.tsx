@@ -31,6 +31,10 @@ import {
 	setColumnWidthAtIndex,
 	setColumnWidths,
 } from "./columns-store";
+import {
+	infinityTableScrollPosition,
+	setInfinityTableScrollPosition,
+} from "./infinite-table-store";
 import { DefaultRowCard } from "./DefaultRowCard";
 import { FilterHeader } from "./filter-header";
 import {
@@ -145,6 +149,7 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 
 	const tableColumnsState = useUnit($tableColumnsState);
 	const columnWidths = tableColumnsState.columnWidths[tableId] || [];
+	const scrollPosition = useUnit(infinityTableScrollPosition(tableId));
 
 	const fallbackColumnWidths = useMemo(() => {
 		if (visibleColumns.length === 0) return [];
@@ -200,10 +205,17 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 
 	const rowSize = currentViewMode === "table" ? 53 : 140;
 	const rowCount = hasMore ? data.length + 1 : data.length;
+	const handleScrollPositionChange = useCallback(
+		(scrollTop: number) => setInfinityTableScrollPosition(tableId, scrollTop),
+		[tableId],
+	);
 	const rowVirtualizer = useVirtualRows({
 		count: rowCount,
 		rowSize,
 		containerRef: rowsRef,
+		restoreKey: tableId,
+		initialScrollOffset: scrollPosition,
+		onScrollOffsetChange: handleScrollPositionChange,
 	});
 	const { remainingBelowViewport } = rowVirtualizer;
 

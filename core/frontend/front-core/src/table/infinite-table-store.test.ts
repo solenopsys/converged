@@ -3,6 +3,8 @@ import { createDomain } from "effector";
 import {
 	$infinityTables,
 	createInfiniteTableStore,
+	infinityTableScrollPosition,
+	setInfinityTableScrollPosition,
 } from "./infinite-table-store";
 
 describe("createInfiniteTableStore", () => {
@@ -79,7 +81,8 @@ describe("createInfiniteTableStore", () => {
 	});
 
 	test("keeps each named table state in the shared store across remounts", async () => {
-		const key = `mailing-incoming-${crypto.randomUUID()}`;
+		const tableId = `mailing-incoming-${crypto.randomUUID()}`;
+		const key = JSON.stringify({ tableId, referenceQueryKey: "incoming" });
 		const first = createInfiniteTableStore(
 			createDomain("named-table-first"),
 			async () => ({ items: [{ id: "mail-1" }], totalCount: 1 }),
@@ -97,6 +100,7 @@ describe("createInfiniteTableStore", () => {
 			activeTabId: "unread",
 			selectedIds: ["mail-1"],
 		});
+		setInfinityTableScrollPosition(tableId, 795);
 		first.loadMore();
 		await loaded;
 
@@ -117,7 +121,9 @@ describe("createInfiniteTableStore", () => {
 				activeTabId: "unread",
 				selectedIds: ["mail-1"],
 			},
+			scrollPositions: { [tableId]: 795 },
 		});
+		expect(infinityTableScrollPosition(tableId).getState()).toBe(795);
 		expect($infinityTables.getState()[`table:${key}`]).toBe(
 			remounted.$state.getState(),
 		);
