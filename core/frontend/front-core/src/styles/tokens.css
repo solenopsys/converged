@@ -105,7 +105,10 @@
     var(--hw-border-width) + var(--hw-composer-inset) + var(--hw-panel-action-radius)
   );
   --hw-panel-corner-radius: 0;
-  --hw-collapsed-offset: 0;
+  --hw-collapsed-offset: calc(
+    var(--hw-panel-inset) + var(--hw-panel-padding) + (var(--hw-border-width) * 2) +
+      var(--hw-composer-inset)
+  );
   --hw-panel-stage-offset: calc(
     var(--hw-panel-width) + var(--hw-panel-inset) + var(--hw-panel-inset)
   );

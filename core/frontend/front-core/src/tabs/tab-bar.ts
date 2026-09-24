@@ -43,7 +43,11 @@ type TabBarConfig = {
 	set: TabSetUnits;
 	/** Labels for the built-in actions, resolved by the caller's catalog. */
 	labels: (tab: TabView) => { pin: string; unpin: string; close: string };
-	icons?: { pin?: ActionItem["icon"]; close?: ActionItem["icon"] };
+	icons?: {
+		pin?: ActionItem["icon"];
+		unpin?: ActionItem["icon"];
+		close?: ActionItem["icon"];
+	};
 	$extraActions?: Store<TabActionsOf>;
 };
 
@@ -82,11 +86,12 @@ export function createTabBar({
 		Object.fromEntries(
 			tabs.map((tab) => {
 				const text = labels(tab);
+				const pinIcon = tab.pinned ? icons.unpin : icons.pin;
 				const base: ActionItem[] = [
 					{
 						id: PIN_ACTION,
 						label: tab.pinned ? text.unpin : text.pin,
-						...(icons.pin ? { icon: icons.pin } : {}),
+						...(pinIcon ? { icon: pinIcon } : {}),
 					},
 					...(tab.kind === "command"
 						? []

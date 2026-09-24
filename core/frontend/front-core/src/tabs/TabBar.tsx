@@ -85,9 +85,12 @@ function Tab({
 					aria-label={pinLabel}
 					title={pinLabel}
 					aria-pressed={tab.pinned}
-					onClick={() => pinToggled(tab.id)}
+					onClick={(event) => {
+						event.stopPropagation();
+						pinToggled(tab.id);
+					}}
 				>
-					<PushPin size={11} />
+					<PushPin size={11} pinned={tab.pinned} />
 				</button>
 				{tab.kind === "command" ? null : (
 					<button
@@ -167,6 +170,15 @@ export function TabBar({
 	});
 	const rootRef = useRef<HTMLDivElement>(null);
 	const listRef = useRef<HTMLDivElement>(null);
+	const catalogMenu = (
+		<CatalogMenu
+			model={model.add}
+			onPinToggle={pinToggled}
+			text={text}
+			align={theme === "list" ? "end" : "start"}
+			trigger={<ChevronDown size={14} aria-hidden="true" />}
+		/>
+	);
 
 	// Whatever became active — from the catalog menu, the assistant, a restored URL
 	// — has to be in the visible part of the row.
@@ -179,6 +191,7 @@ export function TabBar({
 
 	return (
 		<div class="tabs" data-theme={theme} ref={rootRef}>
+			{theme === "strip" ? catalogMenu : null}
 			<div
 				class="tabs-list"
 				role="tablist"
@@ -196,15 +209,7 @@ export function TabBar({
 					/>
 				))}
 			</div>
-			<CatalogMenu
-				model={model.add}
-				onPinToggle={pinToggled}
-				text={text}
-				align={theme === "list" ? "end" : "start"}
-				// Not "+": choosing a row replaces the unpinned tab rather than
-				// adding one, and a plus promised the opposite.
-				trigger={<ChevronDown size={14} aria-hidden="true" />}
-			/>
+			{theme !== "strip" ? catalogMenu : null}
 			{children}
 			<TabContextMenu model={model} anchor={rootRef} />
 		</div>

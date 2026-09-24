@@ -20,9 +20,7 @@ import {
 	ArrowDown,
 	ArrowUp,
 	ArrowUpDown,
-	CheckSquare,
 	ChevronDown as MenuIcon,
-	Square,
 } from "../icons";
 import { CellRenderer } from "./CellRenderer";
 import { ColumnResizer } from "./ColumnResizer";
@@ -36,7 +34,7 @@ import {
 	setInfinityTableScrollPosition,
 } from "./infinite-table-store";
 import { DefaultRowCard } from "./DefaultRowCard";
-import { FilterHeader } from "./filter-header";
+import { ColumnFilterControl } from "./filter-header/ColumnFilterControl";
 import {
 	normalizeBoolean,
 	normalizeBulkActions,
@@ -73,6 +71,7 @@ export type {
 const t = translator(CHAT_MESSAGES_NAMESPACE);
 
 const LOAD_MORE_THRESHOLD = 200;
+const SELECTION_COLUMN_WIDTH = 56;
 // prefetch only fills the first viewport; scrolling drives everything after that
 const MAX_AUTO_FILL_ROUNDS = 5;
 
@@ -94,12 +93,8 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 	onBulkAction,
 	onSelectionChange,
 	bulkActions: bulkActionsInput = [],
-	commands = [],
-	onCommand,
-	commandScopeLabel,
 	selectionResetKey,
 	selectable: selectableInput = true,
-	totalCount: totalCountInput = 0,
 	className = "",
 	tableClassName = "",
 	emptyMessage = t("table.noData"),
@@ -121,10 +116,8 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 	const loadingMore = normalizeBoolean(loadingMoreInput, false);
 	const selectable = normalizeBoolean(selectableInput, true);
 	const responsiveBreakpoint = normalizeNumber(responsiveBreakpointInput, 768);
-	const totalCount = normalizeNumber(totalCountInput, 0);
 	const initialViewMode = normalizeViewMode(viewMode);
 	const [selectedRows, setSelectedRows] = useState<RowId[]>([]);
-	const [selectionMode, setSelectionMode] = useState(false);
 	const [currentViewMode, setCurrentViewMode] =
 		useState<ViewMode>(initialViewMode);
 	const containerRef = useRef<HTMLDivElement | null>(null);
@@ -141,10 +134,10 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 			columns.filter((column) => currentViewMode === "table" || column.primary),
 		[columns, currentViewMode],
 	);
-	const hasVisibleFilters = filters.some((filter) =>
-		visibleColumns.some(
-			(column) => column.id === (filter.columnId ?? filter.id),
-		),
+	const filtersByColumn = useMemo(
+		() =>
+			new Map(filters.map((filter) => [filter.columnId ?? filter.id, filter])),
+		[filters],
 	);
 
 	const tableColumnsState = useUnit($tableColumnsState);
@@ -180,7 +173,10 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 			parentRef.current?.clientWidth ??
 			tableRef.current.parentElement?.clientWidth ??
 			1000;
-		const availableWidth = Math.max(containerWidth - (selectable ? 48 : 0), 0);
+		const availableWidth = Math.max(
+			containerWidth - (selectable ? SELECTION_COLUMN_WIDTH : 0),
+			0,
+		);
 
 		setColumnWidths({
 			tableId,
@@ -220,10 +216,7 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 	const { remainingBelowViewport } = rowVirtualizer;
 	const saveScrollPosition = useCallback(
 		() =>
-			setInfinityTableScrollPosition(
-				tableId,
-				rowVirtualizer.getScrollOffset(),
-			),
+			setInfinityTableScrollPosition(tableId, rowVirtualizer.getScrollOffset()),
 		[rowVirtualizer.getScrollOffset, tableId],
 	);
 
@@ -348,23 +341,9 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 			);
 			onBulkAction?.(actionId, selectedData, selectedIds);
 			setSelectedRows([]);
+			onSelectionChange?.([], []);
 		},
-		[onBulkAction, data],
-	);
-
-	const clearSelection = useCallback(() => {
-		setSelectedRows([]);
-		onSelectionChange?.([], []);
-	}, [onSelectionChange]);
-
-	const handleCommandClick = useCallback(
-		(commandId: string, selectedIds: RowId[]) => {
-			const selectedData = data.filter((row, index) =>
-				hasRowId(selectedIds, row, index),
-			);
-			onCommand?.(commandId, selectedIds, selectedData);
-		},
-		[data, onCommand],
+		[onBulkAction, onSelectionChange, data],
 	);
 
 	// A command that consumed the selection reports back through this key, so
@@ -449,7 +428,7 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 										columns={columns}
 										onAction={onRowAction}
 									/>
-									{selectable && selectionMode && (
+									{selectable && (
 										<div class="absolute bottom-4 left-4 z-10">
 											<input
 												type="checkbox"
@@ -483,27 +462,15 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 				)}
 			>
 				<div ref={tableRef} class="w-full">
-					<FilterHeader
-						columns={visibleColumns}
-						widths={resolvedColumnWidths}
-						filters={filters}
-						values={filterValues}
-						onChange={(values) => onFilterValuesChange?.(values)}
-						selectionOffset={selectable && selectionMode ? 48 : 0}
-					/>
-					<div
-						class={cn(
-							"sticky z-10 flex h-[53px] border-b bg-background/90",
-							hasVisibleFilters ? "top-[53px]" : "top-0",
-						)}
-					>
-						{selectable && selectionMode && (
+					<div class="sticky top-0 z-20 flex h-[53px] border-b bg-background/95">
+						{selectable && (
 							<div
-								class="flex items-center pl-2 font-medium text-muted-foreground"
-								style={{ width: "48px", flexShrink: 0 }}
+								class="flex items-center gap-1 pl-2 font-medium text-muted-foreground"
+								style={{ width: `${SELECTION_COLUMN_WIDTH}px`, flexShrink: 0 }}
 							>
 								<input
 									type="checkbox"
+									aria-label={t("table.select")}
 									checked={isAllSelected}
 									ref={(input) => {
 										if (input) input.indeterminate = isIndeterminate;
@@ -513,6 +480,34 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 									}
 									class="h-4 w-4 rounded border-input bg-background"
 								/>
+								{selectedRows.length > 0 && bulkActions.length > 0 && (
+									<ShadDropdown>
+										<DropdownMenuTrigger asChild>
+											<button
+												type="button"
+												title={t("table.actions")}
+												class="flex size-6 items-center justify-center rounded hover:bg-muted"
+											>
+												<MenuIcon size={14} />
+											</button>
+										</DropdownMenuTrigger>
+										<DropdownMenuContent align="start">
+											{bulkActions.map((action) => (
+												<DropdownMenuItem
+													key={action.id}
+													onClick={() =>
+														handleBulkActionClick(action.id, selectedRows)
+													}
+												>
+													{action.icon && (
+														<action.icon size={14} class="mr-2" />
+													)}
+													{action.label}
+												</DropdownMenuItem>
+											))}
+										</DropdownMenuContent>
+									</ShadDropdown>
+								)}
 							</div>
 						)}
 
@@ -529,7 +524,7 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 								<div
 									key={column.id}
 									class={cn(
-										"relative flex items-center px-2 text-sm font-medium text-muted-foreground",
+										"group relative flex items-center px-2 text-sm font-medium text-muted-foreground",
 										isSortable &&
 											"cursor-pointer select-none transition-colors hover:text-foreground",
 										isSorted && "text-foreground",
@@ -546,6 +541,7 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 										isSortable
 											? (event) => {
 													if (event.key === "Enter" || event.key === " ") {
+														if (event.target !== event.currentTarget) return;
 														event.preventDefault();
 														handleHeaderSortClick(column.id);
 													}
@@ -553,7 +549,7 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 											: undefined
 									}
 								>
-									<span class="block truncate overflow-hidden text-ellipsis whitespace-nowrap">
+									<span class="block min-w-0 flex-1 truncate overflow-hidden text-ellipsis whitespace-nowrap">
 										{column.title}
 									</span>
 									{isSortable && (
@@ -565,6 +561,13 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 										/>
 									)}
 
+									{filtersByColumn.has(column.id) && (
+										<ColumnFilterControl
+											filter={filtersByColumn.get(column.id)!}
+											values={filterValues}
+											onChange={(values) => onFilterValuesChange?.(values)}
+										/>
+									)}
 									{column.resizable !== false &&
 										currentViewMode === "table" && (
 											<ColumnResizer
@@ -644,10 +647,13 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 											transform: `translateY(${virtualRow.start}px)`,
 										}}
 									>
-										{selectable && selectionMode && (
+										{selectable && (
 											<div
 												class="flex items-center py-3 pl-2"
-												style={{ width: "48px", flexShrink: 0 }}
+												style={{
+													width: `${SELECTION_COLUMN_WIDTH}px`,
+													flexShrink: 0,
+												}}
 											>
 												<input
 													type="checkbox"
@@ -656,6 +662,7 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 													onChange={(event) =>
 														handleSelectRow(rowId, event.currentTarget.checked)
 													}
+													aria-label={t("table.select")}
 													class="h-4 w-4 rounded border-input bg-background"
 												/>
 											</div>
@@ -699,112 +706,6 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 				className,
 			)}
 		>
-			{(selectedRows.length > 0 || commands.length > 0) && (
-				<div class="flex flex-shrink-0 flex-wrap items-center justify-between gap-3 border-b bg-muted px-6 py-3">
-					<span class="text-sm font-medium">
-						{selectedRows.length > 0
-							? t("table.selected", {
-									selected: selectedRows.length,
-									total: data.length,
-								})
-							: (commandScopeLabel ?? "")}
-					</span>
-					<div class="flex flex-wrap items-center gap-3">
-						{commands.map((command) => (
-							<button
-								key={command.id}
-								type="button"
-								title={command.description}
-								onClick={() => handleCommandClick(command.id, selectedRows)}
-								class={cn(
-									"flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm transition-colors hover:bg-background",
-									command.variant === "destructive" &&
-										"border-destructive/40 text-destructive",
-								)}
-							>
-								{command.icon && <command.icon size={14} />}
-								{command.label}
-							</button>
-						))}
-						{selectedRows.length > 0 && (
-							<button
-								type="button"
-								onClick={clearSelection}
-								class="text-sm font-medium text-primary hover:text-primary/80"
-							>
-								{t("table.clearSelection")}
-							</button>
-						)}
-						{selectedRows.length > 0 && bulkActions.length > 0 && (
-							<ShadDropdown>
-								<DropdownMenuTrigger asChild>
-									<button
-										type="button"
-										class="flex items-center gap-2 rounded-md bg-primary px-3 py-1.5 text-sm text-primary-foreground transition-colors hover:bg-primary/90"
-									>
-										{t("table.actions")}
-										<MenuIcon size={14} />
-									</button>
-								</DropdownMenuTrigger>
-								<DropdownMenuContent align="end">
-									{bulkActions.map((action) => (
-										<DropdownMenuItem
-											key={action.id}
-											onClick={() =>
-												handleBulkActionClick(action.id, selectedRows)
-											}
-											class={cn(
-												action.variant === "destructive" &&
-													"text-destructive focus:text-destructive",
-											)}
-										>
-											{action.icon && <action.icon size={14} class="mr-2" />}
-											{action.label}
-										</DropdownMenuItem>
-									))}
-								</DropdownMenuContent>
-							</ShadDropdown>
-						)}
-					</div>
-				</div>
-			)}
-
-			{data.length > 0 && (
-				<div class="flex shrink-0 items-center justify-between border-b bg-muted/20 px-3 py-1 text-xs text-muted-foreground">
-					{selectable ? (
-						<button
-							type="button"
-							onClick={() => {
-								setSelectionMode((value) => !value);
-								if (selectionMode) clearSelection();
-							}}
-							class={cn(
-								"flex items-center gap-1.5 transition-colors hover:text-foreground",
-								selectionMode && "text-primary",
-							)}
-						>
-							{selectionMode ? <CheckSquare size={13} /> : <Square size={13} />}
-							{t("table.select")}
-						</button>
-					) : (
-						<span />
-					)}
-					<span>
-						{(() => {
-							const visibleItems = rowVirtualizer.virtualItems.filter(
-								(item) => item.index < data.length,
-							);
-							const lastVisible = visibleItems[visibleItems.length - 1];
-							const position = lastVisible
-								? lastVisible.index + 1
-								: data.length;
-							const total = totalCount > 0 ? totalCount : data.length;
-							return `${position} / ${total}`;
-						})()}
-					</span>
-				</div>
-			)}
-
 			{currentViewMode === "table" ? (
 				renderTable()
 			) : data.length === 0 ? (

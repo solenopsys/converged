@@ -1,4 +1,4 @@
-import { ArrowDown, Mic, PanelRightClose, PanelRightOpen, Phone, PhoneOff, Square, Upload } from "../icons";
+import { ArrowDown, Mic, Phone, PhoneOff, Square, Upload } from "../icons";
 import type { JSX } from "preact";
 import { useEffect, useState } from "preact/hooks";
 import { translator } from "i18n";
@@ -128,7 +128,6 @@ export function PanelToggle({
 	onClick: () => void;
 }) {
 	const label = open ? t("panel.collapseChat") : t("panel.openChat");
-	const Icon = open ? PanelRightClose : PanelRightOpen;
 
 	return (
 		<button
@@ -138,11 +137,7 @@ export function PanelToggle({
 			title={label}
 			onClick={onClick}
 		>
-			{open ? (
-				<Icon aria-hidden="true" size={14} />
-			) : (
-				<img class="panel-toggle-logo" src="/assets/converged.svg" alt="" />
-			)}
+			<img class="panel-toggle-logo" src="/assets/converged.svg" alt="" />
 		</button>
 	);
 }

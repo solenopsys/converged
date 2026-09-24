@@ -248,22 +248,22 @@ textarea {
 	display: grid;
 	place-items: center;
 	padding: 0;
-	border: 0;
+	border: 1px solid var(--hw-panel-border);
 	border-radius: 50%;
-	background: var(--hw-accent);
-	color: var(--hw-field-ink);
+	background: #fff;
+	color: var(--hw-ink);
 	cursor: pointer;
 }
 
 .panel-toggle-logo {
 	display: block;
-	width: 20px;
-	height: 20px;
+	width: 25px;
+	height: 22px;
 	object-fit: contain;
 }
 
 .panel-toggle:hover {
-	background: var(--hw-accent-hover);
+	background: #f5f5f5;
 }
 
 .panel-toggle:focus-visible,
@@ -720,7 +720,12 @@ textarea {
 	}
 
 	.minimized-toggle {
-		bottom: calc(var(--hw-collapsed-offset) + env(safe-area-inset-bottom));
+		right: calc(
+			var(--hw-collapsed-offset) + env(safe-area-inset-right)
+		);
+		bottom: calc(
+			var(--hw-collapsed-offset) + env(safe-area-inset-bottom)
+		);
 	}
 }
 

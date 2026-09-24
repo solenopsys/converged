@@ -337,7 +337,9 @@ html.dark .landing-index i { background: #343832; }
   right: var(--hw-collapsed-offset);
   bottom: var(--hw-collapsed-offset);
   z-index: 5;
-  filter: drop-shadow(0 var(--hw-message-gap) var(--hw-space-4) rgba(20, 20, 18, 0.16));
+  filter: drop-shadow(
+    0 var(--hw-message-gap) var(--hw-space-4) rgba(20, 20, 18, 0.16)
+  );
 }
 
 

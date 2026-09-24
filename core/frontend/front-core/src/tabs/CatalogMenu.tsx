@@ -2,7 +2,7 @@ import { useUnit } from "effector-preact";
 import type { ComponentChildren } from "preact";
 import { useEffect, useMemo, useRef } from "preact/hooks";
 import { Plus } from "../icons";
-import { PushPin } from "./PushPin";
+import { PinnedPushPin, PushPin } from "./PushPin";
 import { useDismiss } from "./dismiss";
 import { Floating, useAnchoredPosition } from "./floating";
 import type { CatalogMenu as CatalogMenuModel } from "./menus";
@@ -182,9 +182,16 @@ export function CatalogMenu({
 												aria-pressed={entry.pinned}
 												aria-label={pinLabel}
 												title={pinLabel}
-												onClick={() => onPinToggle(entry.id)}
-											>
-												<PushPin size={12} />
+								onClick={(event) => {
+									event.stopPropagation();
+									onPinToggle(entry.id);
+								}}
+							>
+								{entry.pinned ? (
+									<PinnedPushPin size={12} />
+								) : (
+									<PushPin size={12} />
+								)}
 											</button>
 										</li>,
 									];

@@ -62,7 +62,7 @@
 
 .tab-icon {
   flex: 0 0 auto;
-  color: var(--hw-ink-muted);
+  color: currentColor;
 }
 
 /*
@@ -73,7 +73,7 @@
   display: inline-flex;
   flex-shrink: 0;
   align-items: center;
-  gap: 1px;
+  gap: var(--hw-space-1);
   padding-right: var(--hw-space-1);
 }
 
@@ -139,33 +139,38 @@
 /* --- strip: the surfaces ------------------------------------------------ */
 
 .tabs[data-theme="strip"] .tab {
-	border: 0;
-	border-radius: 0;
-	border-bottom: 1px solid transparent;
+  border: 0;
+  border-radius: 0;
 }
 
 .tabs[data-theme="strip"] .tab[data-active="true"] {
-	border-bottom-color: currentColor;
-	background: transparent;
-	color: var(--hw-ink);
+  background: transparent;
+  color: var(--hw-focus);
 }
 
 .tabs[data-theme="strip"] .tab-select {
-	min-height: calc(var(--hw-unit) * 6);
-	padding-inline: var(--hw-space-1);
+  min-height: calc(var(--hw-unit) * 6);
+  padding-inline: var(--hw-space-1);
+}
+
+.tabs[data-theme="strip"] .catalog-menu-trigger {
+  min-width: calc(var(--hw-unit) * 6);
+  height: calc(var(--hw-unit) * 6);
+  padding-inline: var(--hw-space-1);
+  border: 0;
 }
 
 /* --- bar: inside a surface ---------------------------------------------- */
 
 .tabs[data-theme="bar"] .tab {
-	border-radius: 0;
-	border-bottom: 1px solid transparent;
+  border-radius: 0;
+  border-bottom: 1px solid transparent;
 }
 
 .tabs[data-theme="bar"] .tab[data-active="true"] {
-	border-bottom-color: currentColor;
-	background: transparent;
-	color: var(--hw-ink);
+  border-bottom-color: currentColor;
+  background: transparent;
+  color: var(--hw-ink);
 }
 
 .tabs[data-theme="bar"] .tab[data-kind="command"] {
@@ -173,12 +178,12 @@
 }
 
 .tabs[data-theme="bar"] .tab-select:hover {
-	color: var(--hw-focus);
+  color: var(--hw-focus);
 }
 
 .tabs[data-theme="bar"] .tab-select {
-	min-height: calc(var(--hw-unit) * 7);
-	padding-inline: var(--hw-space-2);
+  min-height: calc(var(--hw-unit) * 7);
+  padding-inline: var(--hw-space-2);
 }
 
 /* --- list: the phone's navigation --------------------------------------- */

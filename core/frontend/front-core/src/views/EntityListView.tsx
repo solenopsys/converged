@@ -518,14 +518,21 @@ export function EntityListView<TData extends object = Record<string, unknown>>({
 	);
 
 	const commandScopeLabel =
-		commands.length > 0
-			? t(
-					Object.keys(mergedFilters).length > 0
-						? "table.commandScopeFiltered"
-						: "table.commandScopeAll",
-					{ total: (state.totalCount ?? state.items.length).toLocaleString() },
-				)
-			: undefined;
+		selectedIds.length > 0
+			? t("table.selected", {
+					selected: selectedIds.length,
+					total: (state.totalCount ?? state.items.length).toLocaleString(),
+				})
+			: commands.length > 0
+				? t(
+						Object.keys(mergedFilters).length > 0
+							? "table.commandScopeFiltered"
+							: "table.commandScopeAll",
+						{
+							total: (state.totalCount ?? state.items.length).toLocaleString(),
+						},
+					)
+				: undefined;
 
 	const headerConfig: HeaderPanelConfig = {
 		title: resolvedTitle,
@@ -555,7 +562,18 @@ export function EntityListView<TData extends object = Record<string, unknown>>({
 						},
 					]
 				: []),
+			...commands.map((command) => ({
+				id: `__table_command_${command.id}`,
+				label: command.label,
+				...(command.icon ? { icon: command.icon } : {}),
+				onClick: () => handleCommand(command.id),
+				variant:
+					command.variant === "destructive"
+						? ("destructive" as const)
+						: ("outline" as const),
+			})),
 		],
+		scopeLabel: commandScopeLabel,
 		selectionActions,
 	};
 
@@ -563,7 +581,11 @@ export function EntityListView<TData extends object = Record<string, unknown>>({
 		activeStore.setSort({ key: columnId, direction });
 	};
 	return (
-		<HeaderPanelLayout config={headerConfig} className={className} contentClassName="p-0">
+		<HeaderPanelLayout
+			config={headerConfig}
+			className={className}
+			contentClassName="p-0"
+		>
 			{/* The layout slot is a plain block, so the table only gets a bounded
 			    height — and therefore a scrollbar — through this flex column. */}
 			<div className="flex h-full min-h-0 flex-col">
@@ -587,7 +609,6 @@ export function EntityListView<TData extends object = Record<string, unknown>>({
 						hasMore={state.hasMore}
 						loading={state.loading}
 						loadingMore={state.loadingMore}
-						totalCount={state.totalCount}
 						sortConfig={state.sortConfig}
 						onSort={handleSort}
 						onLoadMore={activeStore.loadMore}
@@ -612,9 +633,6 @@ export function EntityListView<TData extends object = Record<string, unknown>>({
 						selectable={selectable}
 						bulkActions={bulkActions}
 						onBulkAction={onBulkAction}
-						commands={commands}
-						onCommand={handleCommand}
-						{...(commandScopeLabel ? { commandScopeLabel } : {})}
 						selectionResetKey={selectionResetKey}
 						onSelectionChange={setSelectedIds}
 						emptyMessage={activeTab?.emptyMessage ?? emptyMessage}

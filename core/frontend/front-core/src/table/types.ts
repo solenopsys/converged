@@ -114,11 +114,7 @@ export interface InfiniteScrollDataTableProps<TData extends object = TableRowBas
   onBulkAction?: (actionId: string, rows: TData[], rowIds: RowId[]) => void;
   onSelectionChange?: (rowIds: RowId[], rows: TData[]) => void;
   bulkActions?: BulkAction[] | unknown;
-  commands?: TableCommand[];
-  onCommand?: (commandId: string, rowIds: RowId[], rows: TData[]) => void;
-  /** What the commands apply to while nothing is ticked: the whole selection. */
-  commandScopeLabel?: string;
-  /** Changing this clears the ticked rows — a command consumed them. */
+  /** Changing this clears selected rows after an operation consumes them. */
   selectionResetKey?: string | number;
   selectable?: unknown;
   totalCount?: unknown;

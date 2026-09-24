@@ -25,17 +25,16 @@ export function WorkspaceTopBar({
 			brandHref={brandHref}
 			onBrandClick={onBrandClick}
 			isAuthenticated={isAuthenticated}
-			// Always the strip, even empty: its catalog is how the first section is opened.
 			tabs={
 				<TabBar model={surfaceStrip} theme="strip" text={surfaceBarText()} />
 			}
-			links={links}
 			controls={
 				<>
 					{controls}
 					<TopBarSettings />
 				</>
 			}
+			links={links}
 		/>
 	);
 }

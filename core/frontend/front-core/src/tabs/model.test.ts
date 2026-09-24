@@ -99,12 +99,14 @@ describe("one transient tab", () => {
 		expect(visibleIds(step.state, catalog)).toEqual(["suggested", "orders"]);
 	});
 
-	test("unpinning a tab in the background takes it off the screen", () => {
+	test("unpinning a background tab keeps it open as the transient tab", () => {
 		const state = run([open("orders"), pin("orders"), open("clients")]);
 		const step = togglePin(state, catalog, "orders", transient);
 
-		expect(step.evicted).toEqual(["orders"]);
-		expect(visibleIds(step.state, catalog)).toEqual(["suggested", "clients"]);
+		expect(step.evicted).toEqual(["clients"]);
+		expect(step.state.active).toBe("orders");
+		expect(step.state.transient).toBe("orders");
+		expect(visibleIds(step.state, catalog)).toEqual(["suggested", "orders"]);
 	});
 
 	test("unpinning what configuration pins is remembered as an override", () => {

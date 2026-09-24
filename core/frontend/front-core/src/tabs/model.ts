@@ -293,9 +293,8 @@ export function openTab(
 }
 
 /**
- * Pinning keeps an item; unpinning the active one leaves it on screen as the
- * transient tab (evicting the previous transient), unpinning anything else
- * takes it off the screen.
+ * Pinning keeps an item; unpinning leaves it open as the transient tab and
+ * activates it, evicting only the previous transient item.
  */
 export function togglePin(
 	state: TabSetState,
@@ -320,19 +319,14 @@ export function togglePin(
 		return step(next, { evicted: [id], pinsChanged: true });
 	}
 
-	if (state.active === id) {
-		const evicted =
-			next.transient && next.transient !== id ? [next.transient] : [];
-		next = {
-			...next,
-			transient: id,
-			entries: withoutEntries(next.entries, evicted),
-		};
-		return step(next, { evicted, pinsChanged: true });
-	}
-
-	next = { ...next, entries: withoutEntries(next.entries, [id]) };
-	return step(next, { evicted: [id], pinsChanged: true });
+	const evicted = next.transient && next.transient !== id ? [next.transient] : [];
+	next = {
+		...next,
+		active: id,
+		transient: id,
+		entries: withoutEntries(next.entries, evicted),
+	};
+	return step(next, { evicted, pinsChanged: true });
 }
 
 /** Closing takes the item off the screen and out of the pins. */

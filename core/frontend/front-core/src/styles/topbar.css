@@ -1,7 +1,6 @@
-
 :root,
 :host {
-  --top-bar-height: 68px;
+  --top-bar-height: 56px;
 }
 
 .top-bar {
@@ -10,48 +9,52 @@
   display: grid;
   grid-template-columns: minmax(140px, 1fr) auto minmax(140px, 1fr);
   align-items: center;
-  gap: var(--hw-space-6);
+  gap: var(--hw-space-3);
   min-height: var(--top-bar-height);
-  padding: var(--hw-space-3) max(34px, calc((100% - 1380px) / 2));
+  padding: var(--hw-space-2) max(16px, calc((100% - 1480px) / 2));
   border-bottom: 1px solid var(--hw-panel-border);
   background: color-mix(in srgb, var(--hw-canvas) 92%, var(--hw-ink) 8%);
   color: var(--hw-ink);
 }
 
 .top-bar[data-authenticated="true"] {
-	grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
 }
 
 .top-bar a,
 .top-bar button,
 .top-bar select {
   color: inherit;
-  font: 700 12px "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font:
+    700 12px "SFMono-Regular",
+    Consolas,
+    "Liberation Mono",
+    monospace;
 }
 
 .top-bar-brand {
-	justify-self: start;
-	border: 0;
-	background: transparent;
-	padding: 0;
-	text-decoration: none;
-	cursor: pointer;
+  justify-self: start;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  text-decoration: none;
+  cursor: pointer;
 }
 
 .top-bar-brand-logo {
-	display: block;
-	width: 102px;
-	height: auto;
-	max-height: 36px;
-	object-fit: contain;
+  display: block;
+  width: 102px;
+  height: auto;
+  max-height: 36px;
+  object-fit: contain;
 }
 
 html.dark .top-bar-brand-logo {
-	content: url("/header-logo-white.svg");
+  content: url("/header-logo-white.svg");
 }
 
 .top-bar-brand span {
-	color: var(--hw-ink-muted);
+  color: var(--hw-ink-muted);
 }
 
 .top-bar-nav {
@@ -91,16 +94,16 @@ html.dark .top-bar-brand-logo {
   display: flex;
   align-items: center;
   justify-self: end;
-  gap: var(--hw-space-2);
+  gap: var(--hw-space-1);
 }
 
 .top-bar-control {
   display: inline-grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   padding: 0;
-  border: 1px solid var(--hw-panel-border);
+  border: 0;
   border-radius: 4px;
   background: transparent;
   cursor: pointer;
@@ -127,9 +130,9 @@ html.dark .top-bar-theme-icon-sun {
 .top-bar-controls .shell-menu-trigger {
   gap: var(--hw-space-1);
   width: auto;
-  height: 36px;
-  padding: 0 var(--hw-space-2);
-  border: 1px solid var(--hw-panel-border);
+  height: 32px;
+  padding: 0 var(--hw-space-1);
+  border: 0;
   border-radius: 4px;
 }
 
@@ -154,7 +157,11 @@ html.dark .top-bar-theme-icon-sun {
 .top-bar-language-trigger,
 .top-bar-language-option {
   color: var(--hw-ink);
-  font: 700 12px "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font:
+    700 12px "SFMono-Regular",
+    Consolas,
+    "Liberation Mono",
+    monospace;
 }
 
 .top-bar-language-trigger {
@@ -162,10 +169,10 @@ html.dark .top-bar-theme-icon-sun {
   align-items: center;
   justify-content: center;
   gap: 7px;
-  min-width: 78px;
-  min-height: 36px;
-  padding: 0 10px;
-  border: 1px solid var(--hw-panel-border);
+  min-width: 0;
+  min-height: 32px;
+  padding: 0 var(--hw-space-1);
+  border: 0;
   border-radius: 4px;
   background: transparent;
   cursor: pointer;
@@ -173,7 +180,6 @@ html.dark .top-bar-theme-icon-sun {
 
 .top-bar-language-trigger:hover,
 .top-bar-language-trigger:focus-visible {
-  border-color: var(--hw-ink);
   background: color-mix(in srgb, var(--hw-panel) 45%, transparent);
   outline: none;
 }
@@ -297,13 +303,13 @@ html.dark .top-bar-theme-icon-sun {
 @media (max-width: 900px) {
   :root,
   :host {
-    --top-bar-height: 112px;
+    --top-bar-height: 88px;
   }
 
   .top-bar {
     grid-template-columns: 1fr auto;
-    gap: var(--hw-space-3) var(--hw-space-5);
-    padding: var(--hw-space-3) var(--hw-space-5);
+    gap: var(--hw-space-2) var(--hw-space-3);
+    padding: var(--hw-space-2) var(--hw-space-3);
   }
 
   .top-bar-nav {

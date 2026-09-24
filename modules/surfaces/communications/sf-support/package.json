@@ -12,6 +12,8 @@
 		"front-core": "workspace:*",
 		"g-support": "workspace:*",
 		"g-threads": "workspace:*",
-		"signal-channel": "workspace:*"
+		"preact": "^10.29.7",
+		"signal-channel": "workspace:*",
+		"threads-state": "workspace:*"
 	}
 }

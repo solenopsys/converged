@@ -3,7 +3,7 @@ import { translator } from "i18n";
 import { CHAT_MESSAGES_NAMESPACE } from "../chat/i18n";
 import { X } from "../icons";
 import { createTabBar, type TabBarModel, type TabBarText } from "../tabs";
-import { PushPin } from "../tabs/PushPin";
+import { PinnedPushPin, PushPin } from "../tabs/PushPin";
 import { $extraSurfaceActions, workspaceTabActionInvoked } from "./tab-actions";
 import { menus, surfaces } from "./workspace";
 
@@ -24,7 +24,7 @@ function surfaceBar(name: string): TabBarModel {
 		name,
 		set: surfaces,
 		labels: actionLabels,
-		icons: { pin: PushPin, close: X },
+		icons: { pin: PushPin, unpin: PinnedPushPin, close: X },
 		$extraActions: $extraSurfaceActions,
 	});
 	sample({
@@ -40,7 +40,7 @@ const menuBar = (name: string): TabBarModel =>
 		name,
 		set: menus.current,
 		labels: actionLabels,
-		icons: { pin: PushPin, close: X },
+		icons: { pin: PushPin, unpin: PinnedPushPin, close: X },
 	});
 
 export const surfaceStrip = surfaceBar("SURFACE_STRIP");

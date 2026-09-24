@@ -130,7 +130,7 @@ export function DashboardPieChartCard({
 					</div>
 				) : (
 					<>
-						<div className="flex h-[220px] min-h-[220px] flex-[0_0_220px] items-center justify-center overflow-hidden">
+						<div className="flex h-full min-h-[220px] min-w-[150px] flex-1 items-center justify-center overflow-hidden">
 							<svg
 								viewBox={`${-VIEW_SIZE / 2} ${-VIEW_SIZE / 2} ${VIEW_SIZE} ${VIEW_SIZE}`}
 								className="h-[220px] w-[220px] shrink-0"

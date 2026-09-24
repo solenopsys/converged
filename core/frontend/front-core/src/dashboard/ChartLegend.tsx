@@ -13,7 +13,7 @@ export type ChartLegendRow = {
 
 export function ChartLegend({ rows }: { rows: ChartLegendRow[] }) {
 	return (
-		<table className="min-w-[150px] flex-1 border-collapse text-xs">
+		<table className="w-[clamp(180px,30%,280px)] max-w-full flex-none border-collapse text-xs">
 			<thead>
 				<tr className="border-b text-left text-muted-foreground">
 					<th className="py-1 pr-3 font-medium">
