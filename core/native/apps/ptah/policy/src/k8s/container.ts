@@ -87,6 +87,7 @@ export function container(spec: ContainerSpec): Record<string, unknown> {
 	return {
 		name: spec.name,
 		image: spec.image,
+		imagePullPolicy: "Always",
 		...(spec.command ? { command: spec.command } : {}),
 		...(spec.args ? { args: spec.args } : {}),
 		...(spec.ports

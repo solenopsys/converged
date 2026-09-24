@@ -44,19 +44,6 @@ import { require } from "./types.ts";
 const UI_PORT = 3000;
 const MS_PORT = 3001;
 
-const DEFAULT_SHARED_APPS: Record<string, NativeApp> = {
-	case: {
-		image: "public.ecr.aws/i5x9u8b2/case:latest",
-		ports: { http: 8000 },
-		portEnv: { http: "CASE_PORT" },
-	},
-	params: {
-		image: "public.ecr.aws/i5x9u8b2/params:latest",
-		ports: { http: 8001 },
-		portEnv: { http: "PARAMS_PORT" },
-	},
-};
-
 /** Fujin is the single router; every other native peer dials its ZMQ socket. */
 function fujinEndpoint(platform: string, spec: PlatformSpec): string {
 	const zmq = require(spec.apps.fujin?.ports?.zmq, "spec.apps.fujin.ports.zmq");
@@ -179,6 +166,7 @@ function nativeApp(
 	app: NativeApp,
 	modulesDigest: string,
 	accessSecrets: string[],
+	extraEnv: Record<string, string> = {},
 ): KubeObject[] {
 	const resourceName = n.app(platform, name);
 	const labels = n.labels(platform, name, owner);
@@ -208,6 +196,7 @@ function nativeApp(
 		...(name === "fujin" ? fujinEnv(platform, spec) : {}),
 		...stateEnv,
 		...(app.env ?? {}),
+		...extraEnv,
 	};
 	// Fujin itself binds the socket; its peers are told where to dial.
 	if (name !== "fujin" && app.fujinEndpointEnv) {
@@ -271,13 +260,11 @@ function nativeApp(
 /** Shared solution peers live in their own namespace but keep the same owner. */
 function sharedApp(
 	platform: string,
-	spec: PlatformSpec,
+	shared: SharedAppsSpec,
 	owner: string,
 	name: string,
 	app: NativeApp,
 ): KubeObject[] {
-	const shared = spec.sharedApps;
-	if (!shared) return [];
 	const resourceName = name;
 	const component = `ai-${name}`;
 	const labels = n.labels(platform, component, owner);
@@ -307,6 +294,7 @@ function sharedApp(
 					ports,
 					resources: app.resources,
 					probePort: ports[0]?.port,
+					probePath: app.probePath,
 				},
 			],
 		}),
@@ -355,18 +343,7 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 					.containers?.ai ?? [],
 		),
 	);
-	const configuredSharedApps =
-		spec.sharedApps ??
-		(sharedContainerNames.size > 0
-			? {
-					namespace: "ai",
-					apps: Object.fromEntries(
-						[...sharedContainerNames]
-							.filter((name) => DEFAULT_SHARED_APPS[name])
-							.map((name) => [name, DEFAULT_SHARED_APPS[name]]),
-					),
-				}
-			: undefined);
+	const configuredSharedApps = spec.sharedApps;
 	const sharedApps = configuredSharedApps
 		? {
 				...configuredSharedApps,
@@ -445,9 +422,19 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 		),
 	);
 
+	const sharedEnv = sharedAppEnv(platform, sharedApps);
 	for (const [name, app] of Object.entries(spec.apps)) {
 		resources.push(
-			...nativeApp(platform, spec, owner, name, app, rollout, accessSecrets),
+			...nativeApp(
+				platform,
+				spec,
+				owner,
+				name,
+				app,
+				rollout,
+				accessSecrets,
+				sharedEnv,
+			),
 		);
 	}
 
@@ -461,7 +448,7 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 			},
 		});
 		for (const [name, app] of Object.entries(sharedApps.apps)) {
-			resources.push(...sharedApp(platform, spec, owner, name, app));
+			resources.push(...sharedApp(platform, sharedApps, owner, name, app));
 		}
 	}
 
@@ -479,6 +466,7 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 				processor,
 				rollout,
 				accessSecrets,
+				sharedEnv,
 			),
 		);
 	}
@@ -566,7 +554,8 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 						...(spec.profile === "mono" ? { STORAGE_SCOPE: platform } : {}),
 						REPOSITORIES: JSON.stringify(merged.repositories),
 						LAMBDAS: JSON.stringify(merged.lambdas),
-					}),
+						WORKFLOWS: JSON.stringify(merged.workflows),
+				}),
 					envFromConfigMap: n.domainsConfigMap(platform),
 					envFromSecret: spec.secretName,
 					envFromSecrets: accessSecrets,

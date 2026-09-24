@@ -92,8 +92,16 @@ describe("platform", () => {
 					sharedApps: {
 						namespace: "ai",
 						apps: {
-							case: { image: "reg/case:1", ports: { http: 8000 } },
-							params: { image: "reg/params:1", ports: { http: 8001 } },
+							case: {
+								image: "reg/case:1",
+								ports: { http: 8000 },
+								probePath: "/healthz",
+							},
+							params: {
+								image: "reg/params:1",
+								ports: { http: 8001 },
+								probePath: "/healthz",
+							},
 						},
 					},
 				}),
@@ -120,6 +128,75 @@ describe("platform", () => {
 		);
 		expect(env.CASE_URL).toBe("http://case.ai.svc.cluster.local:8000");
 		expect(env.PARAMS_URL).toBe("http://params.ai.svc.cluster.local:8001");
+	});
+
+	test("AI containers use their configured shared app definitions", () => {
+		const { resources } = reconcile(
+			input({
+				kind: "Platform",
+				solutions: [
+					solution("ai", { containers: { ai: ["case", "params", "speach"] } }),
+				],
+				object: platform("mono", {
+					apps: {
+						fujin: { image: "reg/fujin:1", ports: { ws: 8087, zmq: 5557 } },
+						resonus: { image: "reg/resonus:1" },
+					},
+					sharedApps: {
+						namespace: "ai",
+						apps: {
+							case: {
+								image: "reg/case:1",
+								ports: { http: 8000 },
+								probePath: "/healthz",
+							},
+							params: {
+								image: "reg/params:1",
+								ports: { http: 8001 },
+								probePath: "/healthz",
+							},
+							speach: {
+								image: "reg/speach:1",
+								ports: { http: 8002 },
+								portEnv: { http: "SPEACH_PORT" },
+								probePath: "/healthz",
+							},
+						},
+					},
+				}),
+			}),
+		);
+
+		for (const name of ["case", "params", "speach"]) {
+			const deployment = find(resources, "Deployment", name);
+			expect(deployment?.metadata.namespace).toBe("ai");
+			expect(find(resources, "Service", name)?.metadata.namespace).toBe("ai");
+			expect(
+				specOf<{
+					template: {
+						spec: {
+							containers: { readinessProbe: { httpGet: { path: string } } }[];
+						};
+					};
+				}>(resources, "Deployment", name).template.spec.containers[0]
+					.readinessProbe.httpGet.path,
+			).toBe("/healthz");
+		}
+		const resonus = specOf<{
+			template: {
+				spec: { containers: { env: { name: string; value: string }[] }[] };
+			};
+		}>(resources, "Deployment", "converged-resonus");
+		const resonusEnv = Object.fromEntries(
+			resonus.template.spec.containers[0].env.map((entry) => [
+				entry.name,
+				entry.value,
+			]),
+		);
+		expect(resonusEnv.CASE_URL).toBe("http://case.ai.svc.cluster.local:8000");
+		expect(resonusEnv.PARAMS_URL).toBe(
+			"http://params.ai.svc.cluster.local:8001",
+		);
 	});
 
 	test("every workspace can use the shared AI services", () => {

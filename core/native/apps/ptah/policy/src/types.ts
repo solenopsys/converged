@@ -79,6 +79,8 @@ export interface NativeApp {
 	fujinEndpointEnv?: string;
 	/** Maps a port name to the env var the app reads its listen port from. */
 	portEnv?: Record<string, string>;
+	/** HTTP path used by readiness and liveness probes. Defaults to `/health`. */
+	probePath?: string;
 	hostNetwork?: boolean;
 	replicas?: number;
 	resources?: Resources;

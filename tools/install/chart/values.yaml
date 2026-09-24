@@ -162,12 +162,21 @@ sharedApps:
         http: 8000
       portEnv:
         http: CASE_PORT
+      probePath: /healthz
     params:
       repository: params
       ports:
         http: 8001
       portEnv:
         http: PARAMS_PORT
+      probePath: /healthz
+    speach:
+      repository: speach
+      ports:
+        http: 8002
+      portEnv:
+        http: SPEACH_PORT
+      probePath: /healthz
 
 storage:
   size: 5Gi

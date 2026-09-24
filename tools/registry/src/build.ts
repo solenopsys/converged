@@ -383,7 +383,7 @@ async function buildAll(options: Options): Promise<Built[]> {
 		if (kind === "surfaces") {
 			await store(
 				OBJECT_INDEX,
-				await buildObjectIndex(options, modules),
+				await buildObjectIndex(options, discovered),
 				"object-index",
 			);
 		}
