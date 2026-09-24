@@ -40,4 +40,5 @@ export default defineSurface({
 			invoke: DASHBOARD_REF,
 		},
 	],
+	menu: [{ view: "dashboard.dashboard.view", default: true }],
 });

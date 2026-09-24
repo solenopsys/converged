@@ -13,7 +13,13 @@ const dashboardReference = objectRef("dashboard.dashboard", "statistics", {
 });
 
 /** The console's persistent home screen, shown outside the transient tab workspace. */
-export function ConsoleRoot({ brand }: { brand: ComponentChildren }) {
+export function ConsoleRoot({
+	brand,
+	isAuthenticated,
+}: {
+	brand: ComponentChildren;
+	isAuthenticated?: boolean;
+}) {
 	const [View, setView] = useState<ComponentType<
 		Record<string, unknown>
 	> | null>(null);
@@ -40,7 +46,11 @@ export function ConsoleRoot({ brand }: { brand: ComponentChildren }) {
 
 	return (
 		<section class="surface">
-			<WorkspaceTopBar brand={brand} onBrandClick={workspaceReset} />
+			<WorkspaceTopBar
+				brand={brand}
+				onBrandClick={workspaceReset}
+				isAuthenticated={isAuthenticated}
+			/>
 			<div class="surface-content">
 				{View ? <View /> : null}
 				{failed ? (

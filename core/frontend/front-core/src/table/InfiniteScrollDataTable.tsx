@@ -493,8 +493,8 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 					/>
 					<div
 						class={cn(
-							"sticky z-10 flex h-10 border-b bg-background/90",
-							hasVisibleFilters ? "top-10" : "top-0",
+							"sticky z-10 flex h-[53px] border-b bg-background/90",
+							hasVisibleFilters ? "top-[53px]" : "top-0",
 						)}
 					>
 						{selectable && selectionMode && (

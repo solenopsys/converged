@@ -93,8 +93,6 @@ function eventBody(event: RightPanelEvent): string | undefined {
 const devTraceEnabled =
 	typeof __EFFECTOR_DEBUG__ !== "undefined" && __EFFECTOR_DEBUG__;
 
-const CONVERGED_LOGO_URL = "/assets/converged.svg";
-
 function isConsoleRoute(): boolean {
 	return (
 		typeof window !== "undefined" && isConsolePath(window.location.pathname)
@@ -489,9 +487,15 @@ export function AppShell({
 		>
 			<div class="app-shell-stage">
 				{surface ? (
-					<Surface brand={brand} onBrandClick={workspaceReset} />
+					<Surface
+						brand={brand}
+						onBrandClick={workspaceReset}
+						isAuthenticated={isAuthenticated}
+					/>
 				) : null}
-				{!surface && isConsoleRoute() ? <ConsoleRoot brand={brand} /> : null}
+				{!surface && isConsoleRoute() ? (
+					<ConsoleRoot brand={brand} isAuthenticated={isAuthenticated} />
+				) : null}
 				{landing ? (
 					<LandingView
 						payload={landing}
@@ -533,11 +537,6 @@ export function AppShell({
 						}}
 					/>
 					<header class="panel-header">
-						<img
-							class="panel-label-logo"
-							src={CONVERGED_LOGO_URL}
-							alt="Converged"
-						/>
 						<div class="panel-user-actions">
 							<span
 								class="chat-user-status"

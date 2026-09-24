@@ -1,13 +1,14 @@
 import { useUnit } from "effector-preact";
 import type { ComponentChildren, RefObject } from "preact";
 import { useEffect, useRef } from "preact/hooks";
-import { ChevronDown, Pin, X } from "../icons";
+import { ChevronDown, X } from "../icons";
 import { CatalogMenu, type CatalogMenuText } from "./CatalogMenu";
 import { ChoiceList } from "./ChoiceMenu";
 import { useDismiss } from "./dismiss";
 import { Floating } from "./floating";
 import type { TabView } from "./model";
 import { TabIcon } from "./TabIcon";
+import { PushPin } from "./PushPin";
 import type { TabBarModel } from "./tab-bar";
 
 /**
@@ -86,7 +87,7 @@ function Tab({
 					aria-pressed={tab.pinned}
 					onClick={() => pinToggled(tab.id)}
 				>
-					<Pin size={11} aria-hidden="true" />
+					<PushPin size={11} />
 				</button>
 				{tab.kind === "command" ? null : (
 					<button

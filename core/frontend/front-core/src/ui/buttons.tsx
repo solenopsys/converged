@@ -138,7 +138,11 @@ export function PanelToggle({
 			title={label}
 			onClick={onClick}
 		>
-			<Icon aria-hidden="true" size={14} />
+			{open ? (
+				<Icon aria-hidden="true" size={14} />
+			) : (
+				<img class="panel-toggle-logo" src="/assets/converged.svg" alt="" />
+			)}
 		</button>
 	);
 }

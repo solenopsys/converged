@@ -42,7 +42,7 @@ export function FilterHeader<TData extends object>({
 	if (visibleFilterCount === 0) return null;
 
 	return (
-		<div className="sticky top-0 z-20 flex h-10 border-b bg-background/95">
+		<div className="sticky top-0 z-20 flex h-[53px] border-b bg-background/95">
 			{selectionOffset > 0 && (
 				<div style={{ width: `${selectionOffset}px`, flexShrink: 0 }} />
 			)}

@@ -244,7 +244,7 @@ export function StatisticsDashboard() {
 	const addLabel = t("statistics.addSection");
 
 	return (
-		<ContentContainer className="flex flex-col gap-3 p-4">
+		<ContentContainer className="flex w-full max-w-none flex-col gap-3 p-4">
 			<div className="home-toolbar">
 				<CatalogMenu
 					model={homeMenu}

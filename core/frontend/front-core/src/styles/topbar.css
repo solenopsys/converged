@@ -18,6 +18,10 @@
   color: var(--hw-ink);
 }
 
+.top-bar[data-authenticated="true"] {
+	grid-template-columns: minmax(0, 1fr) auto;
+}
+
 .top-bar a,
 .top-bar button,
 .top-bar select {
@@ -247,11 +251,11 @@ html.dark .top-bar-theme-icon-sun {
   box-shadow: 0 12px 28px color-mix(in srgb, var(--hw-ink) 18%, transparent);
 }
 
-.shell-menu-list[data-align="end"] {
+.top-bar .shell-menu-list[data-align="end"] {
   right: 0;
 }
 
-.shell-menu-list[data-align="start"] {
+.top-bar .shell-menu-list[data-align="start"] {
   left: 0;
 }
 

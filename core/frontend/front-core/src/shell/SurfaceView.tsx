@@ -70,10 +70,12 @@ export function Surface({
 	brand,
 	brandHref,
 	onBrandClick,
+	isAuthenticated,
 }: {
 	brand: ComponentChildren;
 	brandHref?: string;
 	onBrandClick?: () => void;
+	isAuthenticated?: boolean;
 }) {
 	const { surface, pressed, tabs, release } = useUnit({
 		surface: $activeSurface,
@@ -104,6 +106,7 @@ export function Surface({
 				brand={brand}
 				brandHref={brandHref}
 				onBrandClick={onBrandClick}
+				isAuthenticated={isAuthenticated}
 			/>
 			<div class="surface-bar">
 				<TabBar model={surfaceMenuBar} theme="bar" text={menuBarText()} />

@@ -44,7 +44,7 @@ export function ChoiceMenuButton({
 	items,
 	trigger,
 	label,
-	align = "end",
+	align = "start",
 }: {
 	model: ChoiceMenu;
 	items: readonly ActionItem[];

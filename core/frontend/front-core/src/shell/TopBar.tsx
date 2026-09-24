@@ -19,6 +19,7 @@ export function TopBar({
 	links = [],
 	controls,
 	navigationLabel = "Main navigation",
+	isAuthenticated = false,
 }: {
 	brand: ComponentChildren;
 	brandHref?: string;
@@ -27,18 +28,23 @@ export function TopBar({
 	links?: TopBarLink[];
 	controls?: ComponentChildren;
 	navigationLabel?: string;
+	isAuthenticated?: boolean;
 }) {
 	return (
-		<header class="top-bar">
-			{onBrandClick ? (
-				<button type="button" class="top-bar-brand" onClick={onBrandClick}>
-					{brand}
-				</button>
-			) : (
-				<a class="top-bar-brand" href={brandHref}>
-					{brand}
-				</a>
-			)}
+		<header
+			class="top-bar"
+			data-authenticated={isAuthenticated ? "true" : undefined}
+		>
+			{!isAuthenticated &&
+				(onBrandClick ? (
+					<button type="button" class="top-bar-brand" onClick={onBrandClick}>
+						{brand}
+					</button>
+				) : (
+					<a class="top-bar-brand" href={brandHref}>
+						{brand}
+					</a>
+				))}
 
 			{tabs ? (
 				<div class="top-bar-tabstrip">{tabs}</div>

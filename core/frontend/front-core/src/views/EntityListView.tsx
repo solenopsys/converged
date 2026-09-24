@@ -563,7 +563,7 @@ export function EntityListView<TData extends object = Record<string, unknown>>({
 		activeStore.setSort({ key: columnId, direction });
 	};
 	return (
-		<HeaderPanelLayout config={headerConfig} className={className}>
+		<HeaderPanelLayout config={headerConfig} className={className} contentClassName="p-0">
 			{/* The layout slot is a plain block, so the table only gets a bounded
 			    height — and therefore a scrollbar — through this flex column. */}
 			<div className="flex h-full min-h-0 flex-col">

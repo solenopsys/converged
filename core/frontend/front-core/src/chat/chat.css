@@ -54,7 +54,10 @@
 
 .panel-message.assistant {
 	align-self: flex-start;
-	background: var(--hw-canvas);
+	max-width: 100%;
+	padding: 0;
+	border: 0;
+	background: transparent;
 	color: var(--hw-ink);
 }
 

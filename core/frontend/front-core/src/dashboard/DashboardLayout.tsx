@@ -11,7 +11,7 @@ export function DashboardLayout({
 }) {
 	return (
 		<DashboardPinScope scopeId={pinScopeId}>
-			<ContentContainer className="flex flex-col gap-4">
+			<ContentContainer className="flex w-full max-w-none flex-col gap-4">
 				{children}
 			</ContentContainer>
 		</DashboardPinScope>

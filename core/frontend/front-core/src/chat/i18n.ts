@@ -164,6 +164,8 @@ const DEFAULT_MESSAGES = {
 		homeEmpty: "Home is empty. Add the sections you need with the + button.",
 		collapse: "Collapse {title}",
 		expand: "Expand {title}",
+		chartMetric: "Name",
+		chartValue: "Value",
 	},
 	toolCall: {
 		kind: "Function",
@@ -243,6 +245,8 @@ const RU_MESSAGES = {
 		homeEmpty: "Главная пуста. Добавьте нужные разделы кнопкой +.",
 		collapse: "Свернуть {title}",
 		expand: "Развернуть {title}",
+		chartMetric: "Показатель",
+		chartValue: "Значение",
 	},
 };
 

@@ -17,6 +17,7 @@ import {
 } from "../components/ui/card";
 import { Loader2 } from "../icons";
 import { cn } from "../lib/utils";
+import { ChartLegend } from "./ChartLegend";
 
 export interface DashboardLineSeriesConfig {
 	key: string;
@@ -348,17 +349,17 @@ export function DashboardLineChartCard({
 							</svg>
 						</div>
 						{legend && (
-							<div className="flex shrink-0 flex-col gap-y-1.5 text-xs text-muted-foreground">
-								{series.map((s) => (
-									<div key={s.key} className="flex items-center gap-1.5">
-										<span
-											className="h-2 w-2 shrink-0 rounded-[2px]"
-											style={{ backgroundColor: s.color }}
-										/>
-										<span>{s.label}</span>
-									</div>
-								))}
-							</div>
+							<ChartLegend
+								rows={series.map((item) => ({
+									key: item.key,
+									label: item.label,
+									color: item.color,
+									value:
+										rows.at(-1)?.[item.key] == null
+											? ""
+											: Number(rows.at(-1)?.[item.key]).toLocaleString(),
+								}))}
+							/>
 						)}
 					</>
 				)}

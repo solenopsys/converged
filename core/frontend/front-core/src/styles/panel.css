@@ -255,6 +255,13 @@ textarea {
 	cursor: pointer;
 }
 
+.panel-toggle-logo {
+	display: block;
+	width: 20px;
+	height: 20px;
+	object-fit: contain;
+}
+
 .panel-toggle:hover {
 	background: var(--hw-accent-hover);
 }

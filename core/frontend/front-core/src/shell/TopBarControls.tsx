@@ -58,6 +58,7 @@ export function LanguageMenu() {
 				label: lang.name,
 				checked: lang.code === locale,
 			}))}
+			align="start"
 		/>
 	);
 }

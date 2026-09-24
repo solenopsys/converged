@@ -62,6 +62,7 @@
 
 .tab-icon {
   flex: 0 0 auto;
+  color: var(--hw-ink-muted);
 }
 
 /*
@@ -114,7 +115,7 @@
 .tab[data-pinned="true"] .tab-pin {
   opacity: 1;
   pointer-events: auto;
-  color: var(--hw-accent);
+  color: var(--hw-ink-muted);
 }
 
 @media (hover: none) {
@@ -138,25 +139,33 @@
 /* --- strip: the surfaces ------------------------------------------------ */
 
 .tabs[data-theme="strip"] .tab {
-  border: 1px solid var(--hw-panel-border);
-  border-radius: 4px;
+	border: 0;
+	border-radius: 0;
+	border-bottom: 1px solid transparent;
 }
 
 .tabs[data-theme="strip"] .tab[data-active="true"] {
-  border-color: var(--hw-ink);
-  background: var(--hw-canvas);
-  color: var(--hw-ink);
+	border-bottom-color: currentColor;
+	background: transparent;
+	color: var(--hw-ink);
+}
+
+.tabs[data-theme="strip"] .tab-select {
+	min-height: calc(var(--hw-unit) * 6);
+	padding-inline: var(--hw-space-1);
 }
 
 /* --- bar: inside a surface ---------------------------------------------- */
 
 .tabs[data-theme="bar"] .tab {
-  border-radius: 999px;
+	border-radius: 0;
+	border-bottom: 1px solid transparent;
 }
 
 .tabs[data-theme="bar"] .tab[data-active="true"] {
-  background: color-mix(in srgb, var(--hw-focus) 14%, transparent);
-  color: var(--hw-ink);
+	border-bottom-color: currentColor;
+	background: transparent;
+	color: var(--hw-ink);
 }
 
 .tabs[data-theme="bar"] .tab[data-kind="command"] {
@@ -164,7 +173,12 @@
 }
 
 .tabs[data-theme="bar"] .tab-select:hover {
-  color: var(--hw-focus);
+	color: var(--hw-focus);
+}
+
+.tabs[data-theme="bar"] .tab-select {
+	min-height: calc(var(--hw-unit) * 7);
+	padding-inline: var(--hw-space-2);
 }
 
 /* --- list: the phone's navigation --------------------------------------- */

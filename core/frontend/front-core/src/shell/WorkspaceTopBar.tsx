@@ -10,18 +10,21 @@ export function WorkspaceTopBar({
 	onBrandClick,
 	links,
 	controls,
+	isAuthenticated,
 }: {
 	brand: ComponentChildren;
 	brandHref?: string;
 	onBrandClick?: () => void;
 	links?: TopBarLink[];
 	controls?: ComponentChildren;
+	isAuthenticated?: boolean;
 }) {
 	return (
 		<TopBar
 			brand={brand}
 			brandHref={brandHref}
 			onBrandClick={onBrandClick}
+			isAuthenticated={isAuthenticated}
 			// Always the strip, even empty: its catalog is how the first section is opened.
 			tabs={
 				<TabBar model={surfaceStrip} theme="strip" text={surfaceBarText()} />
