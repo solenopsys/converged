@@ -1,5 +1,13 @@
-import type { Domain } from "effector";
-import { sample } from "effector";
+import {
+	combine,
+	createEvent,
+	createStore,
+	type Domain,
+	type Effect,
+	type EventCallable,
+	type Store,
+	sample,
+} from "effector";
 
 export type InfiniteTableSortConfig = {
 	key: string | null;
@@ -7,6 +15,13 @@ export type InfiniteTableSortConfig = {
 };
 
 export type InfiniteTableFilters = Record<string, unknown>;
+
+export type InfiniteTableHeaderState = {
+	filterValues: Record<string, unknown>;
+	selectedIds: Array<string | number>;
+	activeTabId: string;
+	referenceKey: string;
+};
 
 // biome-ignore lint/suspicious/noExplicitAny: legacy call sites pass untyped rows
 export type InfiniteTableState<TItem = any> = {
@@ -20,6 +35,7 @@ export type InfiniteTableState<TItem = any> = {
 	hasMore: boolean;
 	sortConfig: InfiniteTableSortConfig;
 	filters: InfiniteTableFilters;
+	header: InfiniteTableHeaderState;
 	isInitialized: boolean;
 };
 
@@ -43,15 +59,76 @@ const initialState: InfiniteTableState = {
 	hasMore: true,
 	sortConfig: { key: null, direction: "asc" },
 	filters: {},
+	header: {
+		filterValues: {},
+		selectedIds: [],
+		activeTabId: "",
+		referenceKey: "",
+	},
 	isInitialized: false,
 };
+
+type TableMap = Record<string, InfiniteTableState>;
+const tableStateCreated = createEvent<{ key: string }>(
+	"INFINITY_TABLE_CREATED",
+);
+const tableStateChanged = createEvent<{
+	key: string;
+	state: InfiniteTableState;
+}>("INFINITY_TABLE_STATE_CHANGED");
+
+/** All visited infinity tables and their state, keyed by stable projection identity. */
+export const $infinityTables = createStore<TableMap>(
+	{},
+	{ name: "INFINITY_TABLES" },
+)
+	.on(tableStateCreated, (tables, { key }) =>
+		tables[key] ? tables : { ...tables, [key]: initialState },
+	)
+	.on(tableStateChanged, (tables, { key, state }) => ({
+		...tables,
+		[key]: state,
+	}));
+
+type TableController<TItem> = {
+	$state: Store<InfiniteTableState<TItem>>;
+	$activeTab: Store<string>;
+	loadMore: EventCallable<Record<string, unknown> | void>;
+	setSort: EventCallable<InfiniteTableSortConfig>;
+	setFilters: EventCallable<InfiniteTableFilters>;
+	setHeader: EventCallable<Partial<InfiniteTableHeaderState>>;
+	refresh: EventCallable<void>;
+	reset: EventCallable<void>;
+	loadDataFx: Effect<
+		Record<string, unknown>,
+		{ items: TItem[]; totalCount?: number; limit: number; append: boolean },
+		Error
+	>;
+};
+
+const controllers = new Map<string, TableController<unknown>>();
+const dataSources = new Map<string, InfiniteTableDataFunction<unknown>>();
+let nextGeneratedKey = 1;
 
 // biome-ignore lint/suspicious/noExplicitAny: legacy call sites pass untyped rows
 export const createInfiniteTableStore = <TItem = any>(
 	domain: Domain,
 	dataFunction: InfiniteTableDataFunction<TItem>,
+	stableKey?: string,
 ) => {
-	const loadDataFx = domain.createEffect({
+	const key = stableKey ? `table:${stableKey}` : `domain:${nextGeneratedKey++}`;
+
+	const existing = controllers.get(key);
+	if (existing) {
+		dataSources.set(key, dataFunction as InfiniteTableDataFunction<unknown>);
+		return existing as TableController<TItem>;
+	}
+
+	dataSources.set(key, dataFunction as InfiniteTableDataFunction<unknown>);
+	const loadDataFx = domain.createEffect<
+		Record<string, unknown>,
+		{ items: TItem[]; totalCount?: number; limit: number; append: boolean }
+	>({
 		name: "LOAD_DATA_INFINITE",
 		handler: async (params: Record<string, unknown>) => {
 			const {
@@ -63,7 +140,7 @@ export const createInfiniteTableStore = <TItem = any>(
 				...filters
 			} = params || {};
 
-			const result = await dataFunction({
+			const result = (await dataSources.get(key)!({
 				limit: limit as number,
 				offset: offset as number,
 				...(sortBy
@@ -73,7 +150,7 @@ export const createInfiniteTableStore = <TItem = any>(
 						}
 					: {}),
 				...filters,
-			});
+			})) as { items?: TItem[]; totalCount?: number } | null | undefined;
 
 			return {
 				items: result?.items || [],
@@ -93,41 +170,81 @@ export const createInfiniteTableStore = <TItem = any>(
 	);
 	const setFilters =
 		domain.createEvent<InfiniteTableFilters>("SET_FILTERS_EVENT");
+	const setHeader = domain.createEvent<Partial<InfiniteTableHeaderState>>(
+		"SET_HEADER_STATE_EVENT",
+	);
 	const refresh = domain.createEvent("REFRESH_INFINITE_EVENT");
 	const reset = domain.createEvent("RESET_INFINITE_EVENT");
+	const stateChanged = domain.createEvent<InfiniteTableState<TItem>>(
+		"TABLE_STATE_CHANGED",
+	);
 
-	const $state = domain
-		.createStore<InfiniteTableState<TItem>>(
-			initialState as InfiniteTableState<TItem>,
-		)
-		.on(setSort, (state, sortConfig) => ({
+	tableStateCreated({ key });
+	const $state = combine(
+		$infinityTables,
+		(tables) => (tables[key] ?? initialState) as InfiniteTableState<TItem>,
+	);
+	const $activeTab = $state.map((state) => state.header.activeTabId);
+	sample({
+		clock: stateChanged,
+		fn: (state) => ({ key, state }),
+		target: tableStateChanged,
+	});
+
+	sample({
+		clock: setSort,
+		source: $state,
+		fn: (state, sortConfig) => ({
 			...state,
 			sortConfig,
 			items: [],
 			offset: 0,
 			hasMore: true,
-		}))
-		.on(setFilters, (state, filters) => ({
+		}),
+		target: stateChanged,
+	});
+
+	sample({
+		clock: setFilters,
+		source: $state,
+		fn: (state, filters) => ({
 			...state,
 			filters,
 			items: [],
 			offset: 0,
 			hasMore: true,
 			isInitialized: false,
-		}))
-		.on(loadDataFx.pending, (state, pending) => {
-			if (state.items.length === 0 && pending) {
-				return { ...state, loading: true, loadingMore: false };
-			}
-			if (pending) {
-				return { ...state, loading: false, loadingMore: true };
-			}
-			return { ...state, loading: false, loadingMore: false };
-		})
-		.on(loadDataFx.doneData, (state, { items, totalCount, limit, append }) => {
+		}),
+		target: stateChanged,
+	});
+
+	sample({
+		clock: setHeader,
+		source: $state,
+		fn: (state, header) => ({
+			...state,
+			header: { ...state.header, ...header },
+		}),
+		target: stateChanged,
+	});
+
+	sample({
+		clock: loadDataFx.pending,
+		source: $state,
+		fn: (state, pending) => ({
+			...state,
+			loading: pending && state.items.length === 0,
+			loadingMore: pending && state.items.length > 0,
+		}),
+		target: stateChanged,
+	});
+
+	sample({
+		clock: loadDataFx.doneData,
+		source: $state,
+		fn: (state, { items, totalCount, limit, append }) => {
 			const newItems = append ? [...state.items, ...items] : items;
 			const hasTotalCount = typeof totalCount === "number";
-
 			return {
 				...state,
 				items: newItems,
@@ -141,14 +258,27 @@ export const createInfiniteTableStore = <TItem = any>(
 				error: null,
 				isInitialized: true,
 			};
-		})
-		.on(loadDataFx.failData, (state, error) => ({
+		},
+		target: stateChanged,
+	});
+
+	sample({
+		clock: loadDataFx.failData,
+		source: $state,
+		fn: (state, error) => ({
 			...state,
 			error: error.message,
 			loading: false,
 			loadingMore: false,
-		}))
-		.reset(reset);
+		}),
+		target: stateChanged,
+	});
+
+	sample({
+		clock: reset,
+		fn: () => ({ key, state: initialState }),
+		target: tableStateChanged,
+	});
 
 	const requestParams = (state: InfiniteTableState<TItem>, offset: number) => ({
 		offset,
@@ -184,7 +314,6 @@ export const createInfiniteTableStore = <TItem = any>(
 		target: loadDataFx,
 	});
 
-	// Reload from scratch keeping filters/sort; unlike reset it repopulates.
 	sample({
 		clock: refresh,
 		source: $state,
@@ -192,7 +321,19 @@ export const createInfiniteTableStore = <TItem = any>(
 		target: loadDataFx,
 	});
 
-	return { $state, loadMore, setSort, setFilters, refresh, reset, loadDataFx };
+	const controller = {
+		$state,
+		$activeTab,
+		loadMore,
+		setSort,
+		setFilters,
+		setHeader,
+		refresh,
+		reset,
+		loadDataFx,
+	};
+	controllers.set(key, controller as TableController<unknown>);
+	return controller;
 };
 
 // biome-ignore lint/suspicious/noExplicitAny: legacy call sites pass untyped rows

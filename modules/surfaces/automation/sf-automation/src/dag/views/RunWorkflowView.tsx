@@ -1,6 +1,6 @@
 import { useUnit } from "effector-preact";
 import { Button, Label, Play, Textarea } from "front-core";
-import { openExecution } from "../domain-executions";
+import { objectRef, presentReference } from "front-core/object-runtime";
 import {
 	$lastRun,
 	$runForm,
@@ -85,7 +85,11 @@ export function RunWorkflowView() {
 						variant="outline"
 						size="sm"
 						className="ml-auto"
-						onClick={() => openExecution(lastRun.executionId)}
+						onClick={() =>
+							void presentReference(
+								objectRef("dag.execution", lastRun.executionId),
+							)
+						}
 					>
 						Open log
 					</Button>

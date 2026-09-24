@@ -13,6 +13,7 @@ const listWorkflowsFx = domain.createEffect<PaginationParams, any>({
 export const $workflowsStore = createInfiniteTableStore(
 	domain,
 	listWorkflowsFx,
+	"dag-workflows",
 );
 
 // ---- running a workflow by hand --------------------------------------------

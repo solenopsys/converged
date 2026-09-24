@@ -156,6 +156,34 @@ describe("closing", () => {
 		expect(step.evicted).toEqual(["orders"]);
 	});
 
+	test("closing a record returns to the projection that opened it", () => {
+		const projection = "view:mailing.mail.incoming";
+		const state = openTab(
+			emptyTabSet,
+			[...catalog, { id: projection, label: "Incoming mail" }],
+			projection,
+			undefined,
+			withHome,
+		).state;
+		const record = openTab(
+			state,
+			[...catalog, { id: projection, label: "Incoming mail" }],
+			"mail:655321",
+			{ id: "mail:655321", label: "Mail[655321]" },
+			withHome,
+		);
+		const closed = closeTab(
+			record.state,
+			[...catalog, { id: projection, label: "Incoming mail" }],
+			"mail:655321",
+			withHome,
+		);
+
+		expect(closed.state.active).toBe(projection);
+		expect(closed.state.transient).toBe(projection);
+		expect(closed.evicted).toEqual(["mail:655321"]);
+	});
+
 	test("home the user never pinned comes back as the transient tab", () => {
 		const state = run([open("orders", withHome)]);
 		const step = closeTab(state, catalog, "orders", withHome);

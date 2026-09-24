@@ -54,6 +54,7 @@ export const deleteSecretFx = domain.createEffect<string, void>({
 export const $secretsStore = createInfiniteTableStore(
 	secretsDomain,
 	listSecretsFx,
+	"secrets",
 );
 export const $currentSecret = domain.createStore<{
 	name: string;

@@ -1,7 +1,15 @@
+import { createEvent } from "effector";
 import { useUnit } from "effector-preact";
-import { Badge, Button, JsonRenderer, RefreshCw, ScrollArea } from "front-core";
-import type { Execution, ExecutionTreeRow } from "g-dag";
-import { useEffect } from "preact/compat";
+import {
+	Badge,
+	Copy,
+	HeaderPanel,
+	JsonRenderer,
+	RefreshCw,
+	ScrollArea,
+} from "front-core";
+import type { HeaderPanelConfig } from "front-core";
+import type { Execution, ExecutionTree, ExecutionTreeRow } from "g-dag";
 import {
 	$executionTree,
 	$expandedNodes,
@@ -10,6 +18,12 @@ import {
 	nodeToggled,
 	refreshExecution,
 } from "../domain-executions";
+
+const copyRunLog = createEvent<ExecutionTree>("COPY_RUN_LOG");
+
+copyRunLog.watch((tree) => {
+	void navigator.clipboard.writeText(JSON.stringify(tree, null, 2));
+});
 
 const STATE_VARIANT = {
 	done: "success",
@@ -47,7 +61,7 @@ export function ExecutionTreeView() {
 
 	return (
 		<div className="flex h-full min-h-0 flex-col">
-			<Header execution={tree.execution} nodes={tree.rows.length} />
+			<Header tree={tree} nodes={tree.rows.length} />
 			<ScrollArea className="min-h-0 flex-1">
 				<div className="flex flex-col gap-1 p-3">
 					{tree.rows.length === 0 && (
@@ -73,9 +87,31 @@ export function ExecutionTreeView() {
 	);
 }
 
-function Header({ execution, nodes }: { execution: Execution; nodes: number }) {
+
+function Header({ tree, nodes }: { tree: ExecutionTree; nodes: number }) {
+	const { execution } = tree;
+	const config: HeaderPanelConfig = {
+		actions: [
+			{
+				id: "copy-run-log",
+				label: "Copy JSON",
+				icon: Copy,
+				event: copyRunLog,
+				payload: tree,
+				variant: "outline",
+			},
+			{
+				id: "refresh-run",
+				label: "Refresh",
+				icon: RefreshCw,
+				event: refreshExecution,
+				variant: "outline",
+			},
+		],
+	};
+
 	return (
-		<div className="flex items-center gap-3 border-b p-3">
+		<HeaderPanel config={config}>
 			<Badge variant={STATE_VARIANT[execution.status] ?? "outline"}>
 				{execution.status}
 			</Badge>
@@ -84,16 +120,7 @@ function Header({ execution, nodes }: { execution: Execution; nodes: number }) {
 			<span className="text-muted-foreground text-xs">
 				{nodes} node{nodes === 1 ? "" : "s"} · {duration(execution)}
 			</span>
-			<Button
-				variant="outline"
-				size="sm"
-				className="ml-auto"
-				onClick={() => refreshExecution()}
-			>
-				<RefreshCw className="mr-1 h-3 w-3" />
-				Refresh
-			</Button>
-		</div>
+		</HeaderPanel>
 	);
 }
 

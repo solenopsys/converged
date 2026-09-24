@@ -12,6 +12,7 @@ const listExecutionsFx = domain.createEffect<PaginationParams, any>({
 export const $executionsStore = createInfiniteTableStore(
 	domain,
 	listExecutionsFx,
+	"dag-executions",
 );
 
 // ---- the log of one run ----------------------------------------------------

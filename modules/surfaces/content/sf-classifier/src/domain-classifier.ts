@@ -71,6 +71,7 @@ const listTreeChildrenFx = domain.createEffect<
 export const $classifierNodesStore = createInfiniteTableStore(
 	domain,
 	listNodesFx,
+	"classifier-nodes",
 );
 export const $classifierDashboard = domain.createStore({
 	nodes: 0,

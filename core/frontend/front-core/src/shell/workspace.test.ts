@@ -314,6 +314,15 @@ describe("the bar inside a surface", () => {
 		expect($pressedSubtab.getState()?.key).toBe("object:ws.item:2");
 	});
 
+	test("closing a record returns to the projection that opened it", () => {
+		surfaceMounted("sf-ws-items");
+		menus.current.opened(projectionKey("ws.item.table"));
+		open("sf-ws-items", "object:ws.item:1");
+		subtabClosed("object:ws.item:1");
+
+		expect($pressedSubtab.getState()?.key).toBe(projectionKey("ws.item.table"));
+	});
+
 	test("pinning a projection keeps it while records come and go", () => {
 		surfaceMounted("sf-ws-items");
 		menus.current.opened(projectionKey("ws.item.table"));

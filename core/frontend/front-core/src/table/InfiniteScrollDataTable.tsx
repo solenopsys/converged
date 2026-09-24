@@ -1,5 +1,20 @@
 import { useUnit } from "effector-preact";
+import {
+	cn,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+	DropdownMenu as ShadDropdown,
+} from "front-core";
 import { translator } from "i18n";
+import type { ComponentType } from "preact";
+import {
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "preact/hooks";
 import { CHAT_MESSAGES_NAMESPACE } from "../chat/i18n";
 import {
 	ArrowDown,
@@ -9,22 +24,13 @@ import {
 	ChevronDown as MenuIcon,
 	Square,
 } from "../icons";
-import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks";
-import type { ComponentType } from "preact";
+import { CellRenderer } from "./CellRenderer";
+import { ColumnResizer } from "./ColumnResizer";
 import {
 	$tableColumnsState,
 	setColumnWidthAtIndex,
 	setColumnWidths,
 } from "./columns-store";
-import {
-	cn,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-	DropdownMenu as ShadDropdown,
-} from "front-core";
-import { CellRenderer } from "./CellRenderer";
-import { ColumnResizer } from "./ColumnResizer";
 import { DefaultRowCard } from "./DefaultRowCard";
 import { FilterHeader } from "./filter-header";
 import {
@@ -37,6 +43,7 @@ import {
 	resolveFallbackColumnWidths,
 	resolveInitialColumnWidths,
 } from "./helpers";
+import { getRowId, getRowValue, hasRowId } from "./row-utils";
 import type {
 	InfiniteScrollDataTableProps,
 	RowCardProps,
@@ -45,7 +52,6 @@ import type {
 	TableRowBase,
 	ViewMode,
 } from "./types";
-import { getRowId, getRowValue, hasRowId } from "./row-utils";
 import { useVirtualRows } from "./use-virtual-rows";
 
 export type {
@@ -123,7 +129,6 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 	const rowsRef = useRef<HTMLDivElement | null>(null);
 	const loadMoreLockRef = useRef<number | null>(null);
 	const autoFillRoundsRef = useRef(0);
-	const initKeyRef = useRef<string | null>(null);
 	const EffectiveCardComponent = (CardComponent ??
 		DefaultRowCard) as ComponentType<RowCardProps<TData>>;
 
@@ -133,7 +138,9 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 		[columns, currentViewMode],
 	);
 	const hasVisibleFilters = filters.some((filter) =>
-		visibleColumns.some((column) => column.id === (filter.columnId ?? filter.id)),
+		visibleColumns.some(
+			(column) => column.id === (filter.columnId ?? filter.id),
+		),
 	);
 
 	const tableColumnsState = useUnit($tableColumnsState);
@@ -158,13 +165,9 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 	useEffect(() => {
 		if (visibleColumns.length === 0 || !tableRef.current) return;
 
-		const initKey = `${tableId}:${visibleColumns
-			.map((column) => column.id)
-			.join("|")}:${selectable ? "1" : "0"}`;
 		const shouldInit =
 			columnWidths.length === 0 ||
-			columnWidths.length !== visibleColumns.length ||
-			initKeyRef.current !== initKey;
+			columnWidths.length !== visibleColumns.length;
 
 		if (!shouldInit) return;
 
@@ -178,7 +181,6 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 			tableId,
 			widths: resolveInitialColumnWidths(visibleColumns, availableWidth),
 		});
-		initKeyRef.current = initKey;
 	}, [tableId, visibleColumns, columnWidths.length, selectable]);
 
 	useEffect(() => {
@@ -227,7 +229,14 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 			loadMoreLockRef.current = data.length;
 			onLoadMore();
 		},
-		[data.length, hasMore, loading, loadingMore, onLoadMore, remainingBelowViewport],
+		[
+			data.length,
+			hasMore,
+			loading,
+			loadingMore,
+			onLoadMore,
+			remainingBelowViewport,
+		],
 	);
 
 	useEffect(() => {
@@ -382,7 +391,9 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 									class="flex items-center justify-center p-4"
 								>
 									{loadingMore && (
-										<p class="text-sm text-muted-foreground">{t("table.loading")}</p>
+										<p class="text-sm text-muted-foreground">
+											{t("table.loading")}
+										</p>
 									)}
 								</div>
 							) : null;
@@ -477,7 +488,9 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 									ref={(input) => {
 										if (input) input.indeterminate = isIndeterminate;
 									}}
-									onChange={(event) => handleSelectAll(event.currentTarget.checked)}
+									onChange={(event) =>
+										handleSelectAll(event.currentTarget.checked)
+									}
 									class="h-4 w-4 rounded border-input bg-background"
 								/>
 							</div>
@@ -562,14 +575,46 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 							}}
 						>
 							{virtualItems.map((virtualRow) => {
-							const isLoaderRow = virtualRow.index > data.length - 1;
-							const row = data[virtualRow.index];
+								const isLoaderRow = virtualRow.index > data.length - 1;
+								const row = data[virtualRow.index];
 
-							if (isLoaderRow) {
-								return hasMore ? (
+								if (isLoaderRow) {
+									return hasMore ? (
+										<div
+											key="loader"
+											class="flex items-center justify-center p-4"
+											style={{
+												position: "absolute",
+												top: 0,
+												left: 0,
+												width: "100%",
+												height: `${virtualRow.size}px`,
+												transform: `translateY(${virtualRow.start}px)`,
+											}}
+										>
+											{loadingMore && (
+												<p class="text-sm text-muted-foreground">
+													{t("table.loading")}
+												</p>
+											)}
+										</div>
+									) : null;
+								}
+
+								if (!row) return null;
+
+								const rowId = getRowId(row, virtualRow.index);
+								const isSelected = selectedRows.includes(rowId);
+
+								return (
 									<div
-										key="loader"
-										class="flex items-center justify-center p-4"
+										key={rowId}
+										data-index={virtualRow.index}
+										class={cn(
+											"flex cursor-pointer border-b transition-colors hover:bg-muted/50",
+											isSelected && "bg-muted",
+										)}
+										onClick={onRowClick ? () => onRowClick(row) : undefined}
 										style={{
 											position: "absolute",
 											top: 0,
@@ -579,76 +624,44 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 											transform: `translateY(${virtualRow.start}px)`,
 										}}
 									>
-										{loadingMore && (
-											<p class="text-sm text-muted-foreground">
-												{t("table.loading")}
-											</p>
-										)}
-									</div>
-								) : null;
-							}
-
-							if (!row) return null;
-
-							const rowId = getRowId(row, virtualRow.index);
-							const isSelected = selectedRows.includes(rowId);
-
-							return (
-								<div
-									key={rowId}
-									data-index={virtualRow.index}
-									class={cn(
-										"flex cursor-pointer border-b transition-colors hover:bg-muted/50",
-										isSelected && "bg-muted",
-									)}
-									onClick={onRowClick ? () => onRowClick(row) : undefined}
-									style={{
-										position: "absolute",
-										top: 0,
-										left: 0,
-										width: "100%",
-										height: `${virtualRow.size}px`,
-										transform: `translateY(${virtualRow.start}px)`,
-									}}
-								>
-									{selectable && selectionMode && (
-										<div
-											class="flex items-center py-3 pl-2"
-											style={{ width: "48px", flexShrink: 0 }}
-										>
-											<input
-												type="checkbox"
-												checked={isSelected}
-												onClick={(event) => event.stopPropagation()}
-												onChange={(event) =>
-													handleSelectRow(rowId, event.currentTarget.checked)
-												}
-												class="h-4 w-4 rounded border-input bg-background"
-											/>
-										</div>
-									)}
-
-									{visibleColumns.map((column, index) => {
-										const width = resolvedColumnWidths[index] ?? 150;
-										return (
+										{selectable && selectionMode && (
 											<div
-												key={column.id}
-												class="flex items-center overflow-hidden px-2 py-3"
-												style={{ width: `${width}px`, flexShrink: 0 }}
+												class="flex items-center py-3 pl-2"
+												style={{ width: "48px", flexShrink: 0 }}
 											>
-												<div class="w-full overflow-hidden text-ellipsis whitespace-nowrap">
-													<CellRenderer
-														value={getRowValue(row, column.id)}
-														column={column}
-														rowData={row}
-														onAction={onRowAction}
-													/>
-												</div>
+												<input
+													type="checkbox"
+													checked={isSelected}
+													onClick={(event) => event.stopPropagation()}
+													onChange={(event) =>
+														handleSelectRow(rowId, event.currentTarget.checked)
+													}
+													class="h-4 w-4 rounded border-input bg-background"
+												/>
 											</div>
-										);
-									})}
-								</div>
-							);
+										)}
+
+										{visibleColumns.map((column, index) => {
+											const width = resolvedColumnWidths[index] ?? 150;
+											return (
+												<div
+													key={column.id}
+													class="flex items-center overflow-hidden px-2 py-3"
+													style={{ width: `${width}px`, flexShrink: 0 }}
+												>
+													<div class="w-full overflow-hidden text-ellipsis whitespace-nowrap">
+														<CellRenderer
+															value={getRowValue(row, column.id)}
+															column={column}
+															rowData={row}
+															onAction={onRowAction}
+														/>
+													</div>
+												</div>
+											);
+										})}
+									</div>
+								);
 							})}
 						</div>
 					)}
@@ -669,7 +682,10 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 				<div class="flex flex-shrink-0 flex-wrap items-center justify-between gap-3 border-b bg-muted px-6 py-3">
 					<span class="text-sm font-medium">
 						{selectedRows.length > 0
-							? t("table.selected", { selected: selectedRows.length, total: data.length })
+							? t("table.selected", {
+									selected: selectedRows.length,
+									total: data.length,
+								})
 							: (commandScopeLabel ?? "")}
 					</span>
 					<div class="flex flex-wrap items-center gap-3">
@@ -690,13 +706,13 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 							</button>
 						))}
 						{selectedRows.length > 0 && (
-						<button
-							type="button"
-							onClick={clearSelection}
-							class="text-sm font-medium text-primary hover:text-primary/80"
-						>
-							{t("table.clearSelection")}
-						</button>
+							<button
+								type="button"
+								onClick={clearSelection}
+								class="text-sm font-medium text-primary hover:text-primary/80"
+							>
+								{t("table.clearSelection")}
+							</button>
 						)}
 						{selectedRows.length > 0 && bulkActions.length > 0 && (
 							<ShadDropdown>
@@ -721,9 +737,7 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 													"text-destructive focus:text-destructive",
 											)}
 										>
-											{action.icon && (
-												<action.icon size={14} class="mr-2" />
-											)}
+											{action.icon && <action.icon size={14} class="mr-2" />}
 											{action.label}
 										</DropdownMenuItem>
 									))}

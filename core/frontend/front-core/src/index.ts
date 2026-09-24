@@ -49,6 +49,7 @@ export type {
 // Keep the established surface facade while the table implementation
 // remains its own delivery chunk (`front-core/table`).
 export {
+	$infinityTables,
 	createInfiniteTableStore,
 	getAllFormFields,
 	getTableColumns,

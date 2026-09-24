@@ -14,7 +14,11 @@ const listTriggersFx = domain.createEffect<PaginationParams, any>({
 	handler: (params) => dagService.listTriggers(params),
 });
 
-export const $triggersStore = createInfiniteTableStore(domain, listTriggersFx);
+export const $triggersStore = createInfiniteTableStore(
+	domain,
+	listTriggersFx,
+	"dag-triggers",
+);
 
 export type TriggerDraft = {
 	id?: string;

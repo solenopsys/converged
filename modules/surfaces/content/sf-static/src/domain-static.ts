@@ -76,7 +76,11 @@ const setStatusPatternFx = domain.createEffect<
 	},
 });
 
-export const $staticStore = createInfiniteTableStore(domain, listStaticFx);
+export const $staticStore = createInfiniteTableStore(
+	domain,
+	listStaticFx,
+	"static-cache-entries",
+);
 
 sample({
 	clock: staticViewMounted,

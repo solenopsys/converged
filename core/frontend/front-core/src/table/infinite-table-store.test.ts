@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { createDomain } from "effector";
-import { createInfiniteTableStore } from "./infinite-table-store";
+import {
+	$infinityTables,
+	createInfiniteTableStore,
+} from "./infinite-table-store";
 
 describe("createInfiniteTableStore", () => {
 	test("reloads with a server filter and preserves the server total", async () => {
@@ -73,5 +76,50 @@ describe("createInfiniteTableStore", () => {
 			items: Array.from({ length: 21 }, (_, id) => ({ id })),
 			hasMore: false,
 		});
+	});
+
+	test("keeps each named table state in the shared store across remounts", async () => {
+		const key = `mailing-incoming-${crypto.randomUUID()}`;
+		const first = createInfiniteTableStore(
+			createDomain("named-table-first"),
+			async () => ({ items: [{ id: "mail-1" }], totalCount: 1 }),
+			key,
+		);
+
+		const loaded = new Promise<void>((resolve) => {
+			const stop = first.loadDataFx.done.watch(() => {
+				stop();
+				resolve();
+			});
+		});
+		first.setHeader({
+			filterValues: { subject: "feedback" },
+			activeTabId: "unread",
+			selectedIds: ["mail-1"],
+		});
+		first.loadMore();
+		await loaded;
+
+		const remounted = createInfiniteTableStore(
+			createDomain("named-table-remount"),
+			async () => {
+				throw new Error("a remount must reuse the existing table controller");
+			},
+			key,
+		);
+
+		expect(remounted).toBe(first);
+		expect(remounted.$state.getState()).toMatchObject({
+			items: [{ id: "mail-1" }],
+			isInitialized: true,
+			header: {
+				filterValues: { subject: "feedback" },
+				activeTabId: "unread",
+				selectedIds: ["mail-1"],
+			},
+		});
+		expect($infinityTables.getState()[`table:${key}`]).toBe(
+			remounted.$state.getState(),
+		);
 	});
 });

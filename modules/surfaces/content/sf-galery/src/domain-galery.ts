@@ -17,7 +17,11 @@ const listGaleryItemsFx = domain.createEffect<PaginationParams, any>({
 	},
 });
 
-export const $galeryStore = createInfiniteTableStore(domain, listGaleryItemsFx);
+export const $galeryStore = createInfiniteTableStore(
+	domain,
+	listGaleryItemsFx,
+	"gallery-items",
+);
 
 sample({
 	clock: galeryViewMounted,

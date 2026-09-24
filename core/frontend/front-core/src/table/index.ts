@@ -32,9 +32,11 @@ export { InfiniteScrollDataTable } from "./InfiniteScrollDataTable";
 export { TableActionsMenu } from "./TableActionsMenu";
 export type { TableActionsMenuItem } from "./TableActionsMenu";
 export { createInfiniteTableStore } from "./infinite-table-store";
+export { $infinityTables } from "./infinite-table-store";
 export type {
 	InfiniteTableDataFunction,
 	InfiniteTableFilters,
+	InfiniteTableHeaderState,
 	InfiniteTableSortConfig,
 	InfiniteTableState,
 	InfiniteTableStore,

@@ -1,28 +1,24 @@
 import type { Store } from "effector";
-import { createDomain, createEvent, createStore } from "effector";
+import { createDomain } from "effector";
 import { useUnit } from "effector-preact";
-import { translator } from "i18n";
-import type * as React from "preact/compat";
-import { useCallback, useEffect, useMemo, useRef, useState } from "preact/compat";
-import { CHAT_MESSAGES_NAMESPACE } from "../chat/i18n";
 import {
 	$objectRegistryRevision,
 	type DomainRef,
 	executeOperation,
-	objectRef,
-	objectChanged,
-	objectRegistry,
 	localized,
-	rememberObjectSnapshot,
-	operationsFor,
 	type OwnedOperation,
+	objectChanged,
+	objectRef,
+	objectRegistry,
+	operationsFor,
 	presentReference,
+	rememberObjectSnapshot,
 	setRef,
 } from "front-core/object-runtime";
-import {
-	hasParameters,
-	OperationParametersDialog,
-} from "./OperationParametersDialog";
+import { translator } from "i18n";
+import type * as React from "preact/compat";
+import { useCallback, useEffect, useMemo, useState } from "preact/compat";
+import { CHAT_MESSAGES_NAMESPACE } from "../chat/i18n";
 import type {
 	HeaderAction,
 	HeaderPanelConfig,
@@ -36,8 +32,8 @@ import type {
 } from "../table/filter-header";
 import { valuesFromSelectionFilter } from "../table/filter-header";
 import { InfiniteScrollDataTable } from "../table/InfiniteScrollDataTable";
-import { createInfiniteTableStore } from "../table/infinite-table-store";
 import type { InfiniteTableStore } from "../table/infinite-table-store";
+import { createInfiniteTableStore } from "../table/infinite-table-store";
 import type {
 	BulkAction,
 	ColumnConfig,
@@ -46,8 +42,13 @@ import type {
 	TableCommand,
 	ViewMode,
 } from "../table/types";
+import {
+	hasParameters,
+	OperationParametersDialog,
+} from "./OperationParametersDialog";
 
 const t = translator(CHAT_MESSAGES_NAMESPACE);
+const infinityDomain = createDomain("FRONT_CORE_INFINITY_TABLES");
 
 export type EntityListTab<TData extends object = Record<string, unknown>> = {
 	id: string;
@@ -218,29 +219,8 @@ export function EntityListView<TData extends object = Record<string, unknown>>({
 		? objectRegistry.type(reference.type)
 		: undefined;
 	const infinity = objectType?.infinity;
-	const projectionStore = useMemo(() => {
-		if (infinity?.store) return infinity.store;
-		const load = infinity?.load;
-		if (!load || !objectType) return undefined;
-		const domain = createDomain(
-			`infinity-${objectType.id}-${crypto.randomUUID()}`,
-		);
-		return createInfiniteTableStore<unknown>(
-			domain,
-			(params) =>
-				load(params) as Promise<
-					| {
-							items?: unknown[];
-							totalCount?: number;
-					  }
-					| null
-					| undefined
-				>,
-		);
-	}, [infinity, objectType]);
 	const resolvedTableId =
 		tableId ?? infinity?.tableId ?? reference?.type ?? "entity-list";
-	const resolvedBaseFilters = baseFilters ?? referenceBaseFilters(reference);
 	const referenceQueryKey = useMemo(
 		() =>
 			JSON.stringify(
@@ -252,6 +232,25 @@ export function EntityListView<TData extends object = Record<string, unknown>>({
 			),
 		[reference],
 	);
+	const projectionStore = useMemo(() => {
+		if (infinity?.store) return infinity.store;
+		const load = infinity?.load;
+		if (!load || !objectType) return undefined;
+		return createInfiniteTableStore<unknown>(
+			infinityDomain,
+			(params) =>
+				load(params) as Promise<
+					| {
+							items?: unknown[];
+							totalCount?: number;
+					  }
+					| null
+					| undefined
+				>,
+			JSON.stringify({ tableId: resolvedTableId, referenceQueryKey }),
+		);
+	}, [infinity, objectType, referenceQueryKey, resolvedTableId]);
+	const resolvedBaseFilters = baseFilters ?? referenceBaseFilters(reference);
 	const resolvedFilters = filters ?? infinity?.filters;
 	const resolvedColumns = columns ?? infinity?.columns;
 	const resolvedTitle =
@@ -273,18 +272,25 @@ export function EntityListView<TData extends object = Record<string, unknown>>({
 					infinityFilterParams(values, base, infinity.filters)
 			: undefined);
 
-	const initialTabId = resolvedTabs?.[0]?.id ?? "";
-	const internalTabState = useMemo(() => {
-		const changed = createEvent<string>();
-		const $active = createStore(initialTabId).on(changed, (_, value) => value);
-		return { $active, changed };
-	}, [initialTabId]);
-
-	const $tab = $activeTab ?? internalTabState.$active;
+	const tableStateStore = store ?? projectionStore;
+	const tabStateStore =
+		tableStateStore ?? resolvedTabs?.find((tab) => tab.store)?.store;
+	if (!tabStateStore) {
+		throw new Error(
+			`EntityListView(${resolvedTableId}): no store — configure infinity.store or infinity.load`,
+		);
+	}
+	const $tab = $activeTab ?? tabStateStore.$activeTab;
+	const rememberTab = useCallback(
+		(tabId: string) => {
+			tabStateStore.setHeader({ activeTabId: tabId });
+		},
+		[tabStateStore],
+	);
 	const configuredTabChanged = useCallback(
 		(tabId: string) => {
 			if (!infinity?.presets || !reference || reference.kind !== "set") {
-				internalTabState.changed(tabId);
+				rememberTab(tabId);
 				return;
 			}
 			const selected = infinity.presets.find((preset) => preset.id === tabId);
@@ -312,13 +318,11 @@ export function EntityListView<TData extends object = Record<string, unknown>>({
 				{ title: reference.title },
 			);
 		},
-		[infinity, internalTabState, reference],
+		[infinity, reference, rememberTab],
 	);
 	const onTabChanged =
 		tabChanged ??
-		(configuredTabs.length > 0
-			? configuredTabChanged
-			: internalTabState.changed);
+		(configuredTabs.length > 0 ? configuredTabChanged : rememberTab);
 	const activeTabId = useUnit($tab);
 
 	const activeTab =
@@ -330,9 +334,10 @@ export function EntityListView<TData extends object = Record<string, unknown>>({
 				)
 			: undefined;
 	useEffect(() => {
-		if (selectedConfiguredPreset)
-			internalTabState.changed(selectedConfiguredPreset.id);
-	}, [internalTabState, selectedConfiguredPreset]);
+		if (selectedConfiguredPreset) {
+			tabStateStore.setHeader({ activeTabId: selectedConfiguredPreset.id });
+		}
+	}, [selectedConfiguredPreset, tabStateStore]);
 	const activeStore = activeTab?.store ?? store ?? projectionStore;
 	if (!activeStore) {
 		throw new Error(
@@ -346,11 +351,6 @@ export function EntityListView<TData extends object = Record<string, unknown>>({
 	}
 
 	const state = useUnit(activeStore.$state);
-	const lastReferenceQuery = useRef<{
-		store: unknown;
-		key: string;
-	} | null>(null);
-
 	useEffect(() => {
 		if (!reference) return;
 		for (const row of state.items) {
@@ -359,7 +359,9 @@ export function EntityListView<TData extends object = Record<string, unknown>>({
 				rememberObjectSnapshot(reference.type, String(item.id), item);
 		}
 	}, [reference, state.items]);
-	const [filterValues, setFilterValues] = useState<TableFilterValues>({});
+	const filterValues = state.header.filterValues as TableFilterValues;
+	const setFilterValues = (values: TableFilterValues) =>
+		activeStore.setHeader({ filterValues: values });
 	const selectionFilterValues = useMemo(
 		() => valuesFromSelectionFilter(resolvedFilters, resolvedBaseFilters),
 		[resolvedBaseFilters, resolvedFilters],
@@ -381,24 +383,28 @@ export function EntityListView<TData extends object = Record<string, unknown>>({
 		resolvedSerializeFilters,
 	]);
 
-	// A query reference can replace this view while reusing the same table store.
-	// In that case stale rows must not survive merely because the store already
-	// remembers an equal predicate: selecting a group is a navigation and must
-	// issue a fresh query.
+	// Query identity is kept with the table state, not in this component: a
+	// remount of the same projection must not turn into an accidental refresh.
 	useEffect(() => {
-		const referenceChanged =
-			lastReferenceQuery.current?.store !== activeStore ||
-			lastReferenceQuery.current.key !== referenceQueryKey;
-		lastReferenceQuery.current = { store: activeStore, key: referenceQueryKey };
+		const referenceChanged = state.header.referenceKey !== referenceQueryKey;
+		if (referenceChanged)
+			activeStore.setHeader({ referenceKey: referenceQueryKey });
 		const current = activeStore.$state.getState().filters;
 		if (JSON.stringify(current) !== JSON.stringify(mergedFilters)) {
 			activeStore.setFilters(mergedFilters);
 			return;
 		}
-		if (referenceChanged && state.isInitialized) {
+		if (referenceChanged && state.isInitialized && infinity?.store) {
 			activeStore.setFilters(mergedFilters);
 		}
-	}, [activeStore, mergedFilters, referenceQueryKey, state.isInitialized]);
+	}, [
+		activeStore,
+		infinity?.store,
+		mergedFilters,
+		referenceQueryKey,
+		state.header.referenceKey,
+		state.isInitialized,
+	]);
 
 	// A record of this type was written somewhere — a form, a command, the
 	// assistant — so the list showing it is stale. The view does not need to
@@ -422,7 +428,9 @@ export function EntityListView<TData extends object = Record<string, unknown>>({
 	// Ticked rows are an explicit subset; without them the command applies to
 	// everything the filter matches, which is the whole point of filtering
 	// first. Either way it travels as one reference, never as a list of rows.
-	const [selectedIds, setSelectedIds] = useState<RowId[]>([]);
+	const selectedIds = state.header.selectedIds as RowId[];
+	const setSelectedIds = (ids: RowId[]) =>
+		activeStore.setHeader({ selectedIds: ids });
 	const [pending, setPending] = useState<OwnedOperation | null>(null);
 	const [commandBusy, setCommandBusy] = useState(false);
 	const [commandError, setCommandError] = useState<string | undefined>();

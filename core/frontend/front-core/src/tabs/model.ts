@@ -52,6 +52,8 @@ export type TabSetState = {
 	active: string | null;
 	/** Labels of open things the catalog does not list. */
 	entries: Readonly<Record<string, TabEntry>>;
+	/** The catalog tab an opened record should return to when closed. */
+	returnTo: Readonly<Record<string, string>>;
 };
 
 export type TabSetOptions = {
@@ -99,6 +101,7 @@ export const emptyTabSet: TabSetState = {
 	transient: null,
 	active: null,
 	entries: {},
+	returnTo: {},
 };
 
 export const defaultTabSetOptions: TabSetOptions = {
@@ -257,6 +260,16 @@ export function openTab(
 	const entries =
 		entry && !item ? { ...state.entries, [id]: entry } : state.entries;
 	let next: TabSetState = { ...state, entries };
+	const origin = state.active;
+	const returnTo = { ...(state.returnTo ?? {}) };
+	if (
+		origin &&
+		origin !== id &&
+		(itemOf(catalog, origin) || isPinned(state, catalog, origin))
+	) {
+		returnTo[id] = origin;
+	}
+	next = { ...next, returnTo };
 
 	if (!options.transient) {
 		const pinned = isPinned(next, catalog, id);
@@ -341,7 +354,18 @@ export function closeTab(
 	if (state.active !== id)
 		return step(next, { evicted: [id], pinsChanged: pinned });
 
-	const target = fallback(next, catalog, options, id);
+	const previous = state.returnTo?.[id];
+	const canReturnToPrevious = Boolean(
+		previous &&
+			(itemOf(catalog, previous) ||
+				isPinned(next, catalog, previous) ||
+				visibleIds(next, catalog).includes(previous)),
+	);
+	const target = canReturnToPrevious
+		? previous!
+		: fallback(next, catalog, options, id);
+	const returnTo = { ...(next.returnTo ?? {}) };
+	delete returnTo[id];
 	next = { ...next, active: target };
 	// Home the user unpinned is still home: it comes back as the transient tab
 	// rather than being active and invisible.
@@ -352,6 +376,7 @@ export function closeTab(
 	) {
 		next = { ...next, transient: target };
 	}
+	next = { ...next, returnTo };
 	return step(next, { evicted: [id], pinsChanged: pinned });
 }
 

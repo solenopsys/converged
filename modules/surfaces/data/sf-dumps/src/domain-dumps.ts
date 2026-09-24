@@ -34,7 +34,11 @@ const listDumpsFx = domain.createEffect<PaginationParams, any>({
 	},
 });
 
-export const $dumpsStore = createInfiniteTableStore(domain, listDumpsFx);
+export const $dumpsStore = createInfiniteTableStore(
+	domain,
+	listDumpsFx,
+	"dumps",
+);
 
 sample({
 	clock: dumpsViewMounted,
