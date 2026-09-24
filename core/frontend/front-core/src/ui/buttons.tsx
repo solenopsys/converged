@@ -123,16 +123,18 @@ export function VoiceCallButton({ config }: { config: WebsiteCallConfig }) {
 export function PanelToggle({
 	open,
 	onClick,
+	floating = false,
 }: {
 	open: boolean;
 	onClick: () => void;
+	floating?: boolean;
 }) {
 	const label = open ? t("panel.collapseChat") : t("panel.openChat");
 
 	return (
 		<button
 			type="button"
-			class="panel-toggle"
+			class={floating ? "panel-toggle minimized-toggle" : "panel-toggle"}
 			aria-label={label}
 			title={label}
 			onClick={onClick}

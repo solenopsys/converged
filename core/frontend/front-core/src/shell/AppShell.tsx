@@ -311,7 +311,9 @@ export function AppShell({
 	const surface = useUnit($activeSurface);
 	const placement = useUnit($composerPlacement);
 	const shellPlacement =
-		!landing && placement === "hero" ? "floating" : placement;
+		(!landing || isConsoleRoute()) && placement === "hero"
+			? "floating"
+			: placement;
 	const isPanelOpen = useUnit($panelOpen);
 	const draft = useUnit($draft);
 	const panelTab = useUnit($panelTab);
@@ -508,9 +510,7 @@ export function AppShell({
 			</div>
 
 			{shellPlacement === "floating" ? (
-				<div class="minimized-toggle">
-					<PanelToggle open={false} onClick={panelOpened} />
-				</div>
+				<PanelToggle floating open={false} onClick={panelOpened} />
 			) : null}
 
 			{shellPlacement === "panel" ? (

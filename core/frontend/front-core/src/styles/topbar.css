@@ -7,7 +7,7 @@
   position: relative;
   z-index: 30;
   display: grid;
-  grid-template-columns: minmax(140px, 1fr) auto minmax(140px, 1fr);
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--hw-space-3);
   min-height: var(--top-bar-height);
@@ -19,6 +19,7 @@
 
 .top-bar[data-authenticated="true"] {
   grid-template-columns: minmax(0, 1fr) auto;
+  padding-inline: 0;
 }
 
 .top-bar a,
@@ -80,8 +81,11 @@ html.dark .top-bar-brand-logo {
 
 .top-bar-tabstrip {
   display: flex;
+  width: 100%;
   min-width: 0;
   align-items: center;
+  justify-self: stretch;
+  justify-content: flex-start;
   gap: var(--hw-space-1);
 }
 

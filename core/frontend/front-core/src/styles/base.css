@@ -334,9 +334,9 @@ html.dark .landing-index i { background: #343832; }
 
 .minimized-toggle {
   position: fixed;
-  right: var(--hw-collapsed-offset);
-  bottom: var(--hw-collapsed-offset);
-  z-index: 5;
+  inset-inline-end: var(--hw-collapsed-offset);
+  inset-block-end: var(--hw-collapsed-offset);
+  z-index: 100;
   filter: drop-shadow(
     0 var(--hw-message-gap) var(--hw-space-4) rgba(20, 20, 18, 0.16)
   );

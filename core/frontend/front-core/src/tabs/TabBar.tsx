@@ -191,7 +191,7 @@ export function TabBar({
 
 	return (
 		<div class="tabs" data-theme={theme} ref={rootRef}>
-			{theme === "strip" ? catalogMenu : null}
+			{theme !== "list" ? catalogMenu : null}
 			<div
 				class="tabs-list"
 				role="tablist"
@@ -209,7 +209,7 @@ export function TabBar({
 					/>
 				))}
 			</div>
-			{theme !== "strip" ? catalogMenu : null}
+			{theme === "list" ? catalogMenu : null}
 			{children}
 			<TabContextMenu model={model} anchor={rootRef} />
 		</div>

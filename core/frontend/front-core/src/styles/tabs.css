@@ -105,8 +105,7 @@
 .tab:focus-within .tab-pin,
 .tab:focus-within .tab-close,
 .tab[data-menu-open="true"] .tab-pin,
-.tab[data-menu-open="true"] .tab-close,
-.tab[data-active="true"] .tab-close {
+.tab[data-menu-open="true"] .tab-close {
   opacity: 1;
   pointer-events: auto;
 }
@@ -160,11 +159,23 @@
   border: 0;
 }
 
+.tabs[data-theme="bar"] .catalog-menu-trigger {
+  min-width: calc(var(--hw-unit) * 6);
+  height: calc(var(--hw-unit) * 7);
+  padding-inline: var(--hw-space-1);
+  border: 0;
+}
+
 /* --- bar: inside a surface ---------------------------------------------- */
 
 .tabs[data-theme="bar"] .tab {
   border-radius: 0;
   border-bottom: 1px solid transparent;
+}
+
+.tabs[data-theme="bar"],
+.tabs[data-theme="bar"] .tabs-list {
+  align-items: stretch;
 }
 
 .tabs[data-theme="bar"] .tab[data-active="true"] {
@@ -393,8 +404,9 @@
 .surface-bar {
   display: flex;
   min-width: 0;
-  align-items: center;
-  padding: var(--hw-space-2) var(--hw-space-4);
+  min-height: var(--top-bar-height);
+  align-items: stretch;
+  padding: 0 var(--hw-space-4);
   border-bottom: 1px solid var(--hw-panel-border);
 }
 
