@@ -93,7 +93,7 @@
   /* Layout: every panel corner is derived from the bottom action circle. */
   --hw-hero-width: calc(var(--hw-unit) * 155);
   --hw-panel-width: calc(var(--hw-unit) * 100);
-  --hw-panel-inset: 0;
+  --hw-panel-inset: 0px;
   --hw-panel-padding: var(--hw-space-2);
   /* Composer geometry is scaled from the action circle at 70%. */
   --hw-composer-inset: calc(var(--hw-unit) * 1.4);

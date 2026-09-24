@@ -128,6 +128,12 @@ textarea {
 	color: var(--hw-field-placeholder);
 }
 
+.composer-input:focus,
+.composer-input:focus-visible {
+	outline: none;
+	box-shadow: none;
+}
+
 .icon-button {
 	border: 0;
 	border-radius: 50%;
@@ -429,21 +435,28 @@ textarea {
 }
 
 .panel-tabs {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
-	gap: var(--hw-space-1);
-	padding: var(--hw-space-1);
-	border: var(--hw-border-width) solid var(--hw-panel-border);
-	border-radius: calc(var(--hw-unit) * 1.5);
-	background: color-mix(in srgb, var(--hw-panel) 88%, var(--hw-ink));
+	display: flex;
+	flex: 0 0 auto;
+	gap: 0;
+	padding: 0;
+	border: 0;
+	border-top: var(--hw-border-width) solid var(--hw-panel-border);
+	border-radius: 0;
+	background: transparent;
 }
 
 .panel-tabs button {
+	position: relative;
+	display: flex;
+	flex: 1 1 0;
+	align-items: center;
+	justify-content: center;
+	gap: var(--hw-space-1);
 	min-width: 0;
-	min-height: calc(var(--hw-unit) * 6);
+	min-height: calc(var(--hw-unit) * 9);
 	padding: 0 var(--hw-space-2);
 	border: 0;
-	border-radius: calc(var(--hw-unit) * 1);
+	border-radius: 0;
 	background: transparent;
 	color: var(--hw-ink-muted);
 	font-size: var(--hw-font-size-sm);
@@ -457,9 +470,33 @@ textarea {
 }
 
 .panel-tabs button.is-active {
-	background: var(--hw-field);
 	color: var(--hw-ink);
-	box-shadow: 0 1px 2px color-mix(in srgb, var(--hw-ink) 15%, transparent);
+	box-shadow: none;
+}
+
+.panel-tabs button.is-active::after {
+	position: absolute;
+	right: var(--hw-space-3);
+	top: calc(-1 * var(--hw-border-width));
+	left: var(--hw-space-3);
+	height: var(--hw-border-width);
+	border-radius: 0 0 var(--hw-radius-full) var(--hw-radius-full);
+	background: var(--hw-focus);
+	content: "";
+}
+
+.panel-tab-badge {
+	min-width: calc(var(--hw-unit) * 4);
+	height: calc(var(--hw-unit) * 4);
+	display: inline-grid;
+	place-items: center;
+	padding-inline: var(--hw-space-1);
+	border-radius: var(--hw-radius-full);
+	background: color-mix(in srgb, var(--hw-focus) 16%, transparent);
+	color: var(--hw-focus);
+	font-size: 10px;
+	font-weight: 700;
+	line-height: 1;
 }
 
 .panel-empty-state {
