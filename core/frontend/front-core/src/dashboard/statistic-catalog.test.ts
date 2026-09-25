@@ -107,6 +107,34 @@ beforeAll(() => {
 		operations: [],
 	});
 
+	registerSurface({
+		id: "sf-layout",
+		label: "Layout",
+		purpose: "Test statistic ordering",
+		types: [
+			{
+				id: "layout.statistic.z-chart",
+				label: "Chart",
+				categories: [Category.Statistic],
+				statistic: { component: TotalChart, size: "lg", order: 30 },
+			},
+			{
+				id: "layout.statistic.a-small",
+				label: "Small",
+				categories: [Category.Statistic],
+				statistic: { component: TotalChart, order: 10 },
+			},
+			{
+				id: "layout.statistic.pie",
+				label: "Pie",
+				categories: [Category.Statistic],
+				statistic: { component: TotalChart, size: "lg", order: 20 },
+			},
+		],
+		views: [],
+		operations: [],
+	});
+
 	// Declared but never imported: the index knows the type, not the component.
 	objectRegistry.declare("sf-sales", {
 		id: "sf-sales",
@@ -142,6 +170,18 @@ describe("statistic catalog", () => {
 		expect(companies?.widgets.map((widget) => widget.typeId)).toEqual([
 			"companies.statistic.by-status",
 			"companies.statistic.total",
+		]);
+	});
+
+	test("uses declared order for statistic blocks before their ids", () => {
+		const layout = collectStatisticSections().find(
+			(section) => section.owner === "sf-layout",
+		);
+
+		expect(layout?.widgets.map((widget) => widget.typeId)).toEqual([
+			"layout.statistic.a-small",
+			"layout.statistic.pie",
+			"layout.statistic.z-chart",
 		]);
 	});
 

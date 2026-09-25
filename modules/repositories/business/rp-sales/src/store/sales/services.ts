@@ -331,7 +331,10 @@ export class SalesStoreService {
 	async addLead(lead: LeadEntity): Promise<void> {
 		await this.claimId(lead.id);
 		await this.leadRepo.create(lead as any);
-		await this.access.tagNew(lead.id, { visibility: "authenticated", tags: ["sales"] });
+		await this.access.tagNew(lead.id, {
+			visibility: "authenticated",
+			tags: ["sales"],
+		});
 	}
 
 	/** A lead the caller holds no tag for reads as absent. */
@@ -440,6 +443,29 @@ export class SalesStoreService {
 		return this.outreachRepo.findById({ id });
 	}
 
+	async deleteOutreaches(ids: string[]): Promise<number> {
+		const existing = (
+			await Promise.all(ids.map((id) => this.outreachRepo.findById({ id })))
+		).filter((outreach): outreach is OutreachEntity => Boolean(outreach));
+		if (existing.length === 0) return 0;
+		for (const outreach of existing) {
+			await this.access.requireWrite(outreach.id);
+		}
+		const keys = existing.map(({ id }) => ({ id }));
+		const outreachIds = existing.map(({ id }) => id);
+
+		const deleted = await this.store.db.transaction().execute(async (trx) => {
+			await trx
+				.deleteFrom("outreach_targets")
+				.where("outreachId", "in", outreachIds)
+				.execute();
+			return this.outreachRepo.deleteMany(keys, trx);
+		});
+
+		for (const id of outreachIds) await this.access.dropObject(id);
+		return deleted;
+	}
+
 	async createLead(threadId: string, title: string) {
 		await this.leadRepo.create({
 			id: threadId,
@@ -447,7 +473,10 @@ export class SalesStoreService {
 			createdAt: Date.now(),
 			messagesCount: 1,
 		});
-		await this.access.tagNew(threadId, { visibility: "authenticated", tags: ["sales"] });
+		await this.access.tagNew(threadId, {
+			visibility: "authenticated",
+			tags: ["sales"],
+		});
 	}
 
 	async updateLeadCatalogId(
@@ -815,7 +844,10 @@ export class SalesStoreService {
 			)
 			.execute();
 		if (!known) {
-			await this.access.tagNew(offer.id, { visibility: "authenticated", tags: ["sales"] });
+			await this.access.tagNew(offer.id, {
+				visibility: "authenticated",
+				tags: ["sales"],
+			});
 		}
 	}
 
@@ -835,7 +867,10 @@ export class SalesStoreService {
 			)
 			.execute();
 		if (!known) {
-			await this.access.tagNew(tag.id, { visibility: "authenticated", tags: ["sales"] });
+			await this.access.tagNew(tag.id, {
+				visibility: "authenticated",
+				tags: ["sales"],
+			});
 		}
 	}
 
@@ -1019,7 +1054,10 @@ export class SalesStoreService {
 			)
 			.execute();
 		if (!known) {
-			await this.access.tagNew(outreach.id, { visibility: "authenticated", tags: ["sales"] });
+			await this.access.tagNew(outreach.id, {
+				visibility: "authenticated",
+				tags: ["sales"],
+			});
 		}
 	}
 
@@ -1137,6 +1175,22 @@ export class SalesStoreService {
 			items,
 			totalCount: readCount(countRows[0]),
 		};
+	}
+
+	async deleteOutreachTargets(ids: string[]): Promise<number> {
+		const targets = (
+			await Promise.all(
+				ids.map((id) => this.outreachTargetRepo.findById({ id })),
+			)
+		).filter((target): target is OutreachTargetEntity => Boolean(target));
+		for (const outreachId of new Set(
+			targets.map((target) => target.outreachId),
+		)) {
+			await this.access.requireWrite(outreachId);
+		}
+		return this.outreachTargetRepo.deleteMany(
+			targets.map(({ id }) => ({ id })),
+		);
 	}
 
 	/** Taking work off a campaign's queue is a write on that campaign. */

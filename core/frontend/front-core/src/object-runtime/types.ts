@@ -1,7 +1,7 @@
 import type { SelectionDescriptor, SelectionPreset } from "back-core";
 import type { ComponentType } from "preact";
-import type { SurfaceLlmCatalog } from "../llm-catalog";
 import type { HeaderAction } from "../components/HeaderPanel";
+import type { SurfaceLlmCatalog } from "../llm-catalog";
 import type { TableFilterConfig } from "../table/filter-header";
 import type { InfiniteTableStore } from "../table/infinite-table-store";
 import type { ColumnConfig } from "../table/types";
@@ -67,6 +67,8 @@ export type StatisticDefinition = {
 	component?: ComponentType<any>;
 	props?: Record<string, unknown>;
 	size?: StatisticWidgetSize;
+	/** Sorts blocks within a surface's statistics overview. */
+	order?: number;
 	/** Defaults to "block". */
 	role?: StatisticRole;
 	/** Actions declared by the owning SF; the dashboard invokes them itself. */

@@ -388,8 +388,10 @@ export interface SalesService {
 	addTouch(touch: Touch): Promise<number>;
 	saveOutreach(outreach: Outreach): Promise<string>;
 	getOutreach(outreachId: string): Promise<Outreach | null>;
+	deleteOutreaches(outreachIds: string[]): Promise<number>;
 	listOutreaches(params: PaginationParams): Promise<PaginatedResult<Outreach>>;
 	addOutreachTargets(targets: OutreachTargetInput[]): Promise<number>;
+	deleteOutreachTargets(targetIds: string[]): Promise<number>;
 	listOutreachTargets(
 		params: OutreachTargetListParams,
 	): Promise<PaginatedResult<OutreachTarget>>;

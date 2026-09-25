@@ -780,6 +780,21 @@ export const metadata: ServiceMetadata = {
       "isAsyncIterable": false
     },
     {
+      "name": "deleteOutreaches",
+      "parameters": [
+        {
+          "name": "outreachIds",
+          "type": "string",
+          "optional": false,
+          "isArray": true
+        }
+      ],
+      "returnType": "number",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
       "name": "listOutreaches",
       "parameters": [
         {
@@ -800,6 +815,21 @@ export const metadata: ServiceMetadata = {
         {
           "name": "targets",
           "type": "OutreachTargetInput",
+          "optional": false,
+          "isArray": true
+        }
+      ],
+      "returnType": "number",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "deleteOutreachTargets",
+      "parameters": [
+        {
+          "name": "targetIds",
+          "type": "string",
           "optional": false,
           "isArray": true
         }
@@ -1342,8 +1372,10 @@ export interface SalesServiceClient {
   addTouch(touch: Touch): Promise<number>;
   saveOutreach(outreach: Outreach): Promise<string>;
   getOutreach(outreachId: string): Promise<Outreach | any>;
+  deleteOutreaches(outreachIds: string[]): Promise<number>;
   listOutreaches(params: PaginationParams): Promise<PaginatedResult<Outreach>>;
   addOutreachTargets(targets: OutreachTargetInput[]): Promise<number>;
+  deleteOutreachTargets(targetIds: string[]): Promise<number>;
   listOutreachTargets(params: OutreachTargetListParams): Promise<PaginatedResult<OutreachTarget>>;
   claimNextOutreachTarget(outreachId: string): Promise<OutreachTarget | any>;
   updateOutreachTargetStatus(update: OutreachTargetStatusUpdate): Promise<OutreachTarget | any>;

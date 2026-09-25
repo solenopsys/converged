@@ -1,5 +1,5 @@
-import type { ComponentChildren } from "preact";
 import { translator } from "i18n";
+import type { ComponentChildren } from "preact";
 import { CHAT_MESSAGES_NAMESPACE } from "../chat/i18n";
 
 const t = translator(CHAT_MESSAGES_NAMESPACE);
@@ -13,9 +13,9 @@ export type ChartLegendRow = {
 
 export function ChartLegend({ rows }: { rows: ChartLegendRow[] }) {
 	return (
-		<table className="w-[clamp(180px,30%,280px)] max-w-full flex-none border-collapse text-xs">
+		<table className="w-[clamp(180px,30%,280px)] max-w-full flex-none self-start border-collapse text-xs">
 			<thead>
-				<tr className="border-b text-left text-muted-foreground">
+				<tr className="text-left text-muted-foreground">
 					<th className="py-1 pr-3 font-medium">
 						{t("statistics.chartMetric")}
 					</th>
@@ -26,7 +26,7 @@ export function ChartLegend({ rows }: { rows: ChartLegendRow[] }) {
 			</thead>
 			<tbody>
 				{rows.map((row) => (
-					<tr key={row.key} className="border-b last:border-0">
+					<tr key={row.key}>
 						<td className="py-1 pr-3 text-muted-foreground">
 							<span
 								className="mr-1.5 inline-block h-2 w-2 rounded-[2px] align-middle"

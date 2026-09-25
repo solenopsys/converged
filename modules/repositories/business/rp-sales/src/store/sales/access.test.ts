@@ -117,6 +117,46 @@ describe("who sees which leads, tags and campaigns", () => {
 		).toBe(true);
 	});
 
+	it("deletes targets and outreaches only through the outreach owner's access", async () => {
+		await campaign("alice", "outreach-1");
+		await as("alice", () =>
+			sales.addOutreachTargets(
+				["target-1", "target-2"].map((id, position) => ({
+					id,
+					outreachId: "outreach-1",
+					companyId: "company-1",
+					templateId: "template-1",
+					status: "planned",
+					position,
+					data: "{}",
+					payload: "{}",
+					createdAt: now(),
+					updatedAt: now(),
+				})),
+			),
+		);
+
+		await as("bob", async () => {
+			await expect(sales.deleteOutreachTargets(["target-1"])).rejects.toThrow(
+				AccessDeniedError,
+			);
+			await expect(sales.deleteOutreaches(["outreach-1"])).rejects.toThrow(
+				AccessDeniedError,
+			);
+		});
+
+		expect(
+			await as("alice", () => sales.deleteOutreachTargets(["target-1"])),
+		).toBe(1);
+		expect(
+			await as("alice", () => sales.deleteOutreaches(["outreach-1"])),
+		).toBe(1);
+		expect(await sales.getOutreach("outreach-1")).toBeUndefined();
+		expect(
+			await sales.listOutreachTargets({ outreachId: "outreach-1" }),
+		).toMatchObject({ items: [], totalCount: 0 });
+	});
+
 	it("keeps contacts, touches and the funnel with the lead they belong to", async () => {
 		await lead("alice", "lead-1");
 		await contact("alice", "c1", "lead-1", "buyer@acme.test");

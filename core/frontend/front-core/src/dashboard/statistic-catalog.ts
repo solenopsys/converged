@@ -101,8 +101,11 @@ export function collectStatisticSections(): StatisticSection[] {
 			const widgets = blocks.length > 0 ? blocks : section.widgets;
 			return {
 				...section,
-				widgets: [...widgets].sort((left, right) =>
-					left.typeId.localeCompare(right.typeId),
+				widgets: [...widgets].sort(
+					(left, right) =>
+						(left.statistic?.order ?? Number.MAX_SAFE_INTEGER) -
+							(right.statistic?.order ?? Number.MAX_SAFE_INTEGER) ||
+						left.typeId.localeCompare(right.typeId),
 				),
 			};
 		})

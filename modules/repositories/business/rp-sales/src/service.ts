@@ -735,6 +735,16 @@ class SalesServiceImpl
 		return entity ? mapOutreach(entity) : null;
 	}
 
+	async deleteOutreaches(outreachIds: string[]): Promise<number> {
+		await this.ready();
+		if (!Array.isArray(outreachIds))
+			throw badRequestError("outreachIds must be an array");
+		const ids = [...new Set(outreachIds.map((id) => id?.trim()))];
+		if (ids.some((id) => !id))
+			throw badRequestError("outreachIds must contain non-empty IDs");
+		return this.stores.salesStoreSevice.deleteOutreaches(ids);
+	}
+
 	async listOutreaches(
 		params: PaginationParams,
 	): Promise<PaginatedResult<Outreach>> {
@@ -784,6 +794,16 @@ class SalesServiceImpl
 		});
 
 		return this.stores.salesStoreSevice.addOutreachTargets(entities);
+	}
+
+	async deleteOutreachTargets(targetIds: string[]): Promise<number> {
+		await this.ready();
+		if (!Array.isArray(targetIds))
+			throw badRequestError("targetIds must be an array");
+		const ids = [...new Set(targetIds.map((id) => id?.trim()))];
+		if (ids.some((id) => !id))
+			throw badRequestError("targetIds must contain non-empty IDs");
+		return this.stores.salesStoreSevice.deleteOutreachTargets(ids);
 	}
 
 	async listOutreachTargets(
