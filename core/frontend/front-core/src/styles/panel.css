@@ -612,6 +612,21 @@ textarea {
 	font-size: var(--hw-font-size-sm);
 }
 
+.panel-event-content {
+	min-width: 0;
+}
+
+.panel-event-content a {
+	color: var(--hw-ink);
+	text-decoration: underline;
+	text-underline-offset: 2px;
+}
+
+.panel-event-content p {
+	margin: var(--hw-space-1) 0 0;
+	overflow-wrap: anywhere;
+}
+
 .panel-events time {
 	flex: 0 0 auto;
 	color: var(--hw-ink-muted);

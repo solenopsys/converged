@@ -114,6 +114,12 @@ const DEFAULT_MESSAGES = {
 		unreadEvents: "Unread notifications: {count}",
 		chatNotInitialized: "Chat is not initialized.",
 	},
+	notify: {
+		requestCreated: {
+			title: "New manufacturing request",
+			body: "Request {id} is ready for review.",
+		},
+	},
 	uploads: {
 		statusUploading: "Uploading",
 		statusPaused: "Paused",
@@ -130,12 +136,10 @@ const DEFAULT_MESSAGES = {
 		no: "No",
 		noData: "No data found",
 		loading: "Loading...",
-		selected: "Selected: {selected} of {total}",
+		loadedRows: "Loaded rows",
 		clearSelection: "Clear selection",
 		actions: "Actions",
 		select: "Select",
-		commandScopeAll: "Every matching row: {total}",
-		commandScopeFiltered: "Filtered rows: {total}",
 	},
 	operation: {
 		cancel: "Cancel",
@@ -194,6 +198,12 @@ const RU_MESSAGES = {
 		noEvents: "Событий пока нет.",
 		unreadEvents: "Непрочитанных уведомлений: {count}",
 		chatNotInitialized: "Чат не инициализирован.",
+	},
+	notify: {
+		requestCreated: {
+			title: "Новая заявка на производство",
+			body: "Заявка {id} ожидает рассмотрения.",
+		},
 	},
 	toolCall: {
 		kind: "Функция",

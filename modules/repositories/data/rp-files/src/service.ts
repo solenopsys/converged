@@ -101,9 +101,11 @@ export class FilesServiceImpl implements FilesService {
 	}
 
 	update(id: UUID, file: FileMetadata): Promise<void> {
-		// `owner` is not re-derived here: handing a file to somebody else is a
-		// grant, which is `access_tags`, not a column edit.
-		return this.stores.metadataService.update(id, file);
+		// Ownership is fixed when the file is created. The browser's upload cache
+		// can still hold its placeholder owner (`anonymous`), so never let a later
+		// status/progress update overwrite the owner derived from the caller token.
+		const { owner: _owner, ...patch } = file;
+		return this.stores.metadataService.update(id, patch);
 	}
 	/** Drop the record and let go of its blocks. rp-store counts references, so
 	 *  a block another file still holds survives; one nobody holds is freed —

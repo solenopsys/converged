@@ -82,6 +82,7 @@ export function ColumnFilterControl({
 							<FilterCell
 								filter={filter}
 								value={values[filter.id]}
+								onEnter={() => api.setOpen(false)}
 								onValueChange={(value) => {
 									const next = { ...values };
 									if (

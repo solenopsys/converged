@@ -1,9 +1,6 @@
 import type { ComponentChildren, ComponentType } from "preact";
 import type { ColumnType } from "./constants";
-import type {
-	TableFilterConfig,
-	TableFilterValues,
-} from "./filter-header";
+import type { TableFilterConfig, TableFilterValues } from "./filter-header";
 
 export type ViewMode = "table" | "cards";
 
@@ -17,7 +14,6 @@ export type RowActionHandler<TData extends object> = (
   actionId: string,
   rowData: TData,
 ) => void;
-
 
 export type TableActionIcon = ComponentType<{
   size?: number;
@@ -90,14 +86,20 @@ export type RowCardProps<TData extends object = TableRowBase> = {
   data: TData;
   columns: Array<ColumnConfig<TData>>;
   onAction?: RowActionHandler<TData>;
+  onRowNavigate?: (rowData: TData) => void;
+  rowHref?: (rowData: TData) => string;
 };
 
-export interface InfiniteScrollDataTableProps<TData extends object = TableRowBase> {
+export interface InfiniteScrollDataTableProps<
+  TData extends object = TableRowBase,
+> {
   columns?: Array<ColumnConfig<TData>> | unknown;
   data?: TData[] | unknown;
   hasMore?: unknown;
   loading?: unknown;
   loadingMore?: unknown;
+  selectionBusy?: unknown;
+  selectionFailed?: unknown;
   viewMode?: ViewMode | string;
   tableId?: string;
   CardComponent?:
@@ -106,11 +108,13 @@ export interface InfiniteScrollDataTableProps<TData extends object = TableRowBas
     | null;
   responsiveBreakpoint?: unknown;
   onLoadMore?: () => void;
+  onLoadAll?: () => void;
   onSort?:
     | ((config: SortConfig) => void)
     | ((columnId: string, direction: SortConfig["direction"]) => void);
   onRowAction?: RowActionHandler<TData>;
-  onRowClick?: (rowData: TData) => void;
+  onRowNavigate?: (rowData: TData) => void;
+  rowHref?: (rowData: TData) => string;
   onBulkAction?: (actionId: string, rows: TData[], rowIds: RowId[]) => void;
   onSelectionChange?: (rowIds: RowId[], rows: TData[]) => void;
   bulkActions?: BulkAction[] | unknown;

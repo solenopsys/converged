@@ -600,8 +600,14 @@ export function AppShell({
 											data-level={event.level}
 											data-unread={event.read ? undefined : "true"}
 										>
-											<span>{eventHeadline(event)}</span>
-											{eventBody(event) ? <p>{eventBody(event)}</p> : null}
+											<div class="panel-event-content">
+												{event.link?.href?.startsWith("/") ? (
+													<a href={event.link.href}>{eventHeadline(event)}</a>
+												) : (
+													<span>{eventHeadline(event)}</span>
+												)}
+												{eventBody(event) ? <p>{eventBody(event)}</p> : null}
+											</div>
 											<time>
 												{new Intl.DateTimeFormat(undefined, {
 													hour: "2-digit",

@@ -34,6 +34,7 @@ import {
 	setInfinityTableScrollPosition,
 } from "./infinite-table-store";
 import { DefaultRowCard } from "./DefaultRowCard";
+import { TableLoadProgress } from "./TableLoadProgress";
 import { ColumnFilterControl } from "./filter-header/ColumnFilterControl";
 import {
 	normalizeBoolean,
@@ -79,17 +80,22 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 	columns: columnsInput = [],
 	data: dataInput = [],
 	hasMore: hasMoreInput = true,
+	totalCount: totalCountInput,
 	loading: loadingInput = false,
 	loadingMore: loadingMoreInput = false,
+	selectionBusy: selectionBusyInput = false,
+	selectionFailed: selectionFailedInput = false,
 	viewMode = "table",
 	tableId = "default-table",
 	CardComponent = null,
 	responsiveBreakpoint: responsiveBreakpointInput = 768,
 	onLoadMore,
+	onLoadAll,
 	onSort,
 	sortConfig: sortConfigInput,
 	onRowAction,
-	onRowClick,
+	onRowNavigate,
+	rowHref,
 	onBulkAction,
 	onSelectionChange,
 	bulkActions: bulkActionsInput = [],
@@ -112,12 +118,22 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 		[bulkActionsInput],
 	);
 	const hasMore = normalizeBoolean(hasMoreInput, true);
+	const totalCount = normalizeNumber(totalCountInput, data.length);
 	const loading = normalizeBoolean(loadingInput, false);
 	const loadingMore = normalizeBoolean(loadingMoreInput, false);
+	const selectionBusy = normalizeBoolean(selectionBusyInput, false);
+	const selectionFailed = normalizeBoolean(selectionFailedInput, false);
 	const selectable = normalizeBoolean(selectableInput, true);
 	const responsiveBreakpoint = normalizeNumber(responsiveBreakpointInput, 768);
 	const initialViewMode = normalizeViewMode(viewMode);
 	const [selectedRows, setSelectedRows] = useState<RowId[]>([]);
+	const [selectAllMode, setSelectAllMode] = useState(false);
+	const [deselectedRows, setDeselectedRows] = useState<RowId[]>([]);
+	const selectionScopeKey = JSON.stringify({
+		sortConfig: sortConfigInput,
+		filterValues,
+	});
+	const selectionScopeKeyRef = useRef(selectionScopeKey);
 	const [currentViewMode, setCurrentViewMode] =
 		useState<ViewMode>(initialViewMode);
 	const containerRef = useRef<HTMLDivElement | null>(null);
@@ -309,18 +325,37 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 
 	const handleSelectAll = useCallback(
 		(checked: boolean) => {
+			setSelectAllMode(checked);
+			setDeselectedRows([]);
 			const nextSelection = checked
 				? data.map((row, index) => getRowId(row, index))
 				: [];
 
 			setSelectedRows(nextSelection);
 			onSelectionChange?.(nextSelection, checked ? data : []);
+			if (checked) onLoadAll?.();
 		},
-		[data, onSelectionChange],
+		[data, onLoadAll, onSelectionChange],
 	);
 
 	const handleSelectRow = useCallback(
 		(rowId: RowId, checked: boolean) => {
+			if (selectAllMode) {
+				const nextDeselected = checked
+					? deselectedRows.filter((id) => id !== rowId)
+					: [...deselectedRows, rowId];
+				const nextSelection = data
+					.map((row, index) => getRowId(row, index))
+					.filter((id) => !nextDeselected.includes(id));
+				setDeselectedRows(nextDeselected);
+				setSelectedRows(nextSelection);
+				onSelectionChange?.(
+					nextSelection,
+					data.filter((row, index) => hasRowId(nextSelection, row, index)),
+				);
+				return;
+			}
+
 			const nextSelection = checked
 				? [...selectedRows, rowId]
 				: selectedRows.filter((id) => id !== rowId);
@@ -331,19 +366,34 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 			);
 			onSelectionChange?.(nextSelection, selectedData);
 		},
-		[selectedRows, data, onSelectionChange],
+		[selectedRows, selectAllMode, deselectedRows, data, onSelectionChange],
 	);
+
+	useEffect(() => {
+		if (!selectAllMode) return;
+		const nextSelection = data
+			.map((row, index) => getRowId(row, index))
+			.filter((id) => !deselectedRows.includes(id));
+		setSelectedRows(nextSelection);
+		onSelectionChange?.(
+			nextSelection,
+			data.filter((row, index) => hasRowId(nextSelection, row, index)),
+		);
+	}, [data, selectAllMode, deselectedRows, onSelectionChange]);
 
 	const handleBulkActionClick = useCallback(
 		(actionId: string, selectedIds: RowId[]) => {
+			if (selectionBusy) return;
 			const selectedData = data.filter((row, index) =>
 				hasRowId(selectedIds, row, index),
 			);
 			onBulkAction?.(actionId, selectedData, selectedIds);
+			setSelectAllMode(false);
+			setDeselectedRows([]);
 			setSelectedRows([]);
 			onSelectionChange?.([], []);
 		},
-		[onBulkAction, onSelectionChange, data],
+		[selectionBusy, onBulkAction, onSelectionChange, data],
 	);
 
 	// A command that consumed the selection reports back through this key, so
@@ -351,12 +401,35 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 	// biome-ignore lint/correctness/useExhaustiveDependencies: the key is the signal
 	useEffect(() => {
 		if (selectionResetKey === undefined) return;
+		setSelectAllMode(false);
+		setDeselectedRows([]);
 		setSelectedRows([]);
 	}, [selectionResetKey]);
 
-	const isAllSelected = selectedRows.length === data.length && data.length > 0;
-	const isIndeterminate =
-		selectedRows.length > 0 && selectedRows.length < data.length;
+	useEffect(() => {
+		if (selectionScopeKeyRef.current === selectionScopeKey) return;
+		selectionScopeKeyRef.current = selectionScopeKey;
+		setSelectAllMode(false);
+		setDeselectedRows([]);
+		setSelectedRows([]);
+		onSelectionChange?.([], []);
+	}, [selectionScopeKey, onSelectionChange]);
+
+	useEffect(() => {
+		if (!selectionFailed) return;
+		setSelectAllMode(false);
+		setDeselectedRows([]);
+		setSelectedRows([]);
+		onSelectionChange?.([], []);
+	}, [selectionFailed, onSelectionChange]);
+
+	const selectedCount = selectAllMode
+		? data.filter(
+				(row, index) => !deselectedRows.includes(getRowId(row, index)),
+			).length
+		: selectedRows.length;
+	const isAllSelected = selectedCount === data.length && data.length > 0;
+	const isIndeterminate = selectedCount > 0 && selectedCount < data.length;
 
 	const renderCards = () => {
 		const virtualItems = rowVirtualizer.virtualItems;
@@ -401,7 +474,9 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 						if (!row) return null;
 
 						const rowId = getRowId(row, virtualRow.index);
-						const isSelected = selectedRows.includes(rowId);
+						const isSelected = selectAllMode
+							? !deselectedRows.includes(rowId)
+							: selectedRows.includes(rowId);
 
 						return (
 							<div
@@ -415,7 +490,6 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 									height: `${virtualRow.size}px`,
 									transform: `translateY(${virtualRow.start}px)`,
 								}}
-								onClick={onRowClick ? () => onRowClick(row) : undefined}
 							>
 								<div
 									class={cn(
@@ -427,6 +501,8 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 										data={row}
 										columns={columns}
 										onAction={onRowAction}
+										onRowNavigate={onRowNavigate}
+										rowHref={rowHref}
 									/>
 									{selectable && (
 										<div class="absolute bottom-4 left-4 z-10">
@@ -495,6 +571,7 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 											{bulkActions.map((action) => (
 												<DropdownMenuItem
 													key={action.id}
+													disabled={selectionBusy}
 													onClick={() =>
 														handleBulkActionClick(action.id, selectedRows)
 													}
@@ -627,17 +704,18 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 								if (!row) return null;
 
 								const rowId = getRowId(row, virtualRow.index);
-								const isSelected = selectedRows.includes(rowId);
+								const isSelected = selectAllMode
+									? !deselectedRows.includes(rowId)
+									: selectedRows.includes(rowId);
 
 								return (
 									<div
 										key={rowId}
 										data-index={virtualRow.index}
 										class={cn(
-											"flex cursor-pointer border-b transition-colors hover:bg-muted/50",
+											"flex border-b transition-colors hover:bg-muted/50",
 											isSelected && "bg-muted",
 										)}
-										onClick={onRowClick ? () => onRowClick(row) : undefined}
 										style={{
 											position: "absolute",
 											top: 0,
@@ -677,12 +755,39 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 													style={{ width: `${width}px`, flexShrink: 0 }}
 												>
 													<div class="w-full overflow-hidden text-ellipsis whitespace-nowrap">
-														<CellRenderer
-															value={getRowValue(row, column.id)}
-															column={column}
-															rowData={row}
-															onAction={onRowAction}
-														/>
+														{column.id === "id" && onRowNavigate ? (
+															<a
+																href={rowHref?.(row) ?? "#"}
+																class="text-primary underline-offset-2 hover:underline"
+																onClick={(event) => {
+																	if (
+																		event.defaultPrevented ||
+																		event.button !== 0 ||
+																		event.metaKey ||
+																		event.ctrlKey ||
+																		event.shiftKey ||
+																		event.altKey
+																	)
+																		return;
+																	event.preventDefault();
+																	onRowNavigate(row);
+																}}
+															>
+																<CellRenderer
+																	value={getRowValue(row, column.id)}
+																	column={column}
+																	rowData={row}
+																	onAction={onRowAction}
+																/>
+															</a>
+														) : (
+															<CellRenderer
+																value={getRowValue(row, column.id)}
+																column={column}
+																rowData={row}
+																onAction={onRowAction}
+															/>
+														)}
 													</div>
 												</div>
 											);
@@ -706,6 +811,11 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 				className,
 			)}
 		>
+			<TableLoadProgress
+				loaded={data.length}
+				total={totalCount}
+				hasMore={hasMore}
+			/>
 			{currentViewMode === "table" ? (
 				renderTable()
 			) : data.length === 0 ? (

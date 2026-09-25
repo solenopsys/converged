@@ -32,6 +32,7 @@ export {
 export type { TableColumnsState } from "./columns-store";
 export { CellRenderer } from "./CellRenderer";
 export { DefaultRowCard } from "./DefaultRowCard";
+export { TableLoadProgress } from "./TableLoadProgress";
 export { InfiniteScrollDataTable } from "./InfiniteScrollDataTable";
 export { TableActionsMenu } from "./TableActionsMenu";
 export type { TableActionsMenuItem } from "./TableActionsMenu";

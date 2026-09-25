@@ -1,4 +1,10 @@
+import { createServerNrpcClientConfig } from "back-core";
+import { createBusServiceClient } from "g-bus";
+import { createEventsServiceClient } from "g-events";
+import { createPushRouterServiceClient } from "g-pushrouter";
+import { createStaffServiceClient } from "g-staff";
 import { getCurrentWorkspaceContext } from "nrpc";
+import { announceRequestCreated } from "./request-events";
 import { StoresController } from "./stores";
 import type {
 	PaginatedResult,
@@ -52,7 +58,23 @@ export class RequestsServiceImpl implements RequestsService {
 
 	async createRequest(input: RequestInput): Promise<RequestId> {
 		await this.init();
-		return this.stores.requests.createRequest(input, requireActor());
+		const actor = requireActor();
+		const id = await this.stores.requests.createRequest(input, actor);
+		try {
+			const config = createServerNrpcClientConfig();
+			await announceRequestCreated(id, input, actor, {
+				staff: createStaffServiceClient(config),
+				events: createEventsServiceClient(config),
+				bus: createBusServiceClient(config),
+				push: createPushRouterServiceClient(config),
+				grant: (userId) => this.stores.requests.access.grantToUser(id, userId),
+			});
+		} catch (error) {
+			// The request is committed; a notification outage must not turn its
+			// successful creation into an error that encourages a duplicate retry.
+			console.warn("[rp-requests] request event unavailable", id, error);
+		}
+		return id;
 	}
 
 	getRequest(id: RequestId): Promise<Request | undefined> {
@@ -75,7 +97,13 @@ export class RequestsServiceImpl implements RequestsService {
 
 	async createRequestModel(input: RequestModelInput): Promise<RequestModel> {
 		await this.init();
-		return this.stores.requests.createRequestModel(input, requireActor());
+		const id = await this.createRequest({
+			...input,
+			fields: input.fields ?? {},
+		});
+		const model = await this.stores.requests.getRequestModel(id);
+		if (!model) throw new Error(`Request not found after creation: ${id}`);
+		return model;
 	}
 
 	applyRequestUpdate(

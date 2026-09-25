@@ -32,6 +32,7 @@ import type {
 } from "../table/filter-header";
 import { valuesFromSelectionFilter } from "../table/filter-header";
 import { InfiniteScrollDataTable } from "../table/InfiniteScrollDataTable";
+import { urlForReference } from "../shell/workspace-url";
 import type { InfiniteTableStore } from "../table/infinite-table-store";
 import { createInfiniteTableStore } from "../table/infinite-table-store";
 import type {
@@ -256,6 +257,36 @@ export function EntityListView<TData extends object = Record<string, unknown>>({
 	const resolvedTitle =
 		title ?? infinity?.title ?? objectType?.pluralLabel ?? objectType?.label;
 	const resolvedActions = actions ?? infinity?.actions;
+	const rowReference = useCallback(
+		(row: TData): DomainRef => {
+			const item = row as Record<string, unknown>;
+			return infinity?.rowRef
+				? infinity.rowRef(item)
+				: objectRef(reference?.type ?? "", String(item.id));
+		},
+		[infinity, reference?.type],
+	);
+	const navigateToRow = useCallback(
+		(row: TData) => {
+			if (onRowClick) {
+				onRowClick(row);
+				return;
+			}
+			const target = rowReference(row);
+			const item = row as Record<string, unknown>;
+			void presentReference(
+				target.kind === "object" ? { ...target, data: item } : target,
+			);
+		},
+		[onRowClick, rowReference],
+	);
+	const rowHref = useCallback(
+		(row: TData) =>
+			typeof window === "undefined" || !infinity
+				? "#"
+				: urlForReference(window.location.href, rowReference(row)),
+		[infinity, rowReference],
+	);
 	const configuredTabs = useMemo<EntityListTab<TData>[]>(
 		() =>
 			infinity?.presets
@@ -429,8 +460,11 @@ export function EntityListView<TData extends object = Record<string, unknown>>({
 	// everything the filter matches, which is the whole point of filtering
 	// first. Either way it travels as one reference, never as a list of rows.
 	const selectedIds = state.header.selectedIds as RowId[];
-	const setSelectedIds = (ids: RowId[]) =>
-		activeStore.setHeader({ selectedIds: ids });
+	const selectionBusy = state.loadingAll;
+	const setSelectedIds = useCallback(
+		(ids: RowId[]) => activeStore.setHeader({ selectedIds: ids }),
+		[activeStore],
+	);
 	const [pending, setPending] = useState<OwnedOperation | null>(null);
 	const [commandBusy, setCommandBusy] = useState(false);
 	const [commandError, setCommandError] = useState<string | undefined>();
@@ -517,23 +551,6 @@ export function EntityListView<TData extends object = Record<string, unknown>>({
 		[operations, runOperation],
 	);
 
-	const commandScopeLabel =
-		selectedIds.length > 0
-			? t("table.selected", {
-					selected: selectedIds.length,
-					total: (state.totalCount ?? state.items.length).toLocaleString(),
-				})
-			: commands.length > 0
-				? t(
-						Object.keys(mergedFilters).length > 0
-							? "table.commandScopeFiltered"
-							: "table.commandScopeAll",
-						{
-							total: (state.totalCount ?? state.items.length).toLocaleString(),
-						},
-					)
-				: undefined;
-
 	const headerConfig: HeaderPanelConfig = {
 		title: resolvedTitle,
 		subtitle,
@@ -567,14 +584,14 @@ export function EntityListView<TData extends object = Record<string, unknown>>({
 				label: command.label,
 				...(command.icon ? { icon: command.icon } : {}),
 				onClick: () => handleCommand(command.id),
+				disabled: selectedIds.length > 0 && selectionBusy,
 				variant:
 					command.variant === "destructive"
 						? ("destructive" as const)
 						: ("outline" as const),
 			})),
 		],
-		scopeLabel: commandScopeLabel,
-		selectionActions,
+		selectionActions: selectionBusy ? [] : selectionActions,
 	};
 
 	const handleSort = (columnId: string, direction: "asc" | "desc") => {
@@ -609,25 +626,15 @@ export function EntityListView<TData extends object = Record<string, unknown>>({
 						hasMore={state.hasMore}
 						loading={state.loading}
 						loadingMore={state.loadingMore}
+						totalCount={state.totalCount}
+						selectionBusy={selectionBusy}
+						selectionFailed={state.loadAllFailed}
 						sortConfig={state.sortConfig}
 						onSort={handleSort}
 						onLoadMore={activeStore.loadMore}
-						onRowClick={
-							onRowClick ??
-							(infinity
-								? (row) => {
-										const item = row as Record<string, unknown>;
-										const target = infinity.rowRef
-											? infinity.rowRef(row as Record<string, unknown>)
-											: objectRef(reference?.type ?? "", String(item.id));
-										void presentReference(
-											target.kind === "object"
-												? { ...target, data: item }
-												: target,
-										);
-									}
-								: undefined)
-						}
+						onLoadAll={activeStore.loadAll}
+						onRowNavigate={onRowClick || infinity ? navigateToRow : undefined}
+						rowHref={rowHref}
 						CardComponent={activeTab?.CardComponent ?? CardComponent}
 						viewMode={viewMode}
 						selectable={selectable}

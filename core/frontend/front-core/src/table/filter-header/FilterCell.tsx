@@ -8,9 +8,15 @@ type FilterCellProps = {
 	filter?: TableFilterConfig;
 	value?: unknown;
 	onValueChange: (value: string | string[]) => void;
+	onEnter?: () => void;
 };
 
-export function FilterCell({ filter, value, onValueChange }: FilterCellProps) {
+export function FilterCell({
+	filter,
+	value,
+	onValueChange,
+	onEnter,
+}: FilterCellProps) {
 	if (!filter) return null;
 	if (filter.type === "search") {
 		return (
@@ -18,6 +24,7 @@ export function FilterCell({ filter, value, onValueChange }: FilterCellProps) {
 				filter={filter}
 				value={typeof value === "string" ? value : ""}
 				onValueChange={onValueChange}
+				onEnter={onEnter}
 			/>
 		);
 	}

@@ -1,12 +1,9 @@
 import { translator } from "i18n";
+import type { ComponentChildren } from "preact";
 import { CHAT_MESSAGES_NAMESPACE } from "../chat/i18n";
 import { COLUMN_TYPES } from "./constants";
 import { CellRenderer } from "./CellRenderer";
-import type {
-  ColumnConfig,
-  RowActionHandler,
-  RowCardProps,
-} from "./types";
+import type { ColumnConfig, RowActionHandler, RowCardProps } from "./types";
 import { getRowValue } from "./row-utils";
 
 const t = translator(CHAT_MESSAGES_NAMESPACE);
@@ -28,7 +25,8 @@ function formatTitleValue(value: unknown, type: string) {
     const date = parseDateValue(value);
     if (!Number.isNaN(date.getTime())) return date.toLocaleString();
   }
-  if (type === COLUMN_TYPES.BOOLEAN) return value ? t("table.yes") : t("table.no");
+  if (type === COLUMN_TYPES.BOOLEAN)
+    return value ? t("table.yes") : t("table.no");
   if (Array.isArray(value)) return value.join(", ");
   if (typeof value === "object") return JSON.stringify(value);
   return String(value);
@@ -88,18 +86,45 @@ export function DefaultRowCard<TData extends object>({
   data,
   columns,
   onAction,
+  onRowNavigate,
+  rowHref,
 }: RowCardProps<TData>) {
-  const { primaryColumn, secondaryColumns } = resolveDefaultCardColumns(columns);
+  const { primaryColumn, secondaryColumns } =
+    resolveDefaultCardColumns(columns);
   const titleValue = primaryColumn
     ? getRowValue(data, primaryColumn.id)
     : undefined;
+  const idLink = (children: ComponentChildren) => (
+    <a
+      href={rowHref?.(data) ?? "#"}
+      class="text-primary underline-offset-2 hover:underline"
+      onClick={(event) => {
+        if (
+          event.defaultPrevented ||
+          event.button !== 0 ||
+          event.metaKey ||
+          event.ctrlKey ||
+          event.shiftKey ||
+          event.altKey
+        ) {
+          return;
+        }
+        event.preventDefault();
+        onRowNavigate?.(data);
+      }}
+    >
+      {children}
+    </a>
+  );
 
   return (
     <div class="rounded-lg border bg-card p-3 transition-colors hover:bg-accent/40">
       {primaryColumn && (
         <div class="mb-2">
           <h3 class="break-words text-sm font-semibold leading-snug">
-            {formatTitleValue(titleValue, primaryColumn.type)}
+            {primaryColumn.id === "id" && onRowNavigate
+              ? idLink(formatTitleValue(titleValue, primaryColumn.type))
+              : formatTitleValue(titleValue, primaryColumn.type)}
           </h3>
         </div>
       )}
@@ -116,12 +141,23 @@ export function DefaultRowCard<TData extends object>({
             >
               <span class="truncate text-muted-foreground">{column.title}</span>
               <div class="min-w-0">
-                <CellRenderer
-                  value={value}
-                  column={column}
-                  rowData={data}
-                  onAction={onAction as RowActionHandler<TData>}
-                />
+                {column.id === "id" && onRowNavigate ? (
+                  idLink(
+                    <CellRenderer
+                      value={value}
+                      column={column}
+                      rowData={data}
+                      onAction={onAction as RowActionHandler<TData>}
+                    />,
+                  )
+                ) : (
+                  <CellRenderer
+                    value={value}
+                    column={column}
+                    rowData={data}
+                    onAction={onAction as RowActionHandler<TData>}
+                  />
+                )}
               </div>
             </div>
           );

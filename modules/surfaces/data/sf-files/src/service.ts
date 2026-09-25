@@ -1,4 +1,4 @@
-import { services } from "files-state";
+import { ensureStoreWorker, services } from "files-state";
 import { createFilesServiceClient } from "g-files";
 import { createStoreServiceClient } from "g-store";
 import { createFrontNrpcClientConfig } from "signal-channel";
@@ -22,6 +22,12 @@ if (typeof window !== "undefined" && !services.getFilesService()) {
 	services.setFilesService(filesClient);
 	services.setStoreService(
 		createStoreServiceClient(createFrontNrpcClientConfig()),
+	);
+}
+
+if (typeof window !== "undefined") {
+	ensureStoreWorker(
+		() => new Worker("/assets/store.worker.js", { type: "module" }),
 	);
 }
 
