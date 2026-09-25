@@ -198,7 +198,9 @@ export function createConversation({
 		return entry;
 	};
 
-	const runSteps = async (text: string): Promise<OrchestratorPlan> => {
+	const runSteps = async (
+		text: string,
+	): Promise<{ plan: OrchestratorPlan; caseHandled: boolean }> => {
 		// Frozen for the whole turn: a function chosen by `select` must still be
 		// there at `invoke`.
 		const frozen: OrchestratorCatalog = catalog.snapshot();
@@ -241,7 +243,7 @@ export function createConversation({
 					},
 				});
 			}
-			throw error;
+			routedId = undefined;
 		}
 		const selectedId = routedId && frozen.meta(routedId) ? routedId : undefined;
 		// CASE has already selected an existing UI controller. Opening its default
@@ -270,9 +272,13 @@ export function createConversation({
 				result: failure ? undefined : fact,
 				error: failure,
 			});
-			return { kind: "function", id: selectedId, args: {}, fact };
+			return {
+				plan: { kind: "function", id: selectedId, args: {}, fact },
+				caseHandled: !failure,
+			};
 		}
-		const table = typeof steps === "function"
+		const table =
+			typeof steps === "function"
 				? steps(frozen)
 				: (steps ?? createFunctionSteps({ catalog: frozen }));
 		const open = new Map<string, string>();
@@ -351,7 +357,7 @@ export function createConversation({
 				...(plan.trail?.length ? { trail: plan.trail } : {}),
 			});
 		}
-		return plan;
+		return { plan, caseHandled: false };
 	};
 
 	const execute = async (
@@ -477,11 +483,14 @@ export function createConversation({
 
 	/** One turn: whatever opens it, then the model/tool loop until the model
 	 *  stops asking for tools. */
-	const converse = async (open: () => Promise<ChatBlock[]>): Promise<void> => {
+	const converse = async (
+		open: () => Promise<ChatBlock[] | undefined>,
+	): Promise<void> => {
 		turn.turnStarted();
 
 		try {
 			let blocks = await open();
+			if (blocks === undefined) return;
 
 			for (;;) {
 				const calls = await exchange(blocks);
@@ -559,7 +568,8 @@ export function createConversation({
 				text,
 			});
 
-			const plan = await runSteps(text);
+			const { plan, caseHandled } = await runSteps(text);
+			if (caseHandled) return undefined;
 			const fact = factOf(plan);
 			return [
 				...(await systemBlocks()),
@@ -596,6 +606,6 @@ export function createConversation({
 		follow,
 		registerTool: (tool) => toolRegistered(tool),
 		invokeTool: (name, args) => execute({ id: id(), name, args }),
-		plan: runSteps,
+		plan: async (text) => (await runSteps(text)).plan,
 	};
 }

@@ -19,7 +19,7 @@
 
 .top-bar[data-authenticated="true"] {
   grid-template-columns: minmax(0, 1fr) auto;
-  padding-inline: 0;
+  padding-inline: var(--hw-space-4);
 }
 
 .top-bar a,

@@ -105,6 +105,81 @@ describe("conversation entries", () => {
 		expect(asks).toBe(0);
 	});
 
+	test("a successful CASE action ends send without a streamed model answer", async () => {
+		const { catalog, invoked } = catalogWith([
+			{ id: "core.select:sales.lead", brief: "Select Leads" },
+		]);
+		const chat = driverOf([answered("unneeded answer")]);
+		const conversation = createConversation({
+			catalog,
+			driver: chat.driver,
+			prompt: async () => "prompt",
+			ask: async () => {
+				throw new Error("CASE hit must not call a deciding model step");
+			},
+			caseRoute: async () => "core.select:sales.lead",
+		});
+
+		await conversation.send("открой продажи");
+
+		expect(invoked).toEqual([{ id: "core.select:sales.lead", args: {} }]);
+		expect(chat.sent).toBe(0);
+		expect(
+			[...conversation.entries.$entries.getState().values()].some(
+				(entry) => entry.kind === "call" && entry.status === "completed",
+			),
+		).toBe(true);
+	});
+
+	test("a CASE miss falls through to the normal model answer", async () => {
+		const { catalog } = catalogWith([]);
+		const chat = driverOf([answered("я могу помочь")]);
+		const steps: string[] = [];
+		const conversation = createConversation({
+			catalog,
+			driver: chat.driver,
+			prompt: async () => "prompt",
+			ask: async ({ step, tools }) => {
+				steps.push(step);
+				return {
+					text: "",
+					toolCalls: [
+						{ name: tools[0]?.name ?? step, args: { intent: "answer" } },
+					],
+				};
+			},
+			caseRoute: async () => undefined,
+		});
+
+		await conversation.send("что ты умеешь?");
+
+		expect(steps).toEqual(["route"]);
+		expect(chat.sent).toBe(1);
+	});
+
+	test("a CASE routing error falls through to the normal model answer", async () => {
+		const { catalog } = catalogWith([]);
+		const chat = driverOf([answered("я могу помочь")]);
+		const conversation = createConversation({
+			catalog,
+			driver: chat.driver,
+			prompt: async () => "prompt",
+			ask: async ({ step, tools }) => ({
+				text: "",
+				toolCalls: [
+					{ name: tools[0]?.name ?? step, args: { intent: "answer" } },
+				],
+			}),
+			caseRoute: async () => {
+				throw new Error("CASE unavailable");
+			},
+		});
+
+		await conversation.send("что ты умеешь?");
+
+		expect(chat.sent).toBe(1);
+	});
+
 	test("captures compact host context once for planning steps", async () => {
 		const { catalog } = catalogWith([
 			{ id: "companies.select", brief: "Select companies" },

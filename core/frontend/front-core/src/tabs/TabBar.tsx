@@ -1,13 +1,12 @@
 import { useUnit } from "effector-preact";
 import type { ComponentChildren, RefObject } from "preact";
 import { useEffect, useRef } from "preact/hooks";
-import { ChevronDown, X } from "../icons";
+import { ChevronDown, Trash2 } from "../icons";
 import { CatalogMenu, type CatalogMenuText } from "./CatalogMenu";
 import { ChoiceList } from "./ChoiceMenu";
 import { useDismiss } from "./dismiss";
 import { Floating } from "./floating";
 import type { TabView } from "./model";
-import { TabIcon } from "./TabIcon";
 import { PushPin } from "./PushPin";
 import type { TabBarModel } from "./tab-bar";
 
@@ -44,7 +43,12 @@ function Tab({
 		closed: model.closed,
 		openedAt: model.context.openedAt,
 	});
-	const pinLabel = tab.pinned ? text.unpin(tab.label) : text.pin(tab.label);
+	const canClose = tab.kind !== "command";
+	const actionLabel = tab.pinned
+		? canClose
+			? text.close(tab.label)
+			: text.unpin(tab.label)
+		: text.pin(tab.label);
 
 	return (
 		<div
@@ -75,34 +79,26 @@ function Tab({
 					closed(tab.id);
 				}}
 			>
-				<TabIcon name={tab.icon} kind={tab.kind} />
 				<span class="tab-label">{tab.label}</span>
 			</button>
 			<span class="tab-actions">
 				<button
 					type="button"
-					class="tab-pin"
-					aria-label={pinLabel}
-					title={pinLabel}
-					aria-pressed={tab.pinned}
+					class="tab-action"
+					aria-label={actionLabel}
+					title={actionLabel}
 					onClick={(event) => {
 						event.stopPropagation();
-						pinToggled(tab.id);
+						if (tab.pinned && canClose) closed(tab.id);
+						else pinToggled(tab.id);
 					}}
 				>
-					<PushPin size={11} pinned={tab.pinned} />
+					{tab.pinned && canClose ? (
+						<Trash2 size={11} aria-hidden="true" />
+					) : (
+						<PushPin size={11} pinned={tab.pinned} />
+					)}
 				</button>
-				{tab.kind === "command" ? null : (
-					<button
-						type="button"
-						class="tab-close"
-						aria-label={text.close(tab.label)}
-						title={text.close(tab.label)}
-						onClick={() => closed(tab.id)}
-					>
-						<X size={11} aria-hidden="true" />
-					</button>
-				)}
 			</span>
 		</div>
 	);
@@ -191,7 +187,6 @@ export function TabBar({
 
 	return (
 		<div class="tabs" data-theme={theme} ref={rootRef}>
-			{theme !== "list" ? catalogMenu : null}
 			<div
 				class="tabs-list"
 				role="tablist"
@@ -209,7 +204,7 @@ export function TabBar({
 					/>
 				))}
 			</div>
-			{theme === "list" ? catalogMenu : null}
+			{catalogMenu}
 			{children}
 			<TabContextMenu model={model} anchor={rootRef} />
 		</div>

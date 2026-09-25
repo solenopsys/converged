@@ -3,6 +3,17 @@ kind: Solution
 metadata:
   name: converged-converged
 spec:
+  containers:
+    converged:
+      - ui
+      - ms
+      - resonus
+      - behemoth
+      - ptah
+      - fujin
+      - centimanus
+    ai:
+      - case
   platform: converged
   repositories:
     - access
@@ -70,6 +81,7 @@ spec:
     - id: files-process
       name: wf-files-process
       script: workflows/wf-files-process.js
+      type: system
       brief: Process uploaded files
       description: Expand ZIP archives and classify every uploaded file, reporting
         which of them are production models. Does not create a request.
@@ -88,6 +100,7 @@ spec:
     - id: file-unpack
       name: wf-file-unpack
       script: workflows/wf-file-unpack.js
+      type: system
       brief: Unpack an uploaded archive
       description: Extract a ZIP archive and return IDs of its entries.
       parameters:
@@ -102,6 +115,7 @@ spec:
     - id: file-analyze
       name: wf-file-analyze
       script: workflows/wf-file-analyze.js
+      type: system
       brief: Analyze one uploaded file
       description: Stage one file, detect its type, convert it to a preview where
         possible and estimate production parameters. Skips files that are not
@@ -130,6 +144,7 @@ spec:
     - id: files-analyze
       name: wf-files-analyze
       script: workflows/wf-files-analyze.js
+      type: system
       brief: Analyze a batch of uploaded files
       description: Run the single-file analysis over every production model in the
         batch and report per-file estimates and errors.

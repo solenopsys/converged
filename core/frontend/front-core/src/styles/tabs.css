@@ -36,7 +36,7 @@
   color: var(--hw-ink-muted);
 }
 
-.tab-select {
+.tabs .tab-select {
   display: flex;
   min-width: 0;
   align-items: center;
@@ -47,6 +47,10 @@
   background: transparent;
   color: inherit;
   cursor: pointer;
+  font-family: var(--hw-font-sans);
+  font-size: var(--hw-font-size-md);
+  font-weight: var(--hw-weight-regular);
+  line-height: 1.2;
 }
 
 .tab-label {
@@ -58,11 +62,6 @@
 /* The transient tab is provisional — the next thing opened replaces it. */
 .tab:not([data-pinned="true"]):not([data-kind="command"]) .tab-label {
   font-style: italic;
-}
-
-.tab-icon {
-  flex: 0 0 auto;
-  color: currentColor;
 }
 
 /*
@@ -77,8 +76,7 @@
   padding-right: var(--hw-space-1);
 }
 
-.tab-pin,
-.tab-close,
+.tab-action,
 .catalog-menu-pin {
   display: inline-grid;
   flex-shrink: 0;
@@ -93,43 +91,21 @@
   cursor: pointer;
 }
 
-.tab-pin,
-.tab-close {
+.tab-action {
   opacity: 0;
   pointer-events: none;
   transition: opacity 120ms ease;
 }
 
-.tab:hover .tab-pin,
-.tab:hover .tab-close,
-.tab:focus-within .tab-pin,
-.tab:focus-within .tab-close,
-.tab[data-menu-open="true"] .tab-pin,
-.tab[data-menu-open="true"] .tab-close {
+.tab:hover .tab-action,
+.tab-action:focus-visible {
   opacity: 1;
   pointer-events: auto;
-}
-
-/* A pinned tab has to read as pinned with nothing hovered. */
-.tab[data-pinned="true"] .tab-pin {
-  opacity: 1;
-  pointer-events: auto;
-  color: var(--hw-ink-muted);
-}
-
-@media (hover: none) {
-  .tab .tab-pin,
-  .tab .tab-close {
-    opacity: 1;
-    pointer-events: auto;
-  }
 }
 
 .tab-select:focus-visible,
-.tab-pin:hover,
-.tab-pin:focus-visible,
-.tab-close:hover,
-.tab-close:focus-visible {
+.tab-action:hover,
+.tab-action:focus-visible {
   outline: none;
   background: color-mix(in srgb, var(--hw-panel) 45%, transparent);
   color: var(--hw-ink);
@@ -157,6 +133,11 @@
   height: calc(var(--hw-unit) * 6);
   padding-inline: var(--hw-space-1);
   border: 0;
+}
+
+.tabs[data-theme="strip"] .catalog-menu,
+.tabs[data-theme="bar"] .catalog-menu {
+  align-self: center;
 }
 
 .tabs[data-theme="bar"] .catalog-menu-trigger {
@@ -194,7 +175,7 @@
 
 .tabs[data-theme="bar"] .tab-select {
   min-height: calc(var(--hw-unit) * 7);
-  padding-inline: var(--hw-space-2);
+  padding-inline: var(--hw-space-1);
 }
 
 /* --- list: the phone's navigation --------------------------------------- */

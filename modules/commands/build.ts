@@ -153,6 +153,8 @@ const pushHandler: Handler = async (_client, _sep, param) => {
   const [local, remote] = (param ?? "").trim().split(/\s+/);
   if (!local) throw new Error("Usage: build push <local-image> [<remote-name>]");
   await pushImage(local, remote);
+  await run("podman", ["image", "rm", local, prodRef(remote ?? repoName(local))]);
+  await run("podman", ["image", "prune", "--force"]);
 };
 
 const reposHandler: Handler = async (_client, _sep, param) => {
@@ -165,7 +167,7 @@ class BuildProcessor extends BaseCommandProcessor {
   protected initializeCommandMap(): Map<string, CommandEntry> {
     return new Map([
       ["login", { handler: loginHandler, description: "Authenticate podman against public ECR (uses AWS_REGION)" }],
-      ["push", { handler: pushHandler, description: "Tag & push a local image to $REGISTRY: build push <local> [remote]" }],
+      ["push", { handler: pushHandler, description: "Tag & push a local image to $REGISTRY, then remove its local tags: build push <local> [remote]" }],
       ["repos", { handler: reposHandler, description: "Ensure ECR repos exist: build repos <name1,name2,...>" }],
     ]);
   }
