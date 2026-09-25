@@ -15,6 +15,10 @@ export type { StoreService } from './store-service';
 export { downloadFile } from './download';
 
 // Worker control
-export { setStoreWorker, terminateWorkers } from './segments/streaming';
+export {
+	ensureStoreWorker,
+	setStoreWorker,
+	terminateWorkers,
+} from './segments/streaming';
 
 import './integrations';

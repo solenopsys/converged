@@ -42,6 +42,10 @@ export function setStoreWorker(worker: Worker) {
   setupWorkerHandlers(worker);
 }
 
+export function ensureStoreWorker(createWorker: () => Worker) {
+  if (!storeWorker) setStoreWorker(createWorker());
+}
+
 function getStoreWorker(): Worker {
   if (!storeWorker) {
     throw new Error('[files-state] store worker is not configured: call setStoreWorker first');
