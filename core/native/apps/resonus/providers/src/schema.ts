@@ -187,6 +187,8 @@ export interface DecodeTable {
 /** A request the core hands to `encodeTurn`, in the uniform dialect. */
 export interface TurnRequest {
 	model: string;
+	/** Opaque provider-owned state returned by the session decode hook. */
+	session?: unknown;
 	maxTokens: number;
 	/** Adapter-defined operation; ordinary chat providers leave it absent. */
 	operation?: string;
@@ -214,11 +216,20 @@ export interface UniformTool {
 
 /** What an encoding hook returns: everything needed to put one request on the wire. */
 export interface WireRequest {
-	/** Optional path appended to the descriptor transport base URL. */
+	/** Optional path appended to the request URL. */
 	path?: string;
-	/** Absent for a session-oriented transport that already has its endpoint. */
+	/** Optional absolute URL override; otherwise the descriptor URL is used. */
 	url?: string;
-	method?: "POST" | "GET";
+	method?:
+		| "GET"
+		| "HEAD"
+		| "POST"
+		| "PUT"
+		| "DELETE"
+		| "CONNECT"
+		| "OPTIONS"
+		| "TRACE"
+		| "PATCH";
 	headers?: Record<string, string>;
 	/** Defaults to `application/json`. Set it for multipart or SDP bodies. */
 	contentType?: string;
@@ -303,6 +314,13 @@ export interface Transport {
 	idlePerModel?: number;
 }
 
+/** Provider-defined session lifecycle, executed by session.bind/close. */
+export interface SessionLifecycle {
+	open: string;
+	decode: string;
+	close?: string;
+}
+
 /**
  * Names of the warm hooks a descriptor may export. The core resolves them as
  * `globalThis["<provider>__<hook>"]`, which the bundler emits.
@@ -310,6 +328,10 @@ export interface Transport {
 export interface Hooks {
 	/** Uniform request -> vendor wire request. Once per turn. */
 	encodeTurn?: string;
+	/** Open, decode and close provider-owned session state. */
+	openSession?: string;
+	decodeSession?: string;
+	closeSession?: string;
 	/** Non-streaming vendor response -> uniform completion. Once per turn. */
 	decodeResponse?: string;
 	/** Build the payload for a handshake `send` step. Once per socket. */
@@ -323,6 +345,7 @@ export interface Descriptor {
 	/** Registry key. Must match the file name, which the builder checks. */
 	name: string;
 	transport: Transport;
+	session?: SessionLifecycle;
 	decode: DecodeTable;
 	/** Present only for providers that also carry a media leg. */
 	signaling?: Signaling;

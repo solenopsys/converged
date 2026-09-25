@@ -34,6 +34,32 @@ export async function runSoft(cmd: string, args: string[], cwd?: string): Promis
   return proc.exitCode ?? 1;
 }
 
+export async function pruneImages(): Promise<void> {
+  try {
+    const proc = Bun.spawn(["podman", "image", "prune", "--force"], {
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const [stdout, stderr, status] = await Promise.all([
+      new Response(proc.stdout).text(),
+      new Response(proc.stderr).text(),
+      proc.exited,
+    ]);
+    if (stdout.trim()) console.log(stdout.trim());
+    if (status !== 0) {
+      const detail = stderr.trim() || `podman exited with status ${status}`;
+      console.warn(
+        `[build] image prune skipped; images still used by containers are retained: ${detail}`,
+      );
+    }
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    console.warn(
+      `[build] image prune skipped; images still used by containers are retained: ${detail}`,
+    );
+  }
+}
+
 export const awsRegion = (): string => process.env.AWS_REGION?.trim() || "us-east-1";
 
 
@@ -154,7 +180,7 @@ const pushHandler: Handler = async (_client, _sep, param) => {
   if (!local) throw new Error("Usage: build push <local-image> [<remote-name>]");
   await pushImage(local, remote);
   await run("podman", ["image", "rm", local, prodRef(remote ?? repoName(local))]);
-  await run("podman", ["image", "prune", "--force"]);
+  await pruneImages();
 };
 
 const reposHandler: Handler = async (_client, _sep, param) => {

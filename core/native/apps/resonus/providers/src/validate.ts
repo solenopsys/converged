@@ -85,6 +85,13 @@ export function validate(
 	validateTransport(d.transport, fail);
 
 	const referenced: string[] = [];
+	if (d.session) {
+		if (!d.session.open || !d.session.decode) {
+			fail("session", "must declare open and decode hooks");
+		}
+		referenced.push(d.session.open, d.session.decode);
+		if (d.session.close) referenced.push(d.session.close);
+	}
 	if (d.signaling) {
 		const sig = d.signaling;
 		if (typeof sig.url !== "string" || sig.url.length === 0) {

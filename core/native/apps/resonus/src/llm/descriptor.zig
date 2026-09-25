@@ -98,10 +98,17 @@ pub const Signaling = struct {
     response_kind: ResponseKind,
 };
 
+pub const Session = struct {
+    open_hook: []const u8,
+    decode_hook: []const u8,
+    close_hook: ?[]const u8,
+};
+
 pub const Descriptor = struct {
     arena: std.heap.ArenaAllocator,
     name: []const u8,
     transport: Transport,
+    session: ?Session,
     signaling: ?Signaling,
     framing: Framing,
     event_type: ?Path,
@@ -171,6 +178,11 @@ pub fn parse(gpa: std.mem.Allocator, json: []const u8) Error!Descriptor {
 
     const name = try dupField(a, root, "name");
     const transport = try parseTransport(a, obj(root, "transport") orelse return error.DescriptorFieldMissing);
+    const session = if (obj(root, "session")) |s| Session{
+        .open_hook = try dupField(a, s, "open"),
+        .decode_hook = try dupField(a, s, "decode"),
+        .close_hook = try optDup(a, s, "close"),
+    } else null;
     const signaling = if (obj(root, "signaling")) |sig| try parseSignaling(a, sig) else null;
     const decode = obj(root, "decode") orelse return error.DescriptorFieldMissing;
 
@@ -212,6 +224,7 @@ pub fn parse(gpa: std.mem.Allocator, json: []const u8) Error!Descriptor {
         .arena = arena,
         .name = name,
         .transport = transport,
+        .session = session,
         .signaling = signaling,
         .framing = framing,
         .event_type = event_type,

@@ -27,6 +27,54 @@ pub const Engine = struct {
         provider_name: []const u8,
     };
 
+    pub fn initSession(
+        self: *Engine,
+        a: std.mem.Allocator,
+        entry: *registry_mod.Entry,
+        client: *std.http.Client,
+        model: []const u8,
+        session_id: []const u8,
+    ) !?[]const u8 {
+        const lifecycle = entry.table.session orelse return null;
+        const model_json = try provider.jsonStr(a, model);
+        const session_json = try provider.jsonStr(a, session_id);
+        const request_json = try std.fmt.allocPrint(a, "{{\"model\":{s},\"sessionId\":{s}}}", .{ model_json, session_json });
+        const args = try std.fmt.allocPrint(a, "[{s}]", .{request_json});
+        const encoded = try self.registry.callHook(a, entry.name(), lifecycle.open_hook, args);
+        const wire = try parseWire(a, encoded);
+        const response = try self.send(a, entry, client, model, wire);
+        if (response.status < 200 or response.status >= 300) {
+            return error.ProviderSessionInitFailed;
+        }
+        _ = std.json.parseFromSliceLeaky(std.json.Value, a, response.body, .{}) catch
+            return error.ProviderSessionResponseInvalid;
+        const response_json = response.body;
+        const decode_args = try std.fmt.allocPrint(a, "[{s},{s}]", .{ request_json, response_json });
+        const state_json = try self.registry.callHook(a, entry.name(), lifecycle.decode_hook, decode_args);
+        return try a.dupe(u8, state_json);
+    }
+
+    pub fn closeSession(
+        self: *Engine,
+        a: std.mem.Allocator,
+        entry: *registry_mod.Entry,
+        client: *std.http.Client,
+        model: []const u8,
+        session_id: []const u8,
+        session_state_json: []const u8,
+    ) !void {
+        const lifecycle = entry.table.session orelse return;
+        const hook = lifecycle.close_hook orelse return;
+        const model_json = try provider.jsonStr(a, model);
+        const session_json = try provider.jsonStr(a, session_id);
+        const request_json = try std.fmt.allocPrint(a, "{{\"model\":{s},\"sessionId\":{s}}}", .{ model_json, session_json });
+        const args = try std.fmt.allocPrint(a, "[{s},{s}]", .{ request_json, session_state_json });
+        const encoded = try self.registry.callHook(a, entry.name(), hook, args);
+        const wire = try parseWire(a, encoded);
+        const response = try self.send(a, entry, client, model, wire);
+        if (response.status < 200 or response.status >= 300) return error.ProviderSessionCloseFailed;
+    }
+
     /// One non-streaming turn.
     pub fn complete(
         self: *Engine,
@@ -64,13 +112,14 @@ pub const Engine = struct {
         sink: provider.StreamSink,
     ) !provider.Completion {
         const wire = try self.encodeTurn(a, entry, req, true);
-        const url = try registry_mod.substitute(a, entry.table.transport.url, req.model, self.secrets);
-        const headers = try self.buildHeaders(a, entry, req.model);
+        const url = wire.url orelse try registry_mod.substitute(a, entry.table.transport.url, req.model, self.secrets);
+        const headers = try self.buildHeaders(a, entry, req.model, wire);
 
         var decoder = decode.Decoder.init(a, &entry.table, sink, self.hookRunner());
         var state = LineState{ .decoder = &decoder };
 
-        _ = http.postJsonLines(client, a, url, headers, wire.body, .{
+        const target = if (wire.path) |path| try joinUrl(a, url, path) else url;
+        _ = http.postJsonLines(client, a, parseMethod(wire.method) orelse return error.EncodeTurnInvalid, target, headers, wire.body, .{
             .context = &state,
             .on_line = onLine,
         }) catch |err| {
@@ -129,9 +178,11 @@ pub const Engine = struct {
         return self.registry.callHook(current.allocator, current.provider_name, hook, buf.items);
     }
 
-    const Wire = struct {
+    pub const Wire = struct {
         method: []const u8,
         path: ?[]const u8 = null,
+        url: ?[]const u8 = null,
+        content_type: ?[]const u8 = null,
         body: []const u8,
         extra_headers: []const std.http.Header,
     };
@@ -149,16 +200,7 @@ pub const Engine = struct {
         const args = try std.fmt.allocPrint(a, "[{s},{}]", .{ request_json, streaming });
         const reply = try self.registry.callHook(a, entry.name(), "encodeTurn", args);
 
-        const wire = std.json.parseFromSliceLeaky(std.json.Value, a, reply, .{}) catch
-            return error.EncodeTurnInvalid;
-        const body = provider.strField(wire, "body") orelse return error.EncodeTurnInvalid;
-
-        return .{
-            .method = provider.strField(wire, "method") orelse "POST",
-            .path = provider.strField(wire, "path"),
-            .body = body,
-            .extra_headers = &.{},
-        };
+        return parseWire(a, reply);
     }
 
     fn buildHeaders(
@@ -166,19 +208,19 @@ pub const Engine = struct {
         a: std.mem.Allocator,
         entry: *registry_mod.Entry,
         model: []const u8,
+        wire: Wire,
     ) ![]const std.http.Header {
         const t = &entry.table.transport;
-        const headers = try a.alloc(std.http.Header, t.header_names.len);
-        for (t.header_names, t.header_values, 0..) |name, value, i| {
-            headers[i] = .{
-                .name = name,
-                .value = registry_mod.substitute(a, value, model, self.secrets) catch |err| {
-                    std.log.err("provider {s}: header '{s}': {s}", .{ entry.name(), name, @errorName(err) });
-                    return err;
-                },
-            };
+        var headers: std.ArrayList(std.http.Header) = .empty;
+        for (t.header_names, t.header_values) |name, value| {
+            try setHeader(a, &headers, name, registry_mod.substitute(a, value, model, self.secrets) catch |err| {
+                std.log.err("provider {s}: header '{s}': {s}", .{ entry.name(), name, @errorName(err) });
+                return err;
+            });
         }
-        return headers;
+        for (wire.extra_headers) |header| try setHeader(a, &headers, header.name, header.value);
+        if (wire.content_type) |content_type| try setHeader(a, &headers, "content-type", content_type);
+        return headers.items;
     }
 
     fn send(
@@ -189,12 +231,55 @@ pub const Engine = struct {
         model: []const u8,
         wire: Wire,
     ) !http.Result {
-        const base_url = try registry_mod.substitute(a, entry.table.transport.url, model, self.secrets);
+        const base_url = wire.url orelse try registry_mod.substitute(a, entry.table.transport.url, model, self.secrets);
         const url = if (wire.path) |path| try joinUrl(a, base_url, path) else base_url;
-        const headers = try self.buildHeaders(a, entry, model);
-        return http.postJson(client, a, url, headers, wire.body);
+        const headers = try self.buildHeaders(a, entry, model, wire);
+        return http.requestJson(client, a, parseMethod(wire.method) orelse return error.EncodeTurnInvalid, url, headers, if (wire.body.len == 0) null else wire.body);
     }
 };
+
+fn parseMethod(method: []const u8) ?std.http.Method {
+    inline for (.{ "GET", "HEAD", "POST", "PUT", "DELETE", "CONNECT", "OPTIONS", "TRACE", "PATCH" }) |name| {
+        if (std.mem.eql(u8, method, name)) return @field(std.http.Method, name);
+    }
+    return null;
+}
+
+fn parseWire(a: std.mem.Allocator, json: []const u8) !Engine.Wire {
+    const value = std.json.parseFromSliceLeaky(std.json.Value, a, json, .{}) catch return error.EncodeTurnInvalid;
+    if (value != .object) return error.EncodeTurnInvalid;
+    return .{
+        .method = provider.strField(value, "method") orelse "POST",
+        .path = provider.strField(value, "path"),
+        .url = provider.strField(value, "url"),
+        .content_type = provider.strField(value, "contentType"),
+        .body = provider.strField(value, "body") orelse "",
+        .extra_headers = try parseHeaders(a, value),
+    };
+}
+
+fn parseHeaders(a: std.mem.Allocator, wire: std.json.Value) ![]const std.http.Header {
+    const value = provider.field(wire, "headers") orelse return &.{};
+    if (value != .object) return error.EncodeTurnInvalid;
+    const headers = try a.alloc(std.http.Header, value.object.count());
+    var it = value.object.iterator();
+    var i: usize = 0;
+    while (it.next()) |entry| : (i += 1) {
+        if (entry.value_ptr.* != .string) return error.EncodeTurnInvalid;
+        headers[i] = .{ .name = entry.key_ptr.*, .value = entry.value_ptr.string };
+    }
+    return headers;
+}
+
+fn setHeader(a: std.mem.Allocator, headers: *std.ArrayList(std.http.Header), name: []const u8, value: []const u8) !void {
+    for (headers.items) |*header| {
+        if (std.ascii.eqlIgnoreCase(header.name, name)) {
+            header.value = value;
+            return;
+        }
+    }
+    try headers.append(a, .{ .name = name, .value = value });
+}
 
 /// Re-encode the parsed chat request into the uniform dialect the hooks expect.
 /// Messages and tools pass through verbatim: the core does not interpret them,
@@ -205,6 +290,10 @@ fn uniformRequestJson(a: std.mem.Allocator, req: provider.ChatRequest) ![]const 
 
     try out.appendSlice(a, "{\"model\":");
     try provider.appendJsonStr(&out, a, req.model);
+    if (req.session_state) |session_state| {
+        try out.appendSlice(a, ",\"session\":");
+        try provider.appendValue(&out, a, session_state);
+    }
     try out.appendSlice(a, try std.fmt.allocPrint(a, ",\"maxTokens\":{d}", .{req.max_tokens}));
     if (req.operation) |operation| {
         try out.appendSlice(a, ",\"operation\":");

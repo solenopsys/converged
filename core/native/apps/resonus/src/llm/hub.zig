@@ -58,10 +58,20 @@ pub const Hub = struct {
     /// is actually used by this deployment.
     pools: std.ArrayList(Pool) = .empty,
     pools_mutex: Mutex = .{},
+    sessions: std.ArrayList(ProviderSession) = .empty,
+    sessions_mutex: Mutex = .{},
 
     const Pool = struct {
         provider_name: []const u8,
         pool: ws_pool.Pool,
+    };
+
+    const ProviderSession = struct {
+        session_id: []const u8,
+        endpoint_name: []const u8,
+        provider_name: []const u8,
+        model: []const u8,
+        state_json: []const u8,
     };
 
     pub const Endpoint = struct {
@@ -86,12 +96,22 @@ pub const Hub = struct {
 
         hub.secrets = try registry_mod.collectSecrets(gpa, &hub.registry);
         hub.engine = .{ .registry = &hub.registry, .secrets = &hub.secrets };
+        std.log.info("llm routing config: AI_CHAT_PROVIDER={s} FAST={s} HEAVY={s}", .{
+            env.opt("AI_CHAT_PROVIDER") orelse "<unset>",
+            env.opt("RESONUS_ENDPOINT_FAST") orelse "<legacy-default>",
+            env.opt("RESONUS_ENDPOINT_HEAVY") orelse "<legacy-default>",
+        });
         return hub;
     }
 
     pub fn deinit(self: *Hub) void {
         for (self.pools.items) |*owned| owned.pool.deinit();
         self.pools.deinit(self.gpa);
+        for (self.sessions.items) |session| {
+            self.closeStoredSession(session);
+            self.freeRemoteSession(session);
+        }
+        self.sessions.deinit(self.gpa);
         self.client.deinit();
         self.registry.deinit();
         registry_mod.freeSecrets(self.gpa, &self.secrets);
@@ -142,15 +162,44 @@ pub const Hub = struct {
         return .{ .provider_name = "openai", .model = model };
     }
 
-    /// Acquire a provider-side session for a logical chat session.
-    ///
-    /// Only meaningful for a stateful transport, where the vendor keeps
-    /// conversation state on the connection. For a stateless provider there is
-    /// nothing to bind, and saying so is not an error.
+    /// Initialize the provider lifecycle declared by the descriptor, or bind a
+    /// stateful transport. Providers without either capability need no action.
     pub fn bindEndpoint(self: *Hub, endpoint_name: []const u8, session_id: []const u8) !void {
         const target = try self.endpoint(endpoint_name);
         const entry = self.registry.find(target.provider_name) orelse return error.EndpointUnavailable;
-        if (!entry.table.transport.stateful) return;
+        if (entry.table.session != null) {
+            self.sessions_mutex.lock();
+            defer self.sessions_mutex.unlock();
+            for (self.sessions.items) |session| {
+                if (std.mem.eql(u8, session.session_id, session_id) and
+                    std.mem.eql(u8, session.endpoint_name, endpoint_name)) return;
+            }
+            const state_json = (try self.engine.initSession(self.gpa, entry, &self.client, target.model, session_id)) orelse return;
+            errdefer self.gpa.free(state_json);
+            errdefer self.closeProviderSession(entry, target.model, session_id, state_json);
+            const owned_session_id = try self.gpa.dupe(u8, session_id);
+            errdefer self.gpa.free(owned_session_id);
+            const owned_endpoint = try self.gpa.dupe(u8, endpoint_name);
+            errdefer self.gpa.free(owned_endpoint);
+            const owned_provider = try self.gpa.dupe(u8, target.provider_name);
+            errdefer self.gpa.free(owned_provider);
+            const owned_model = try self.gpa.dupe(u8, target.model);
+            errdefer self.gpa.free(owned_model);
+            try self.sessions.append(self.gpa, .{
+                .session_id = owned_session_id,
+                .endpoint_name = owned_endpoint,
+                .provider_name = owned_provider,
+                .model = owned_model,
+                .state_json = state_json,
+            });
+            std.log.info("llm session initialized: endpoint={s} provider={s} model={s}", .{
+                endpoint_name,
+                target.provider_name,
+                target.model,
+            });
+            return;
+        }
+        if (entry.table.transport.kind != .ws or !entry.table.transport.stateful) return;
         const pool = try self.poolFor(entry, target.model);
         try pool.bind(target.model, session_id);
     }
@@ -158,8 +207,56 @@ pub const Hub = struct {
     /// Release every provider-side session held for this logical session.
     pub fn releaseSession(self: *Hub, session_id: []const u8) void {
         self.pools_mutex.lock();
-        defer self.pools_mutex.unlock();
         for (self.pools.items) |*owned| owned.pool.releaseSession(session_id);
+        self.pools_mutex.unlock();
+
+        while (true) {
+            self.sessions_mutex.lock();
+            var found: ?ProviderSession = null;
+            for (self.sessions.items, 0..) |session, i| {
+                if (!std.mem.eql(u8, session.session_id, session_id)) continue;
+                found = self.sessions.orderedRemove(i);
+                break;
+            }
+            self.sessions_mutex.unlock();
+            const session = found orelse break;
+            self.closeStoredSession(session);
+            self.freeRemoteSession(session);
+        }
+    }
+
+    fn closeStoredSession(self: *Hub, session: ProviderSession) void {
+        const entry = self.registry.find(session.provider_name) orelse return;
+        self.closeProviderSession(entry, session.model, session.session_id, session.state_json);
+    }
+
+    fn closeProviderSession(self: *Hub, entry: *registry_mod.Entry, model: []const u8, session_id: []const u8, state_json: []const u8) void {
+        var arena = std.heap.ArenaAllocator.init(self.gpa);
+        defer arena.deinit();
+        self.engine.closeSession(arena.allocator(), entry, &self.client, model, session_id, state_json) catch |err| {
+            std.log.warn("provider {s}: session close failed: {s}", .{ entry.name(), @errorName(err) });
+        };
+    }
+
+    fn freeRemoteSession(self: *Hub, session: ProviderSession) void {
+        self.gpa.free(session.session_id);
+        self.gpa.free(session.endpoint_name);
+        self.gpa.free(session.provider_name);
+        self.gpa.free(session.model);
+        self.gpa.free(session.state_json);
+    }
+
+    fn providerSessionState(self: *Hub, a: std.mem.Allocator, endpoint_name: []const u8, session_id: []const u8) !?[]const u8 {
+        self.sessions_mutex.lock();
+        defer self.sessions_mutex.unlock();
+        for (self.sessions.items) |session| {
+            if (std.mem.eql(u8, session.session_id, session_id) and
+                std.mem.eql(u8, session.endpoint_name, endpoint_name))
+            {
+                return try a.dupe(u8, session.state_json);
+            }
+        }
+        return null;
     }
 
     /// The pool serving one provider, created on first use.
@@ -202,6 +299,11 @@ pub const Hub = struct {
         const entry = self.registry.find(name) orelse
             return provider.errReply(a, "rt.llm: provider '{s}' is not loaded ({s})", .{ name, self.known(a) });
 
+        std.log.info("llm completion route selected: provider={s} model={s} transport={s}", .{
+            entry.name(),
+            req.model,
+            @tagName(entry.table.transport.kind),
+        });
         return self.engine.complete(a, entry, &self.client, req);
     }
 
@@ -223,6 +325,11 @@ pub const Hub = struct {
             std.log.err("chat.stream: provider '{s}' is not loaded", .{name});
             return error.ProviderUnavailable;
         };
+        std.log.info("llm route selected: provider={s} model={s} transport={s}", .{
+            entry.name(),
+            req.model,
+            @tagName(entry.table.transport.kind),
+        });
         if (entry.table.transport.kind == .ws) {
             const pool = try self.poolFor(entry, req.model);
             const session_id = req.session_id orelse return error.SessionIdRequired;
@@ -243,10 +350,23 @@ pub const Hub = struct {
         sink: provider.StreamSink,
     ) !provider.Completion {
         const target = try self.endpoint(endpoint_name);
+        std.log.info("llm endpoint selected: endpoint={s} provider={s} model={s}", .{
+            endpoint_name,
+            target.provider_name,
+            target.model,
+        });
+        try self.bindEndpoint(endpoint_name, session_id);
         const provider_json = try provider.jsonStr(a, target.provider_name);
         const session_json = try provider.jsonStr(a, session_id);
         const model_json = try provider.jsonStr(a, target.model);
-        const request_json = try std.fmt.allocPrint(
+        const session_state = try self.providerSessionState(a, endpoint_name, session_id);
+        const request_json = if (session_state) |state| blk: {
+            break :blk try std.fmt.allocPrint(
+                a,
+                "{{\"provider\":{s},\"sessionId\":{s},\"session\":{s},\"model\":{s},\"maxTokens\":{d},\"messages\":{s},\"tools\":{s},\"requireTool\":{}}}",
+                .{ provider_json, session_json, state, model_json, max_tokens, messages_json, tools_json, require_tool },
+            );
+        } else try std.fmt.allocPrint(
             a,
             "{{\"provider\":{s},\"sessionId\":{s},\"model\":{s},\"maxTokens\":{d},\"messages\":{s},\"tools\":{s},\"requireTool\":{}}}",
             .{ provider_json, session_json, model_json, max_tokens, messages_json, tools_json, require_tool },
@@ -271,6 +391,7 @@ pub const Hub = struct {
             .operation = operation,
             .input = provider.field(root, "input"),
             .session_id = provider.strField(root, "sessionId"),
+            .session_state = provider.field(root, "session"),
             .max_tokens = max_tokens,
             .temperature = temperature,
             .messages = messages,

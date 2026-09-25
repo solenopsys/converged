@@ -1,6 +1,5 @@
-//! One dumb HTTP helper for the LLM providers: POST a JSON body, read the whole
-//! reply. The client is passed in (hub-owned, long-lived) so the connection
-//! pool — and with it warm TLS sessions to the vendor — survives across calls.
+//! Generic HTTP helpers for descriptor-backed providers. The client is
+//! hub-owned and long-lived, so keep-alive connections survive across calls.
 
 const std = @import("std");
 
@@ -22,12 +21,23 @@ pub fn postJson(
     extra_headers: []const std.http.Header,
     body: []const u8,
 ) !Result {
+    return requestJson(client, alloc, .POST, url, extra_headers, body);
+}
+
+pub fn requestJson(
+    client: *std.http.Client,
+    alloc: std.mem.Allocator,
+    method: std.http.Method,
+    url: []const u8,
+    extra_headers: []const std.http.Header,
+    body: ?[]const u8,
+) !Result {
     var resp = std.Io.Writer.Allocating.init(alloc);
     defer resp.deinit();
 
     const result = try client.fetch(.{
         .location = .{ .url = url },
-        .method = .POST,
+        .method = method,
         .payload = body,
         .extra_headers = extra_headers,
         .response_writer = &resp.writer,
@@ -46,13 +56,14 @@ pub fn postJson(
 pub fn postJsonLines(
     client: *std.http.Client,
     alloc: std.mem.Allocator,
+    method: std.http.Method,
     url: []const u8,
     extra_headers: []const std.http.Header,
     body: []const u8,
     sink: LineSink,
 ) !u16 {
     const uri = try std.Uri.parse(url);
-    var request = try client.request(.POST, uri, .{ .extra_headers = extra_headers });
+    var request = try client.request(method, uri, .{ .extra_headers = extra_headers });
     defer request.deinit();
 
     try request.sendBodyComplete(@constCast(body));

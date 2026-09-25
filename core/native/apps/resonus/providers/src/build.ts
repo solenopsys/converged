@@ -81,6 +81,7 @@ function tableOf(d: Descriptor, hookNames: string[]): unknown {
 		apiVersion: d.apiVersion,
 		name: d.name,
 		transport: d.transport,
+		session: d.session,
 		signaling: d.signaling,
 		decode: d.decode,
 		// Names only. The implementations live in the bundle; listing them here

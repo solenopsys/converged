@@ -27,9 +27,11 @@ pub const ChatRequest = struct {
     /// these to its TypeScript encoder without assigning them provider meaning.
     operation: ?[]const u8 = null,
     input: ?std.json.Value = null,
-    /// Optional provider-side session affinity. Stateless HTTP providers
-    /// ignore it; realtime providers lease their persistent WSS by this key.
+    /// Logical session key used for provider lifecycle state or transport
+    /// affinity; the core does not assign provider-specific meaning to it.
     session_id: ?[]const u8 = null,
+    /// Provider-defined session value passed through untouched by the core.
+    session_state: ?std.json.Value = null,
     max_tokens: i64,
     temperature: ?f64,
     messages: []const std.json.Value,
