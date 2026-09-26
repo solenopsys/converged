@@ -149,6 +149,26 @@ describe("SalesStoreService.listLeadsFiltered", () => {
 		expect(byRole.items.map((contact) => contact.id)).toEqual(["c4"]);
 	});
 
+	it("updates contact fields without changing its id or creation time", async () => {
+		const before = await sales.getContact("c1");
+		const updated = await sales.updateContact("c1", {
+			value: "new-address@example.com",
+			role: "CEO",
+			description: "Primary contact",
+		});
+		const after = await sales.getContact("c1");
+
+		expect(updated).toBe(true);
+		expect(after).toMatchObject({
+			id: "c1",
+			leadId: "lead-steel",
+			value: "new-address@example.com",
+			role: "CEO",
+			description: "Primary contact",
+			createdAt: before?.createdAt,
+		});
+	});
+
 	it("returns a compact recent daily aggregate", async () => {
 		const today = new Date();
 		today.setUTCHours(12, 0, 0, 0);

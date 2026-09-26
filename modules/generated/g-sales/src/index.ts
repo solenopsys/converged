@@ -76,6 +76,15 @@ export type Contact = {
 	createdAt: Date;
 };
 
+export type ContactUpdate = {
+	id: string;
+	leadId?: string;
+	type?: ContactType;
+	value?: string;
+	role?: string;
+	description?: string;
+};
+
 export type Touch = {
 	id: number;
 	contactId: string;
@@ -720,6 +729,21 @@ export const metadata: ServiceMetadata = {
       "isAsyncIterable": false
     },
     {
+      "name": "updateContact",
+      "parameters": [
+        {
+          "name": "contact",
+          "type": "ContactUpdate",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "boolean",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
       "name": "getContact",
       "parameters": [
         {
@@ -1170,6 +1194,11 @@ export const metadata: ServiceMetadata = {
       "definition": "{\n\tid: string;\n\tleadId: string;\n\ttype: ContactType;\n\tvalue: string;\n\trole: string;\n\tdescription: string;\n\tcreatedAt: Date;\n}"
     },
     {
+      "name": "ContactUpdate",
+      "kind": "type",
+      "definition": "{\n\tid: string;\n\tleadId?: string;\n\ttype?: ContactType;\n\tvalue?: string;\n\trole?: string;\n\tdescription?: string;\n}"
+    },
+    {
       "name": "Touch",
       "kind": "type",
       "definition": "{\n\tid: number;\n\tcontactId: string;\n\tdescription: string;\n\tcompanyName?: string;\n\toutreachId?: string;\n\tcreatedAt: Date;\n}"
@@ -1368,6 +1397,7 @@ export interface SalesService {
   getOffer(offerId: string): Promise<Offer | any>;
   listOffers(params: PaginationParams): Promise<PaginatedResult<Offer>>;
   addContact(contact: Contact): Promise<string>;
+  updateContact(contact: ContactUpdate): Promise<boolean>;
   getContact(contactId: string): Promise<Contact | any>;
   addTouch(touch: Touch): Promise<number>;
   saveOutreach(outreach: Outreach): Promise<string>;
@@ -1422,6 +1452,7 @@ export interface SalesServiceClient {
   getOffer(offerId: string): Promise<Offer | any>;
   listOffers(params: PaginationParams): Promise<PaginatedResult<Offer>>;
   addContact(contact: Contact): Promise<string>;
+  updateContact(contact: ContactUpdate): Promise<boolean>;
   getContact(contactId: string): Promise<Contact | any>;
   addTouch(touch: Touch): Promise<number>;
   saveOutreach(outreach: Outreach): Promise<string>;

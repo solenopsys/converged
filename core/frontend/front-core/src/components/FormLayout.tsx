@@ -1,5 +1,6 @@
 import type { ComponentChildren } from "preact";
-import type { StreamlineIcon } from "../icons";
+import { useEffect, useRef, useState } from "preact/compat";
+import { Check, type StreamlineIcon, X } from "../icons";
 import { cn } from "../lib/utils";
 import { ContentContainer } from "./ContentContainer";
 import { Button, type buttonVariants } from "./ui/button";
@@ -8,11 +9,88 @@ export type FormCommand = {
 	id: string;
 	label: string;
 	icon?: StreamlineIcon;
-	onSelect: () => void | Promise<void>;
+	onSelect: () => unknown;
 	disabled?: boolean;
 	variant?: NonNullable<Parameters<typeof buttonVariants>[0]>["variant"];
 	type?: "button" | "submit";
+	className?: string;
+	successLabel?: string;
+	errorLabel?: string;
 };
+
+function FormCommandButton({ command }: { command: FormCommand }) {
+	const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
+	const successTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const isSave = command.id === "save";
+
+	useEffect(
+		() => () => {
+			if (successTimeout.current) clearTimeout(successTimeout.current);
+		},
+		[],
+	);
+
+	const handleSelect = async () => {
+		if (successTimeout.current) {
+			clearTimeout(successTimeout.current);
+			successTimeout.current = null;
+		}
+		setStatus("idle");
+		try {
+			const result = await command.onSelect();
+			if (isSave) {
+				setStatus(result === false ? "error" : "success");
+				successTimeout.current = setTimeout(() => {
+					setStatus("idle");
+					successTimeout.current = null;
+				}, 1800);
+			}
+		} catch (error) {
+			console.error(`Form command ${command.id} failed:`, error);
+			if (isSave) {
+				setStatus("error");
+				successTimeout.current = setTimeout(() => {
+					setStatus("idle");
+					successTimeout.current = null;
+				}, 1800);
+			}
+		}
+	};
+
+	const Icon =
+		status === "success" ? Check : status === "error" ? X : command.icon;
+	return (
+		<Button
+			type={command.type ?? "button"}
+			variant={command.variant}
+			className={cn(
+				"transition-colors duration-700 ease-out motion-reduce:transition-none",
+				command.className,
+				status === "success" &&
+					"border-success bg-success text-success-foreground hover:bg-success/90",
+				status === "error" &&
+					"border-destructive bg-destructive text-destructive-foreground hover:bg-destructive/90",
+			)}
+			aria-live={isSave ? "polite" : undefined}
+			aria-label={
+				status === "success"
+					? (command.successLabel ?? "Saved")
+					: status === "error"
+						? (command.errorLabel ?? "Save failed")
+						: undefined
+			}
+			disabled={command.disabled}
+			onClick={() => void handleSelect()}
+		>
+			{Icon && <Icon />}
+			{status === "success"
+				? (command.successLabel ?? "Saved")
+				: status === "error"
+					? (command.errorLabel ?? "Save failed")
+					: command.label}
+		</Button>
+	);
+}
 
 /** A single rendering path for commands at the bottom of every form. */
 export function FormCommandList({
@@ -23,19 +101,7 @@ export function FormCommandList({
 	return (
 		<div className="flex flex-wrap justify-end gap-3">
 			{commands.map((command) => {
-				const Icon = command.icon;
-				return (
-					<Button
-						key={command.id}
-						type={command.type ?? "button"}
-						variant={command.variant}
-						disabled={command.disabled}
-						onClick={() => void command.onSelect()}
-					>
-						{Icon && <Icon />}
-						{command.label}
-					</Button>
-				);
+				return <FormCommandButton key={command.id} command={command} />;
 			})}
 		</div>
 	);

@@ -9,7 +9,6 @@
 		"back-core": "workspace:*",
 		"nrpc": "workspace:*",
 		"g-requests": "workspace:*",
-		"g-bus": "workspace:*",
 		"g-events": "workspace:*",
 		"g-pushrouter": "workspace:*",
 		"g-staff": "workspace:*"

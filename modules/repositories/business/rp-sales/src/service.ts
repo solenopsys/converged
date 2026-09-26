@@ -6,6 +6,7 @@ import {
 } from "./import";
 import { StoresController } from "./store";
 import type {
+	ContactEntity,
 	LeadEntity,
 	LeadTagEntity,
 	OfferEntity,
@@ -14,6 +15,7 @@ import type {
 import type {
 	Contact,
 	ContactListParams,
+	ContactUpdate,
 	FilterObject,
 	Lead,
 	LeadEvent,
@@ -292,7 +294,7 @@ class SalesServiceImpl
 			throw badRequestError("lead id is required");
 		}
 
-		const patch: Record<string, unknown> = {};
+		const patch: Partial<Omit<ContactEntity, "id" | "createdAt">> = {};
 		if (lead.description !== undefined) patch.description = lead.description;
 		if (lead.lang !== undefined) patch.lang = lead.lang;
 		if (lead.type !== undefined) patch.type = lead.type;
@@ -671,6 +673,28 @@ class SalesServiceImpl
 			description: entity.description,
 			createdAt: new Date(entity.createdAt * 1000),
 		};
+	}
+
+	async updateContact(
+		contact: ContactUpdate,
+	): Promise<boolean> {
+		await this.ready();
+		const id = contact.id?.trim();
+		if (!id) throw badRequestError("contact id is required");
+
+		const patch: Record<string, unknown> = {};
+		if (contact.leadId !== undefined) {
+			if (!contact.leadId.trim()) throw badRequestError("leadId is required");
+			patch.leadId = contact.leadId.trim();
+		}
+		if (contact.type !== undefined) patch.contactType = contact.type;
+		if (contact.value !== undefined) patch.value = contact.value;
+		if (contact.role !== undefined) patch.role = contact.role;
+		if (contact.description !== undefined)
+			patch.description = contact.description;
+		if (Object.keys(patch).length === 0) return false;
+
+		return this.stores.salesStoreSevice.updateContact(id, patch);
 	}
 
 	async addTouch(touch: Touch): Promise<number> {

@@ -71,6 +71,15 @@ export type Contact = {
 	createdAt: Date;
 };
 
+export type ContactUpdate = {
+	id: string;
+	leadId?: string;
+	type?: ContactType;
+	value?: string;
+	role?: string;
+	description?: string;
+};
+
 export type Touch = {
 	id: number;
 	contactId: string;
@@ -384,6 +393,7 @@ export interface SalesService {
 	getOffer(offerId: string): Promise<Offer | null>;
 	listOffers(params: PaginationParams): Promise<PaginatedResult<Offer>>;
 	addContact(contact: Contact): Promise<string>;
+	updateContact(contact: ContactUpdate): Promise<boolean>;
 	getContact(contactId: string): Promise<Contact | null>;
 	addTouch(touch: Touch): Promise<number>;
 	saveOutreach(outreach: Outreach): Promise<string>;

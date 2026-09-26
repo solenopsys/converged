@@ -72,6 +72,15 @@ export type Contact = {
 	createdAt: Date;
 };
 
+export type ContactUpdate = {
+	id: string;
+	leadId?: string;
+	type?: ContactType;
+	value?: string;
+	role?: string;
+	description?: string;
+};
+
 export type Touch = {
 	id: number;
 	contactId: string;
@@ -716,6 +725,21 @@ const metadata: ServiceMetadata = {
       "isAsyncIterable": false
     },
     {
+      "name": "updateContact",
+      "parameters": [
+        {
+          "name": "contact",
+          "type": "ContactUpdate",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "boolean",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
       "name": "getContact",
       "parameters": [
         {
@@ -1166,6 +1190,11 @@ const metadata: ServiceMetadata = {
       "definition": "{\n\tid: string;\n\tleadId: string;\n\ttype: ContactType;\n\tvalue: string;\n\trole: string;\n\tdescription: string;\n\tcreatedAt: Date;\n}"
     },
     {
+      "name": "ContactUpdate",
+      "kind": "type",
+      "definition": "{\n\tid: string;\n\tleadId?: string;\n\ttype?: ContactType;\n\tvalue?: string;\n\trole?: string;\n\tdescription?: string;\n}"
+    },
+    {
       "name": "Touch",
       "kind": "type",
       "definition": "{\n\tid: number;\n\tcontactId: string;\n\tdescription: string;\n\tcompanyName?: string;\n\toutreachId?: string;\n\tcreatedAt: Date;\n}"
@@ -1364,6 +1393,7 @@ export interface SalesServiceRtClient {
   getOffer(offerId: string): Offer | any;
   listOffers(params: PaginationParams): PaginatedResult<Offer>;
   addContact(contact: Contact): string;
+  updateContact(contact: ContactUpdate): boolean;
   getContact(contactId: string): Contact | any;
   addTouch(touch: Touch): number;
   saveOutreach(outreach: Outreach): string;

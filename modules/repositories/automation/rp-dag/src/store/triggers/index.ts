@@ -50,6 +50,29 @@ export class TriggersStoreService {
 		return trigger;
 	}
 
+	async ensure(
+		id: string,
+		input: WorkflowTriggerInput,
+	): Promise<{ trigger: WorkflowTrigger; created: boolean }> {
+		const key = new TriggerKey(id);
+		const existing = await this.repo.get(key);
+		if (existing) return { trigger: existing, created: false };
+
+		const now = new Date().toISOString();
+		const trigger: WorkflowTrigger = {
+			id,
+			name: input.name,
+			topic: input.topic,
+			script: input.script,
+			params: input.params,
+			enabled: input.enabled ?? true,
+			createdAt: now,
+			updatedAt: now,
+		};
+		await this.repo.save(key, trigger);
+		return { trigger, created: true };
+	}
+
 	async update(
 		id: string,
 		updates: WorkflowTriggerUpdate,

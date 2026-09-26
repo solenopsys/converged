@@ -4,8 +4,6 @@ import { V2Diagram } from "../diagram/components";
 import type { V2DiagramConfig, V2DiagramTexts } from "../diagram/types";
 import { VectorImage, type VectorImageData } from "./VectorImage";
 
-
-
 export type ProductCase = {
 	eyebrow: string;
 
@@ -39,6 +37,8 @@ export function ProductCasesBlock({
 	diagramTexts?: DiagramTextsData;
 }) {
 	const [activeIndex, setActiveIndex] = useState(0);
+	const [mobileView, setMobileView] = useState<"text" | "diagram">("text");
+	const [isCompact, setIsCompact] = useState(false);
 	const sectionRef = useRef<HTMLElement>(null);
 	const activeIndexRef = useRef(0);
 	const scrollLockUntilRef = useRef(0);
@@ -46,6 +46,7 @@ export function ProductCasesBlock({
 	const activateCase = (index: number) => {
 		activeIndexRef.current = index;
 		setActiveIndex(index);
+		setMobileView("text");
 	};
 
 	useEffect(() => {
@@ -53,22 +54,48 @@ export function ProductCasesBlock({
 	}, []);
 
 	useEffect(() => {
-		const hosts = [...(sectionRef.current?.querySelectorAll<HTMLElement>(".product-case-diagram") ?? [])];
+		const section = sectionRef.current;
+		if (!section) return;
+		const update = () => setIsCompact(section.clientWidth <= 900);
+		const observer = new ResizeObserver(update);
+		observer.observe(section);
+		update();
+		return () => observer.disconnect();
+	}, []);
+
+	useEffect(() => {
+		const hosts = [
+			...(sectionRef.current?.querySelectorAll<HTMLElement>(
+				".product-case-diagram",
+			) ?? []),
+		];
 		const updateScale = () => {
-			const maximumScale = window.matchMedia("(max-width: 900px)").matches ? 0.5 : 0.9;
+			const maximumScale = 0.9;
 			hosts.forEach((host) => {
-				const stage = host.querySelector<HTMLElement>(".product-case-v2.v2-stage");
+				const stage = host.querySelector<HTMLElement>(
+					".product-case-v2.v2-stage",
+				);
 				if (!stage || !host.clientWidth || !host.clientHeight) return;
 
-				// Top padding reserves room for group legends above the stage.
-				const availHeight = host.clientHeight - 20;
-				const scale = Math.min(maximumScale, host.clientWidth / stage.offsetWidth, availHeight / stage.offsetHeight);
+				const sectionWidth =
+					host.closest<HTMLElement>(".product-case-scroll")?.clientWidth ??
+					window.innerWidth;
+				const availHeight = host.clientHeight - (sectionWidth <= 900 ? 0 : 20);
+				const fittedWidth = host.clientWidth / stage.offsetWidth;
+				const fittedHeight = availHeight / stage.offsetHeight;
+				const scale = Math.min(maximumScale, fittedWidth, fittedHeight);
 				host.style.setProperty("--product-case-diagram-scale", String(scale));
 			});
 		};
 
 		const observer = new ResizeObserver(updateScale);
-		hosts.forEach((host) => observer.observe(host));
+		hosts.forEach((host) => {
+			observer.observe(host);
+			const stage = host.querySelector<HTMLElement>(
+				".product-case-v2.v2-stage",
+			);
+			if (stage) observer.observe(stage);
+		});
 		window.addEventListener("resize", updateScale);
 		updateScale();
 
@@ -80,9 +107,14 @@ export function ProductCasesBlock({
 
 	useEffect(() => {
 		const handleWheel = (event: WheelEvent) => {
-			if (event.ctrlKey || event.deltaY === 0) return;
 			const section = sectionRef.current;
-			if (!section) return;
+			if (
+				!section ||
+				section.clientWidth <= 900 ||
+				event.ctrlKey ||
+				event.deltaY === 0
+			)
+				return;
 
 			const bounds = section.getBoundingClientRect();
 			const viewportHeight = window.innerHeight;
@@ -104,7 +136,12 @@ export function ProductCasesBlock({
 	}, [cases.length]);
 
 	return (
-		<section class="product-case-scroll" id={id} aria-label={data.eyebrow} ref={sectionRef}>
+		<section
+			class={`product-case-scroll${isCompact ? " is-compact" : ""}`}
+			id={id}
+			aria-label={data.eyebrow}
+			ref={sectionRef}
+		>
 			<div class="product-case-stage">
 				<div class="product-case-topline">
 					<span>{data.eyebrow}</span>
@@ -114,7 +151,11 @@ export function ProductCasesBlock({
 					</span>
 				</div>
 				<div class="product-case-layout">
-					<div class="product-case-tabs" role="tablist" aria-label={data.eyebrow}>
+					<div
+						class="product-case-tabs"
+						role="tablist"
+						aria-label={data.eyebrow}
+					>
 						{cases.map((item, index) => (
 							<button
 								aria-controls={`${id}-case-${index}`}
@@ -136,7 +177,7 @@ export function ProductCasesBlock({
 						{cases.map((item, index) => (
 							<article
 								aria-hidden={activeIndex !== index}
-								class={`product-case-panel${activeIndex === index ? " is-active" : ""}${item.image || item.diagram ? "" : " product-case-panel--no-visual"}`}
+								class={`product-case-panel${activeIndex === index ? " is-active" : ""}${mobileView === "diagram" ? " is-mobile-diagram" : ""}${item.image || item.diagram ? "" : " product-case-panel--no-visual"}`}
 								id={`${id}-case-${index}`}
 								key={item.title}
 								role="tabpanel"
@@ -145,14 +186,44 @@ export function ProductCasesBlock({
 									<p>{item.eyebrow}</p>
 									<h2>{item.title}</h2>
 									<div class="product-case-description">
-										{descriptionParagraphs(item.description).map((paragraph) => (
-											<p class={paragraph.isOutcome ? "is-outcome" : undefined} key={paragraph.text}>
-												{paragraph.text}
-											</p>
-										))}
+										{descriptionParagraphs(item.description).map(
+											(paragraph) => (
+												<p
+													class={paragraph.isOutcome ? "is-outcome" : undefined}
+													key={paragraph.text}
+												>
+													{paragraph.text}
+												</p>
+											),
+										)}
 									</div>
 								</div>
-								<div class="product-case-diagram">
+								{(item.diagram || item.image) && (
+									<fieldset
+										class="product-case-mobile-views"
+										aria-label={`${item.tab} view`}
+									>
+										<button
+											type="button"
+											aria-pressed={mobileView === "text"}
+											class={mobileView === "text" ? "is-active" : ""}
+											onClick={() => setMobileView("text")}
+										>
+											Text
+										</button>
+										<button
+											type="button"
+											aria-pressed={mobileView === "diagram"}
+											class={mobileView === "diagram" ? "is-active" : ""}
+											onClick={() => setMobileView("diagram")}
+										>
+											Diagram
+										</button>
+									</fieldset>
+								)}
+								<div
+									class={`product-case-diagram${mobileView === "diagram" ? " is-mobile-visible" : ""}`}
+								>
 									{item.image ? (
 										<VectorImage data={{ image: item.image }} />
 									) : item.diagram ? (
@@ -160,6 +231,7 @@ export function ProductCasesBlock({
 											className="v2-ink product-case-v2"
 											config={resolveDiagram(diagrams, item.diagram)}
 											texts={diagramTexts?.[item.diagram]}
+											verticalOnMobile
 										/>
 									) : null}
 								</div>
@@ -172,7 +244,9 @@ export function ProductCasesBlock({
 	);
 }
 
-function descriptionParagraphs(description?: string): Array<{ text: string; isOutcome: boolean }> {
+function descriptionParagraphs(
+	description?: string,
+): Array<{ text: string; isOutcome: boolean }> {
 	return (description ?? "")
 		.split(/\n\s*\n/)
 		.map((paragraph) => paragraph.trim())
@@ -183,8 +257,10 @@ function descriptionParagraphs(description?: string): Array<{ text: string; isOu
 		});
 }
 
-
-function resolveDiagram(diagrams: DiagramsData | undefined, name: string): V2DiagramConfig {
+function resolveDiagram(
+	diagrams: DiagramsData | undefined,
+	name: string,
+): V2DiagramConfig {
 	const diagram = diagrams?.[name];
 	if (!diagram) {
 		throw new Error(`[landing] unknown diagram scene: ${name}`);

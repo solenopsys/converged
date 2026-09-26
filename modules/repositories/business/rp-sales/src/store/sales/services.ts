@@ -363,6 +363,22 @@ export class SalesStoreService {
 		await this.contactRepo.create(contact as any);
 	}
 
+	async updateContact(
+		id: string,
+		patch: Partial<Omit<ContactEntity, "id" | "createdAt">>,
+	): Promise<boolean> {
+		const existing = (await this.contactRepo.findById({ id })) as
+			| ContactEntity
+			| undefined;
+		if (!existing) return false;
+
+		await this.access.requireRead(existing.leadId);
+		if (patch.leadId && patch.leadId !== existing.leadId)
+			await this.access.requireRead(patch.leadId);
+
+		return Boolean(await this.contactRepo.update({ id }, patch as any));
+	}
+
 	/** A contact is seen by whoever sees its lead. */
 	async getContact(id: string): Promise<ContactEntity | undefined> {
 		const contact = (await this.contactRepo.findById({ id })) as

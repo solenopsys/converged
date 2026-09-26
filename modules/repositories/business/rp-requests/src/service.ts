@@ -1,5 +1,4 @@
 import { createServerNrpcClientConfig } from "back-core";
-import { createBusServiceClient } from "g-bus";
 import { createEventsServiceClient } from "g-events";
 import { createPushRouterServiceClient } from "g-pushrouter";
 import { createStaffServiceClient } from "g-staff";
@@ -65,7 +64,6 @@ export class RequestsServiceImpl implements RequestsService {
 			await announceRequestCreated(id, input, actor, {
 				staff: createStaffServiceClient(config),
 				events: createEventsServiceClient(config),
-				bus: createBusServiceClient(config),
 				push: createPushRouterServiceClient(config),
 				grant: (userId) => this.stores.requests.access.grantToUser(id, userId),
 			});

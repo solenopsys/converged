@@ -1,4 +1,5 @@
 .product-case-scroll {
+  container-type: inline-size;
   height: 100dvh;
   scroll-snap-align: start;
   --product-case-canvas: #fbfbf8;
@@ -28,6 +29,8 @@
   --product-case-processing-shadow: none;
   background: var(--product-case-canvas);
 }
+
+.product-case-scroll.is-compact { height: auto; min-height: 100dvh; scroll-snap-align: none; }
 
 html.dark .product-case-scroll {
   --product-case-canvas: #0a0d0b;
@@ -85,6 +88,7 @@ html.dark .product-case-scroll {
   gap: clamp(28px, 3vw, 48px);
   align-items: center;
   width: min(1760px, 100%);
+  min-width: 0;
   height: min(680px, calc(100dvh - 102px));
   min-height: 0;
   margin: 0 auto;
@@ -125,12 +129,15 @@ html.dark .product-case-scroll {
 .product-case-tab:focus-visible { outline: 2px solid var(--product-case-focus); outline-offset: 4px; }
 .product-case-tab.is-active i { border-color: var(--product-case-dot-border); background: var(--product-case-dot); transform: scale(1.25); }
 
-.product-case-panels { position: relative; min-width: 0; height: 100%; }
+.product-case-mobile-views { display: none; }
+
+.product-case-panels { position: relative; width: 100%; min-width: 0; height: 100%; }
 
 .product-case-panel {
   position: absolute;
   inset: 0;
   display: grid;
+  min-width: 0;
   grid-template-columns: 400px minmax(0, 1fr);
   gap: clamp(28px, 3vw, 48px);
   align-items: start;
@@ -153,7 +160,7 @@ html.dark .product-case-scroll {
 .product-case-diagram {
   display: flex;
   --product-case-diagram-scale: 0.9;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
   min-width: 0;
   width: 100%;
@@ -168,13 +175,13 @@ html.dark .product-case-scroll {
 
 .product-case-diagram .product-case-v2.v2-stage {
   flex: none;
-  width: 1060px;
+  width: calc(var(--v2-stage-w) * var(--v2-grid));
   max-width: none;
   border: 0;
   border-radius: 0;
   background: transparent;
   transform: scale(var(--product-case-diagram-scale));
-  transform-origin: top left;
+  transform-origin: center;
 }
 
 /* Vector-image visual (alternative to a v2 diagram): fills the host. */
@@ -224,6 +231,8 @@ html.dark .product-case-scroll {
 .product-case-diagram .product-case-v2 .v2-edge-message text {
   fill: var(--product-case-canvas);
 }
+
+.product-case-diagram .product-case-v2 .v2-edge-message { display: none; }
 
 .product-case-diagram .product-case-v2 .v2-processor {
   border-color: var(--product-case-processor-border);
@@ -288,20 +297,45 @@ html.dark .product-case-scroll {
   color: var(--product-case-node-heading);
 }
 
-@media (max-width: 900px) {
-  .product-case-stage { padding: 18px 20px 20px; }
+@container (min-width: 901px) and (max-width: 1200px) {
+  .product-case-stage { padding-inline: 22px; }
+  .product-case-layout { grid-template-columns: 160px minmax(0, 1fr); gap: 22px; }
+  .product-case-panel { grid-template-columns: minmax(260px, 0.78fr) minmax(0, 1.22fr); gap: 24px; }
+  .product-case-copy { padding-top: 38px; }
+  .product-case-copy h2 { font-size: clamp(27px, 3vw, 36px); }
+  .product-case-description { font-size: 14px; }
+}
+
+@container (max-width: 900px) {
+  .product-case-stage { min-height: 100dvh; height: auto; overflow: visible; padding: 16px 18px 28px; }
   .product-case-topline { font-size: 10px; }
-  .product-case-layout { display: flex; flex-direction: column; gap: 14px; align-items: stretch; height: auto; }
-  .product-case-tabs { display: flex; flex: none; gap: 7px; order: 2; justify-content: space-between; }
-  .product-case-tab { grid-template-columns: 1fr; min-width: 20px; min-height: 25px; justify-items: center; }
-  .product-case-tab span { display: none; }
-  .product-case-panels { display: flex; flex: 1 1 auto; width: 100%; height: auto; min-height: 0; overflow: hidden; }
-  .product-case-panel { position: absolute; display: grid; grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); gap: 16px; }
+  .product-case-layout { display: flex; flex-direction: column; gap: 16px; align-items: stretch; height: auto; min-height: calc(100dvh - 52px); padding-top: 20px; }
+  .product-case-tabs { display: flex; flex: none; gap: 10px; order: 0; justify-content: flex-start; overflow-x: auto; padding: 3px 2px 7px; }
+  .product-case-tab { grid-template-columns: 9px minmax(0, 1fr); gap: 7px; min-width: 128px; min-height: 32px; justify-items: start; font-size: 11px; }
+  .product-case-tab span { display: block; white-space: nowrap; }
+  .product-case-panels { position: static; display: block; flex: 1 1 auto; width: 100%; height: auto; min-height: 0; overflow: visible; }
+  .product-case-panel { position: relative; inset: auto; display: none; grid-template-columns: 1fr; grid-template-rows: auto auto; gap: 18px; opacity: 1; pointer-events: auto; transform: none; transition: none; }
+  .product-case-panel.is-active { display: grid; }
   .product-case-copy { padding-top: 0; }
   .product-case-copy > p { margin-bottom: 8px; font-size: 11px; }
-  .product-case-copy h2 { max-width: 360px; font-size: clamp(28px, 8vw, 38px); line-height: 1; }
-  .product-case-description { max-width: 360px; margin-top: 12px; font-size: 14px; line-height: 1.38; }
+  .product-case-copy h2 { max-width: 620px; font-size: clamp(28px, 8vw, 38px); line-height: 1.04; }
+  .product-case-description { max-width: 620px; margin-top: 12px; font-size: 14px; line-height: 1.42; }
   .product-case-description p + p { margin-top: 8px; }
   .product-case-description p.is-outcome { margin-top: 12px; }
-  .product-case-diagram { --product-case-diagram-scale: 0.31; align-self: start; height: 280px; min-height: 0; padding: 0; overflow: hidden; }
+  .product-case-mobile-views { display: flex; gap: 4px; width: fit-content; min-width: 0; margin: 0; padding: 3px; border: 1px solid var(--product-case-stage-border); }
+  .product-case-mobile-views button { min-height: 34px; padding: 0 16px; border: 0; background: transparent; color: var(--product-case-tab); font: inherit; font-size: 13px; cursor: pointer; }
+  .product-case-mobile-views button.is-active { background: var(--product-case-active); color: var(--product-case-canvas); }
+  .product-case-mobile-views button:focus-visible { outline: 2px solid var(--product-case-focus); outline-offset: 2px; }
+  .product-case-diagram { position: relative; display: none; width: 100%; max-width: none; height: min(560px, calc(100dvh - 250px)); min-height: 360px; padding: 0; overflow: hidden; }
+  .product-case-diagram.is-mobile-visible { display: flex; }
+  .product-case-panel.is-mobile-diagram .product-case-copy { display: none; }
+  .product-case-panel.is-mobile-diagram { grid-template-rows: auto minmax(300px, 1fr); }
+  .product-case-diagram .product-case-v2.v2-stage { align-self: center; transform-origin: center; }
+  .product-case-diagram .product-case-v2 .v2-symbol { grid-template-columns: 36px minmax(0, 1fr); gap: 6px; padding: 8px; }
+  .product-case-diagram .product-case-v2 .v2-symbol-icon { width: 36px; height: 36px; }
+  .product-case-diagram .product-case-v2 .v2-symbol-icon svg { width: 22px; height: 22px; }
+  .product-case-diagram .product-case-v2 .v2-symbol-copy strong { font-size: 24px; }
+  .product-case-diagram .product-case-v2 .v2-symbol-copy small { font-size: 17px; }
+  .product-case-diagram .product-case-v2 .v2-group-title { font-size: 18px; }
+  .product-case-diagram .vector-image { display: block; }
 }

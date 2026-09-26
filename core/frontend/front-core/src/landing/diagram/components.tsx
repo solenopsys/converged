@@ -1,5 +1,6 @@
 import type { ComponentChildren } from "preact";
 import type { CSSProperties } from "preact/compat";
+import { useEffect, useState } from "preact/hooks";
 import { getStreamlineIcon, streamlineCogIcon, streamlineIconByKind } from "./icons";
 import { mergeDiagram } from "./merge";
 import {
@@ -62,11 +63,7 @@ export function V2StreamlineIcon({ icon }: { icon: string }) {
 
 export function V2GroupNode({ group }: { group: V2RenderedGroup }) {
   return (
-    <div
-      className={`v2-group tone-${group.tone ?? "default"}`}
-      data-v2-group-id={group.id}
-      style={gridStyle(group.rect)}
-    >
+    <div className={`v2-group tone-${group.tone ?? "default"}`} data-v2-group-id={group.id} style={gridStyle(group.rect)}>
       <span className="v2-group-title">
         <strong>{group.title}</strong>
         {group.subtitle ? <small>{group.subtitle}</small> : null}
@@ -78,7 +75,11 @@ export function V2SymbolNode({ symbol }: { symbol: V2RenderedSymbol }) {
   const icon = symbol.icon ?? streamlineIconByKind[symbol.kind];
 
   return (
-    <article className={`v2-symbol v2-${symbol.kind} tone-${symbol.tone ?? "default"}`} data-v2-symbol-id={symbol.id} style={symbolStyle(symbol)}>
+    <article
+      className={`v2-symbol v2-${symbol.kind} tone-${symbol.tone ?? "default"}`}
+      data-v2-symbol-id={symbol.id}
+      style={symbolStyle(symbol)}
+    >
       <div className="v2-symbol-icon">
         <V2StreamlineIcon icon={icon} />
       </div>
@@ -215,21 +216,11 @@ function connectionPath(connection: V2RenderedConnection, symbols: Map<string, V
 
   if (connection.fromAnchor === "right" || connection.fromAnchor === "left") {
     const midX = (start.x + end.x) / 2;
-    return roundedOrthogonalPath([
-      start,
-      { x: midX, y: start.y },
-      { x: midX, y: end.y },
-      end,
-    ]);
+    return roundedOrthogonalPath([start, { x: midX, y: start.y }, { x: midX, y: end.y }, end]);
   }
 
   const midY = (start.y + end.y) / 2;
-  return roundedOrthogonalPath([
-    start,
-    { x: start.x, y: midY },
-    { x: end.x, y: midY },
-    end,
-  ]);
+  return roundedOrthogonalPath([start, { x: start.x, y: midY }, { x: end.x, y: midY }, end]);
 }
 
 function V2ConnectionLayer({ diagram }: { diagram: V2DiagramData }) {
@@ -238,7 +229,15 @@ function V2ConnectionLayer({ diagram }: { diagram: V2DiagramData }) {
   return (
     <svg className="v2-connections" viewBox={`0 0 ${diagram.width} ${diagram.height}`} aria-hidden="true">
       <defs>
-        <marker id={`${diagram.id}-arrow`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+        <marker
+          id={`${diagram.id}-arrow`}
+          viewBox="0 0 10 10"
+          refX="8"
+          refY="5"
+          markerWidth="4"
+          markerHeight="4"
+          orient="auto-start-reverse"
+        >
           <path d="M 0 0 L 10 5 L 0 10 z" />
         </marker>
       </defs>
@@ -276,29 +275,150 @@ export function V2Diagram({
   config,
   texts,
   className,
+  verticalOnMobile = false,
 }: {
   config: V2DiagramConfig;
   texts: V2DiagramTexts | undefined;
   className?: string;
+  verticalOnMobile?: boolean;
 }) {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const section = document.querySelector<HTMLElement>(".product-case-scroll");
+    if (!section) {
+      const media = window.matchMedia("(max-width: 900px)");
+      const update = () => setIsMobile(media.matches);
+      update();
+      media.addEventListener("change", update);
+      return () => media.removeEventListener("change", update);
+    }
+
+    const update = () => setIsMobile(section.clientWidth <= 900);
+    const observer = new ResizeObserver(update);
+    observer.observe(section);
+    update();
+    return () => observer.disconnect();
+  }, []);
+
   const diagram = mergeDiagram(config, texts);
+  const renderedDiagram = verticalOnMobile && isMobile ? verticalizeDiagram(diagram) : diagram;
 
   return (
-    <V2Stage className={`v2-diagram${className ? ` ${className}` : ""}`} diagramId={diagram.id} height={diagram.height} width={diagram.width}>
-      {diagram.machine ? (
+    <V2Stage
+      className={`v2-diagram${className ? ` ${className}` : ""}`}
+      diagramId={renderedDiagram.id}
+      height={renderedDiagram.height}
+      width={renderedDiagram.width}
+    >
+      {renderedDiagram.machine ? (
         <script
           type="application/json"
-          data-v2-diagram-config={diagram.id}
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(diagram) }}
+          data-v2-diagram-config={renderedDiagram.id}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(renderedDiagram) }}
         />
       ) : null}
-      <V2ConnectionLayer diagram={diagram} />
-      {diagram.groups?.map((group) => (
+      <V2ConnectionLayer diagram={renderedDiagram} />
+      {renderedDiagram.groups?.map((group) => (
         <V2GroupNode key={group.id} group={group} />
       ))}
-      {diagram.symbols.map((symbol) => (
+      {renderedDiagram.symbols.map((symbol) => (
         <V2SymbolNode key={symbol.id} symbol={symbol} />
       ))}
     </V2Stage>
   );
+}
+
+function verticalizeDiagram(diagram: V2DiagramData): V2DiagramData {
+  const width = diagram.height + 16;
+  const columns = new Map<number, typeof diagram.symbols>();
+  for (const symbol of diagram.symbols) {
+    const column = columns.get(symbol.rect.x) ?? [];
+    column.push(symbol);
+    columns.set(symbol.rect.x, column);
+  }
+
+  const placed = new Map<string, V2RenderedSymbol>();
+  let y = 2;
+  for (const column of [...columns.values()].sort((a, b) => a[0].rect.x - b[0].rect.x)) {
+    const nodes = [...column].sort((a, b) => a.rect.y - b.rect.y);
+    const nodeWidth = Math.max(...nodes.map((node) => Math.max(node.rect.w, 22)));
+    const gap = 4;
+    const rowWidth = nodes.length * nodeWidth + (nodes.length - 1) * gap;
+    const shouldGrid = nodes.length === 4 && rowWidth > width - 4;
+    const shouldStack = rowWidth > width - 4 && !shouldGrid;
+    let x = shouldStack ? (width - nodeWidth) / 2 : shouldGrid ? (width - (nodeWidth * 2 + gap)) / 2 : (width - rowWidth) / 2;
+    let columnHeight = 0;
+
+    for (const [index, node] of nodes.entries()) {
+      const rect = {
+        ...node.rect,
+        w: Math.max(node.rect.w, 22),
+        x: shouldGrid ? x + (index % 2) * (nodeWidth + gap) : x,
+        y:
+          y + (shouldStack ? columnHeight : shouldGrid ? Math.floor(index / 2) * (Math.max(...nodes.map((item) => item.rect.h)) + gap) : 0),
+      };
+      placed.set(node.id, { ...node, rect });
+      columnHeight = shouldStack
+        ? columnHeight + node.rect.h + gap
+        : shouldGrid
+          ? Math.max(columnHeight, Math.ceil(nodes.length / 2) * (Math.max(...nodes.map((item) => item.rect.h)) + gap) - gap)
+          : Math.max(columnHeight, node.rect.h);
+      if (!shouldStack && !shouldGrid) x += nodeWidth + gap;
+    }
+
+    y += columnHeight + 14;
+  }
+
+  const symbols = diagram.symbols.map((symbol) => placed.get(symbol.id) ?? symbol);
+  const groups = diagram.groups?.map((group) => {
+    const members = symbols.filter((symbol) => {
+      const original = diagram.symbols.find((candidate) => candidate.id === symbol.id);
+      return (
+        original &&
+        original.rect.x >= group.rect.x &&
+        original.rect.y >= group.rect.y &&
+        original.rect.x + original.rect.w <= group.rect.x + group.rect.w &&
+        original.rect.y + original.rect.h <= group.rect.y + group.rect.h
+      );
+    });
+    if (!members.length) return group;
+    const left = Math.min(...members.map((symbol) => symbol.rect.x)) - 2;
+    const top = Math.min(...members.map((symbol) => symbol.rect.y)) - 2;
+    const right = Math.max(...members.map((symbol) => symbol.rect.x + symbol.rect.w)) + 2;
+    const bottom = Math.max(...members.map((symbol) => symbol.rect.y + symbol.rect.h)) + 2;
+    return { ...group, rect: { x: left, y: top, w: right - left, h: bottom - top } };
+  });
+  const byId = new Map(symbols.map((symbol) => [symbol.id, symbol]));
+  const incomingCount = new Map<string, number>();
+  for (const connection of diagram.connections) {
+    incomingCount.set(connection.to, (incomingCount.get(connection.to) ?? 0) + 1);
+  }
+  const connections = diagram.connections.map((connection): V2RenderedConnection => {
+    const from = byId.get(connection.from);
+    const to = byId.get(connection.to);
+    if (!from || !to) {
+      throw new Error(`Unknown vertical v2 connection endpoint: ${connection.id}`);
+    }
+    const dx = to.rect.x + to.rect.w / 2 - (from.rect.x + from.rect.w / 2);
+    const dy = to.rect.y + to.rect.h / 2 - (from.rect.y + from.rect.h / 2);
+    const vertical = Math.abs(dy) >= Math.abs(dx);
+    const incoming = diagram.connections
+      .filter((candidate) => candidate.to === connection.to)
+      .sort((a, b) => {
+        const left = byId.get(a.from);
+        const right = byId.get(b.from);
+        return (left?.rect.x ?? 0) - (right?.rect.x ?? 0) || (left?.rect.y ?? 0) - (right?.rect.y ?? 0);
+      });
+    const connectionIndex = incoming.findIndex((candidate) => candidate.id === connection.id);
+    return {
+      ...connection,
+      fromAnchor: vertical ? (dy >= 0 ? "bottom" : "top") : dx >= 0 ? "right" : "left",
+      toAnchor: vertical ? (dy >= 0 ? "top" : "bottom") : dx >= 0 ? "left" : "right",
+      toOffset: (incomingCount.get(connection.to) ?? 0) > 1 ? (connectionIndex - (incoming.length - 1) / 2) * 3 : connection.toOffset,
+      via: undefined,
+    };
+  });
+
+  return { ...diagram, width, height: y, symbols, groups, connections };
 }

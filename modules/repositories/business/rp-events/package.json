@@ -8,6 +8,7 @@
 	},
 	"dependencies": {
 		"back-core": "workspace:*",
+		"g-bus": "workspace:*",
 		"g-events": "workspace:*",
 		"nrpc": "workspace:*"
 	}

@@ -1,4 +1,5 @@
 import { type CacheAdapter, createServerNrpcClientConfig } from "back-core";
+import { createEventsServiceClient } from "g-events";
 import type {
 	DetectTypeInput,
 	ExtractTextInput,
@@ -105,7 +106,34 @@ export class FilesServiceImpl implements FilesService {
 		// can still hold its placeholder owner (`anonymous`), so never let a later
 		// status/progress update overwrite the owner derived from the caller token.
 		const { owner: _owner, ...patch } = file;
-		return this.stores.metadataService.update(id, patch);
+		return this.updateMetadata(id, patch);
+	}
+
+	private async updateMetadata(
+		id: UUID,
+		patch: Partial<FileMetadata>,
+	): Promise<void> {
+		const previous =
+			patch.status === "uploaded"
+				? await this.stores.metadataService.get(id)
+				: undefined;
+		await this.stores.metadataService.update(id, patch);
+		if (previous && previous.status !== "uploaded") {
+			await this.publishUploadEvent(id, previous.name);
+		}
+	}
+
+	private async publishUploadEvent(fileId: UUID, name: string): Promise<void> {
+		try {
+			await createEventsServiceClient(createServerNrpcClientConfig()).publish({
+				type: "file.uploaded",
+				service: "files",
+				entityId: fileId,
+				label: name,
+			});
+		} catch (error) {
+			console.warn("[rp-files] upload event publish failed", fileId, error);
+		}
 	}
 	/** Drop the record and let go of its blocks. rp-store counts references, so
 	 *  a block another file still holds survives; one nobody holds is freed —

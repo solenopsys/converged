@@ -12,6 +12,7 @@
 	"dependencies": {
 		"back-core": "workspace:*",
 		"fflate": "^0.8.3",
+		"g-events": "workspace:*",
 		"g-files": "workspace:*",
 		"g-store": "workspace:*",
 		"nrpc": "workspace:*"

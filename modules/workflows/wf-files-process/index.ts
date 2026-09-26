@@ -17,9 +17,14 @@ import {
 const UNPACK = "workflows/wf-file-unpack.js";
 
 type Input = {
-	fileIds: string[];
+	fileIds?: string[];
 	owner?: string;
 	processId?: string;
+	event?: {
+		id?: string;
+		name?: string;
+		payload?: { type?: string; entityId?: string };
+	};
 };
 
 type UnpackReport = {
@@ -39,12 +44,22 @@ type IntakeFile = {
 };
 
 rt.workflow = (input: Input) => {
-	if (!input?.fileIds?.length)
-		throw new Error("files-process requires params.fileIds");
+	const eventFileId =
+		input?.event?.name?.startsWith("file.uploaded.") &&
+		input.event.payload?.type === "file.uploaded"
+			? input.event.payload.entityId
+			: undefined;
+	const fileIds = input?.fileIds?.length
+		? input.fileIds
+		: eventFileId
+			? [eventFileId]
+			: [];
+	if (!fileIds.length) throw new Error("files-process requires params.fileIds");
 
 	const ctx: FlowCtx = {
 		owner: input.owner ?? "workflow:files-process",
-		processId: input.processId ?? __execId ?? "files-process",
+		processId:
+			input.processId ?? input.event?.id ?? __execId ?? "files-process",
 		errors: [] as StepError[],
 		converted: [],
 		estimates: [],
@@ -90,7 +105,7 @@ rt.workflow = (input: Input) => {
 		if (model) report.modelFileIds.push(fileId);
 	};
 
-	for (const fileId of input.fileIds) {
+	for (const fileId of fileIds) {
 		const file = loadFileMeta(ctx, fileId);
 		if (!file) continue;
 		const archive = isArchive(file.metadata);

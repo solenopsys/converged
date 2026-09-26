@@ -34,6 +34,12 @@ import { SEQ_WIDTH } from "./store/processing";
  * runtime's next scheduled refresh.
  */
 const TRIGGERS_CHANGED_TOPIC = "dag.triggers.changed";
+const FILE_UPLOAD_TRIGGER = {
+	id: "system-files-process-on-upload",
+	name: "Process uploaded files",
+	topic: "file.uploaded.*",
+	script: "workflows/wf-files-process.js",
+} as const;
 
 /** Prefix of every cache key the runtime is allowed to commit from. */
 const LOG_KEY_PREFIX = "dag:log:";
@@ -242,6 +248,12 @@ export default class DagServiceImpl implements DagService {
 	 */
 	async activeTriggers(): Promise<{ items: WorkflowTrigger[] }> {
 		await this.ready();
+		const seeded = await this.triggers.ensure(FILE_UPLOAD_TRIGGER.id, {
+			name: FILE_UPLOAD_TRIGGER.name,
+			topic: FILE_UPLOAD_TRIGGER.topic,
+			script: FILE_UPLOAD_TRIGGER.script,
+		});
+		if (seeded.created) this.announceTriggers();
 		const all = await this.triggers.listAll();
 		return { items: all.filter((trigger) => trigger.enabled) };
 	}

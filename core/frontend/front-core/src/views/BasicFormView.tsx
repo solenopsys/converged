@@ -42,7 +42,7 @@ interface BasicFormViewProps {
 	title?: string;
 	subtitle?: string;
 	relatedSections?: RelatedSectionConfig[];
-	onSave?: (data: any) => void | Promise<void>;
+	onSave?: (data: any) => unknown | Promise<unknown>;
 	onCancel?: () => void;
 	onClose?: () => void;
 	saveButtonText?: string;
@@ -271,7 +271,7 @@ export const BasicFormView: React.FC<BasicFormViewProps> = ({
 		}
 	};
 
-	const handleSubmit = async (e?: React.FormEvent) => {
+	const handleSubmit = async (e?: React.FormEvent): Promise<boolean> => {
 		e?.preventDefault();
 
 		const allTouched: Record<string, boolean> = {};
@@ -285,14 +285,13 @@ export const BasicFormView: React.FC<BasicFormViewProps> = ({
 		const validationErrors = validateFormData(fields, formData);
 		if (validationErrors) {
 			setErrors(validationErrors);
-			return;
+			return false;
 		}
+		if (!onSave) return false;
 
 		setIsSubmitting(true);
 		try {
-			await onSave?.(formData);
-		} catch (error) {
-			console.error("Form submission error:", error);
+			return (await onSave(formData)) !== false;
 		} finally {
 			setIsSubmitting(false);
 		}
@@ -471,15 +470,15 @@ export const BasicFormView: React.FC<BasicFormViewProps> = ({
 							)}
 						</Label>
 						{field.entityType ? (
-							<EntityDropBox
-								objectType={field.entityType}
-								value={Array.isArray(value)
-									? value
-										.map((item) =>
-											typeof item === "string" ? item : item?.id,
-										)
-										.filter((id): id is string => typeof id === "string")
-									: []}
+						<EntityDropBox
+							objectType={field.entityType}
+							value={Array.isArray(value)
+								? value
+									.map((item) =>
+										typeof item === "string" ? item : item?.id,
+									)
+									.filter((id): id is string => typeof id === "string")
+								: []}
 								onValueChange={(next) => handleChange(field.id, next)}
 								multiple
 								placeholder={field.placeholder}
@@ -535,7 +534,14 @@ export const BasicFormView: React.FC<BasicFormViewProps> = ({
 				},
 			]}
 		>
-			<form onSubmit={handleSubmit} className="flex min-h-full flex-col">
+			<form
+				onSubmit={(event) => {
+					void handleSubmit(event).catch((error) =>
+						console.error("Form submission error:", error),
+					);
+				}}
+				className="flex min-h-full flex-col"
+			>
 				<div className="shrink-0 px-6 py-4 space-y-4">
 					{fields.map(renderField)}
 				</div>
