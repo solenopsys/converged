@@ -14,6 +14,24 @@ const json = @import("json.zig");
 const Processor = @import("processor.zig").Processor;
 const Progress = @import("processor.zig").Progress;
 
+// Processor containers run this binary as PID 1. PID 1 ignores the default
+// SIGTERM action, so Kubernetes can otherwise wait through the full grace
+// period before killing this stateless worker. Exit the process group directly
+// from signal context; no request state needs to be drained or preserved.
+fn onSignal(_: std.posix.SIG) callconv(.c) void {
+    std.os.linux.exit_group(0);
+}
+
+fn installSignalHandlers() void {
+    const action = std.posix.Sigaction{
+        .handler = .{ .handler = onSignal },
+        .mask = std.posix.sigemptyset(),
+        .flags = 0,
+    };
+    std.posix.sigaction(std.posix.SIG.TERM, &action, null);
+    std.posix.sigaction(std.posix.SIG.INT, &action, null);
+}
+
 pub const Options = struct {
     /// NRPC service name from the generated descriptor. Doubles as the default
     /// Fujin routing target and as the cache-key namespace.
@@ -30,6 +48,7 @@ pub const Options = struct {
 
 /// Serves until the process is stopped. `processor` must outlive the call.
 pub fn run(init: std.process.Init, processor: Processor, options: Options) !void {
+    installSignalHandlers();
     const allocator = init.gpa;
 
     var auth_receiver = try transport.auth.receiver.Receiver.init(allocator, init.environ_map);

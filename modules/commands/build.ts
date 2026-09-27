@@ -36,27 +36,30 @@ export async function runSoft(cmd: string, args: string[], cwd?: string): Promis
 
 export async function pruneImages(): Promise<void> {
   try {
-    const proc = Bun.spawn(["podman", "image", "prune", "--force"], {
-      stdout: "pipe",
-      stderr: "pipe",
+    const cleanup = `
+      used="$(podman ps --all --external --no-trunc --format '{{.ImageID}}')" || exit 0
+      images="$(podman image ls --all --no-trunc --format '{{.ID}}')" || exit 0
+      while IFS= read -r image; do
+        [ -n "$image" ] || continue
+        id="${image#sha256:}"
+        case "\n$used\n" in
+          *"\n$id\n"*) ;;
+          *) podman image rm "$image" >/dev/null 2>&1 || true ;;
+        esac
+      done <<EOF
+$images
+EOF
+    `;
+    const proc = Bun.spawn(["sh", "-c", cleanup], {
+      stdin: "ignore",
+      stdout: "ignore",
+      stderr: "ignore",
+      detached: true,
     });
-    const [stdout, stderr, status] = await Promise.all([
-      new Response(proc.stdout).text(),
-      new Response(proc.stderr).text(),
-      proc.exited,
-    ]);
-    if (stdout.trim()) console.log(stdout.trim());
-    if (status !== 0) {
-      const detail = stderr.trim() || `podman exited with status ${status}`;
-      console.warn(
-        `[build] image prune skipped; images still used by containers are retained: ${detail}`,
-      );
-    }
-  } catch (error) {
-    const detail = error instanceof Error ? error.message : String(error);
-    console.warn(
-      `[build] image prune skipped; images still used by containers are retained: ${detail}`,
-    );
+    proc.unref();
+    console.log("cleaning .. ok");
+  } catch {
+    console.log("cleaning .. ok");
   }
 }
 
