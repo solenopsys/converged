@@ -165,6 +165,15 @@ function urlForWorkspace(
 	);
 }
 
+/** A surface's stable route, suitable for browser links and opening new tabs. */
+export function surfaceHref(surface: string): string {
+	const href =
+		typeof window === "undefined"
+			? `http://localhost${CONSOLE_PATH}`
+			: window.location.href;
+	return urlForRoute(href, surface, undefined, undefined);
+}
+
 /** Compatibility helper for callers that only hold a domain reference. */
 export function urlForReference(href: string, ref: DomainRef | null): string {
 	if (!ref) return urlForRoute(href, null, undefined, undefined);

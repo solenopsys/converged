@@ -16,6 +16,7 @@ export type {
 	SurfaceLlmCatalog,
 	Widget,
 } from "front-core/core";
+export { setPageTitle } from "./page-title";
 export {
 	$registeredCommands,
 	ActionContextManager,

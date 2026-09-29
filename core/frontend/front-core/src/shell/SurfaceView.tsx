@@ -7,6 +7,7 @@ import {
 	collectStatisticSections,
 	resolveStatistic,
 } from "../dashboard/statistic-catalog";
+import { setPageTitle } from "../page-title";
 import { TabBar } from "../tabs";
 import { WorkspaceTopBar } from "./WorkspaceTopBar";
 import {
@@ -95,10 +96,15 @@ export function Surface({
 		return () => window.removeEventListener("keydown", onKeyDown);
 	}, [surface, release]);
 
-	if (!surface) return null;
-
-	const tab = tabs.find((entry) => entry.id === surface);
+	const tab = surface ? tabs.find((entry) => entry.id === surface) : undefined;
 	const View = pressed?.view;
+	const pageTitle = pressed?.title ?? tab?.label ?? surface ?? undefined;
+
+	useEffect(() => {
+		if (surface && surface !== "sf-docs") setPageTitle(pageTitle);
+	}, [pageTitle, surface]);
+
+	if (!surface) return null;
 
 	return (
 		<section class="surface">

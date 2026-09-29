@@ -1,11 +1,8 @@
 import { useUnit } from "effector-preact";
-import type { ComponentChildren, RefObject } from "preact";
+import type { ComponentChildren } from "preact";
 import { useEffect, useRef } from "preact/hooks";
 import { ChevronDown, Trash2 } from "../icons";
 import { CatalogMenu, type CatalogMenuText } from "./CatalogMenu";
-import { ChoiceList } from "./ChoiceMenu";
-import { useDismiss } from "./dismiss";
-import { Floating } from "./floating";
 import type { TabView } from "./model";
 import { PushPin } from "./PushPin";
 import type { TabBarModel } from "./tab-bar";
@@ -23,25 +20,21 @@ export type TabBarText = CatalogMenuText & {
 	close: (title: string) => string;
 };
 
-/** Roughly `.shell-menu-list` min-width, used to keep the menu on screen. */
-const MENU_WIDTH = 210;
-
 function Tab({
 	tab,
 	model,
 	text,
-	menuOpen,
+	href,
 }: {
 	tab: TabView;
 	model: TabBarModel;
 	text: TabBarText;
-	menuOpen: boolean;
+	href?: string;
 }) {
-	const { opened, pinToggled, closed, openedAt } = useUnit({
+	const { opened, pinToggled, closed } = useUnit({
 		opened: model.opened,
 		pinToggled: model.pinToggled,
 		closed: model.closed,
-		openedAt: model.context.openedAt,
 	});
 	const canClose = tab.kind !== "command";
 	const actionLabel = tab.pinned
@@ -57,30 +50,49 @@ function Tab({
 			data-kind={tab.kind}
 			data-active={tab.active ? "true" : undefined}
 			data-pinned={tab.pinned ? "true" : undefined}
-			data-menu-open={menuOpen ? "true" : undefined}
 			role="presentation"
 		>
-			<button
-				type="button"
-				class="tab-select"
-				// A command is a button in the row, not a tab: it is never selected.
-				{...(tab.kind === "command"
-					? {}
-					: { role: "tab", "aria-selected": tab.active })}
-				title={tab.description ?? tab.label}
-				onClick={() => opened(tab.id)}
-				onContextMenu={(event) => {
-					event.preventDefault();
-					openedAt({ id: tab.id, x: event.clientX, y: event.clientY });
-				}}
-				onAuxClick={(event) => {
-					if (event.button !== 1 || tab.kind === "command") return;
-					event.preventDefault();
-					closed(tab.id);
-				}}
-			>
-				<span class="tab-label">{tab.label}</span>
-			</button>
+			{href && tab.kind !== "command" ? (
+				<a
+					href={href}
+					class="tab-select"
+					role="tab"
+					aria-selected={tab.active}
+					title={tab.description ?? tab.label}
+					onClick={(event) => {
+						if (
+							event.button !== 0 ||
+							event.metaKey ||
+							event.ctrlKey ||
+							event.shiftKey ||
+							event.altKey
+						)
+							return;
+						event.preventDefault();
+						opened(tab.id);
+					}}
+				>
+					<span class="tab-label">{tab.label}</span>
+				</a>
+			) : (
+				<button
+					type="button"
+					class="tab-select"
+					// A command is a button in the row, not a tab: it is never selected.
+					{...(tab.kind === "command"
+						? {}
+						: { role: "tab", "aria-selected": tab.active })}
+					title={tab.description ?? tab.label}
+					onClick={() => opened(tab.id)}
+					onAuxClick={(event) => {
+						if (event.button !== 1 || tab.kind === "command") return;
+						event.preventDefault();
+						closed(tab.id);
+					}}
+				>
+					<span class="tab-label">{tab.label}</span>
+				</button>
+			)}
 			<span class="tab-actions">
 				<button
 					type="button"
@@ -104,43 +116,6 @@ function Tab({
 	);
 }
 
-function TabContextMenu({
-	model,
-	anchor,
-}: {
-	model: TabBarModel;
-	anchor: RefObject<HTMLElement | null>;
-}) {
-	const { target, actions, closed, chosen } = useUnit({
-		target: model.context.$target,
-		actions: model.$actions,
-		closed: model.context.closed,
-		chosen: model.context.chosen,
-	});
-	const ref = useRef<HTMLDivElement>(null);
-	useDismiss(ref, target !== null, closed);
-
-	const items = target ? actions[target.id] : undefined;
-	if (!target || !items?.length) return null;
-	return (
-		<Floating anchor={anchor}>
-			<div class="shell-menu-anchor" ref={ref}>
-				<ChoiceList
-					items={items}
-					align="start"
-					style={{
-						position: "fixed",
-						zIndex: 1000,
-						top: `${target.y}px`,
-						left: `${Math.max(8, Math.min(target.x, window.innerWidth - MENU_WIDTH))}px`,
-					}}
-					onChoose={chosen}
-				/>
-			</div>
-		</Floating>
-	);
-}
-
 /**
  * Any tabbed place: what is pinned, the one transient tab, and the catalog menu
  * with everything else. Every behaviour lives in the model; the theme only
@@ -150,21 +125,22 @@ export function TabBar({
 	model,
 	theme,
 	text,
+	hrefForTab,
 	children,
 }: {
 	model: TabBarModel;
 	theme: TabBarTheme;
 	text: TabBarText;
+	/** Optional real destinations for tabs, enabling browser link behavior. */
+	hrefForTab?: (tab: TabView) => string | undefined;
 	/** Rendered after the catalog button: controls that belong to the bar. */
 	children?: ComponentChildren;
 }) {
-	const { tabs, active, target, pinToggled } = useUnit({
+	const { tabs, active, pinToggled } = useUnit({
 		tabs: model.$tabs,
 		active: model.$active,
-		target: model.context.$target,
 		pinToggled: model.pinToggled,
 	});
-	const rootRef = useRef<HTMLDivElement>(null);
 	const listRef = useRef<HTMLDivElement>(null);
 	const catalogMenu = (
 		<CatalogMenu
@@ -186,7 +162,7 @@ export function TabBar({
 	}, [active]);
 
 	return (
-		<div class="tabs" data-theme={theme} ref={rootRef}>
+		<div class="tabs" data-theme={theme}>
 			<div
 				class="tabs-list"
 				role="tablist"
@@ -194,19 +170,18 @@ export function TabBar({
 				aria-orientation={theme === "list" ? "vertical" : "horizontal"}
 				ref={listRef}
 			>
-				{tabs.map((tab) => (
+				{tabs.map((tab: TabView) => (
 					<Tab
 						key={tab.id}
 						tab={tab}
 						model={model}
 						text={text}
-						menuOpen={target?.id === tab.id}
+						href={hrefForTab?.(tab)}
 					/>
 				))}
 			</div>
 			{catalogMenu}
 			{children}
-			<TabContextMenu model={model} anchor={rootRef} />
 		</div>
 	);
 }

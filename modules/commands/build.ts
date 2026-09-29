@@ -41,7 +41,7 @@ export async function pruneImages(): Promise<void> {
       images="$(podman image ls --all --no-trunc --format '{{.ID}}')" || exit 0
       while IFS= read -r image; do
         [ -n "$image" ] || continue
-        id="${image#sha256:}"
+        id="\${image#sha256:}"
         case "\n$used\n" in
           *"\n$id\n"*) ;;
           *) podman image rm "$image" >/dev/null 2>&1 || true ;;

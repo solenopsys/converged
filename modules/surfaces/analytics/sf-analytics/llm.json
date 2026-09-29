@@ -1,0 +1,41 @@
+{
+	"root": {
+		"surface": "sf-analytics",
+		"baseType": "analytics"
+	},
+	"actions": {
+		"analytics.dashboard.show": {
+			"brief": "Show the analytics dashboard",
+			"description": "Show visits, visitors and page views",
+			"category": "analytics",
+			"exposure": "user",
+			"priority": "normal",
+			"examples": {
+				"en": ["Show the analytics dashboard", "Open website analytics"],
+				"ru": ["Покажи сводку аналитики", "Открой аналитику сайта"]
+			}
+		},
+		"analytics.realtime.show": {
+			"brief": "Show realtime analytics",
+			"description": "Show active pages and visitor countries right now",
+			"category": "analytics",
+			"exposure": "user",
+			"priority": "normal",
+			"examples": {
+				"en": ["Show realtime analytics", "Who is on the site right now?"],
+				"ru": ["Покажи аналитику в реальном времени", "Кто сейчас на сайте?"]
+			}
+		},
+		"analytics.events.show": {
+			"brief": "Show analytics events",
+			"description": "Open the website analytics events table",
+			"category": "analytics",
+			"exposure": "user",
+			"priority": "normal",
+			"examples": {
+				"en": ["Show analytics events", "Open the website events table"],
+				"ru": ["Покажи события аналитики", "Открой таблицу событий сайта"]
+			}
+		}
+	}
+}

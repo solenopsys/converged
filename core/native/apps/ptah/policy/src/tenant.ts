@@ -93,6 +93,12 @@ export function reconcileTenant(input: ReconcileInput): ReconcileOutput {
 					setHeaders: scopeHeaders,
 				},
 				{
+					pathPrefix: "/ingest/analytics",
+					service: n.app(platform, "fujin"),
+					port: 80,
+					setHeaders: scopeHeaders,
+				},
+				{
 					pathPrefix: "/",
 					service: n.ui(platform),
 					port: 80,

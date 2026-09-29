@@ -511,6 +511,22 @@
       ]
     },
     {
+      "owner": "rp-analytics",
+      "path": "modules/repositories/analytics/rp-analytics/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/analytics/rp-analytics/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-analytics",
+              "file": "modules/repositories/analytics/rp-analytics/docs/rp-analytics.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "owner": "rp-assistant",
       "path": "modules/repositories/ai/rp-assistant/docs",
       "sections": [
@@ -1181,6 +1197,22 @@
             {
               "slug": "motivation",
               "file": "core/native/wrappers/dbs/ryugraph/docs/dbs/motivation.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "owner": "sf-analytics",
+      "path": "modules/surfaces/analytics/sf-analytics/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/surfaces/analytics/sf-analytics/docs/index.json",
+          "articles": [
+            {
+              "slug": "sf-analytics",
+              "file": "modules/surfaces/analytics/sf-analytics/docs/sf-analytics.md"
             }
           ]
         }

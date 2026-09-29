@@ -1,12 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import {
-	objectRef,
-	registerSurface,
-	setOf,
-} from "front-core/object-runtime";
+import { objectRef, registerSurface, setOf } from "front-core/object-runtime";
 import {
 	isConsolePath,
 	referenceFromUrl,
+	surfaceHref,
 	urlForReference,
 } from "./workspace-url";
 
@@ -30,7 +27,9 @@ registerSurface({
 describe("workspace URL", () => {
 	test("reads references only from a console descendant", () => {
 		expect(
-			referenceFromUrl("https://example.test/console/sales/leads?filter=%7B%7D"),
+			referenceFromUrl(
+				"https://example.test/console/sales/leads?filter=%7B%7D",
+			),
 		).toEqual({
 			kind: "set",
 			type: "sales.lead",
@@ -47,6 +46,10 @@ describe("workspace URL", () => {
 		);
 		expect(url).toBe("/console/sales/leads/42");
 		expect(referenceFromUrl(`https://example.test${url}`)).toEqual(ref);
+	});
+
+	test("provides a stable route for opening a surface in another tab", () => {
+		expect(surfaceHref("sf-analytics")).toBe("/console/analytics");
 	});
 
 	test("recognizes every console descendant as the same SPA", () => {

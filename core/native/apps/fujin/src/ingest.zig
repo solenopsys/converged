@@ -1,10 +1,10 @@
 const std = @import("std");
 
-/// Log and telemetry ingest: the second of Fujin's three message streams.
+/// Log, device telemetry, and browser analytics ingestion.
 ///
 /// Fluent Bit receives the raw streams on the forward port and hands them back
 /// to this process in JSON batches. Records are classified, normalised into the
-/// `rp-logs` / `rp-telemetry` row shapes and grouped into blocks, and each full
+/// `rp-logs`, `rp-telemetry`, and `rp-analytics` row shapes and grouped into blocks, and each full
 /// block is written with a single `writeBatch` call. Grouping is the entire
 /// point: shipping records one at a time would make the ingest rate a function
 /// of round-trips to `services` rather than of disk.
@@ -21,7 +21,7 @@ pub const Collector = struct {
     /// down must cost a fixed amount of memory and some old logs, not the
     /// router process.
     max_blocks: usize,
-    streams: [2]Stream = .{ .{}, .{} },
+    streams: [3]Stream = .{ .{}, .{}, .{} },
     ready: std.ArrayList(Block) = .empty,
     /// Blocks discarded because the queue was full, for the health line.
     dropped_blocks: u64 = 0,
@@ -30,12 +30,14 @@ pub const Collector = struct {
     pub const Kind = enum {
         logs,
         telemetry,
+        analytics,
 
         /// NRPC service that owns this stream's repository.
         pub fn service(self: Kind) []const u8 {
             return switch (self) {
                 .logs => "logs",
                 .telemetry => "telemetry",
+                .analytics => "analytics",
             };
         }
     };
@@ -62,7 +64,7 @@ pub const Collector = struct {
         }
     };
 
-    pub const Accepted = struct { logs: usize = 0, telemetry: usize = 0, rejected: usize = 0 };
+    pub const Accepted = struct { logs: usize = 0, telemetry: usize = 0, analytics: usize = 0, rejected: usize = 0 };
 
     pub fn init(allocator: std.mem.Allocator, block_size: usize, max_blocks: usize) Collector {
         std.debug.assert(block_size > 0 and max_blocks > 0);
@@ -95,14 +97,48 @@ pub const Collector = struct {
         return accepted;
     }
 
+    pub fn ingestAnalyticsJson(self: *Collector, body: []const u8, client_ip: []const u8) !Accepted {
+        var parsed = try std.json.parseFromSlice(std.json.Value, self.allocator, body, .{});
+        defer parsed.deinit();
+
+        var accepted = Accepted{};
+        if (parsed.value == .array) {
+            for (parsed.value.array.items) |*record| try self.ingestAnalyticsRecord(record, client_ip, &accepted);
+        } else if (parsed.value == .object) {
+            var record = parsed.value;
+            try self.ingestAnalyticsRecord(&record, client_ip, &accepted);
+        } else {
+            return error.IngestBodyInvalid;
+        }
+        return accepted;
+    }
+
+    fn ingestAnalyticsRecord(self: *Collector, record: *std.json.Value, client_ip: []const u8, accepted: *Accepted) !void {
+        if (record.* != .object or !isAnalytics(record.object)) {
+            accepted.rejected += 1;
+            return;
+        }
+        inline for (.{ "ip_address", "country_code", "country_name", "asn", "asn_organization" }) |key| {
+            _ = record.object.orderedRemove(key);
+        }
+        if (client_ip.len > 0) {
+            try record.object.put(self.allocator, "ip_address", .{ .string = client_ip });
+        }
+        const row = try std.json.Stringify.valueAlloc(self.allocator, record.*, .{});
+        defer self.allocator.free(row);
+        try self.append(.analytics, row);
+        accepted.analytics += 1;
+    }
+
     fn consume(self: *Collector, record: std.json.Value, default_source: []const u8, accepted: *Accepted) void {
         if (record != .object) {
             accepted.rejected += 1;
             return;
         }
-        const kind: Kind = if (isTelemetry(record.object)) .telemetry else .logs;
+        const kind: Kind = if (isAnalytics(record.object)) .analytics else if (isTelemetry(record.object)) .telemetry else .logs;
         const row = switch (kind) {
             .telemetry => encodeTelemetry(self.allocator, record.object),
+            .analytics => std.json.Stringify.valueAlloc(self.allocator, record, .{}),
             .logs => encodeLog(self.allocator, record.object, default_source),
         } catch {
             accepted.rejected += 1;
@@ -117,6 +153,7 @@ pub const Collector = struct {
         switch (kind) {
             .logs => accepted.logs += 1,
             .telemetry => accepted.telemetry += 1,
+            .analytics => accepted.analytics += 1,
         }
     }
 
@@ -137,7 +174,7 @@ pub const Collector = struct {
         _ = std.c.pthread_mutex_lock(&self.mutex);
         defer _ = std.c.pthread_mutex_unlock(&self.mutex);
         const now = milliTimestamp();
-        for ([_]Kind{ .logs, .telemetry }) |kind| {
+        for ([_]Kind{ .logs, .telemetry, .analytics }) |kind| {
             const stream = &self.streams[@intFromEnum(kind)];
             if (stream.count == 0 or now - stream.opened_at < age_ms) continue;
             self.sealLocked(kind) catch {};
@@ -195,6 +232,13 @@ fn isTelemetry(record: std.json.ObjectMap) bool {
     if (stringField(record, "device_id") == null) return false;
     if (stringField(record, "param") == null) return false;
     return numberField(record, "value") != null;
+}
+
+fn isAnalytics(record: std.json.ObjectMap) bool {
+    return stringField(record, "visitor_id") != null and
+        stringField(record, "session_id") != null and
+        stringField(record, "event_type") != null and
+        stringField(record, "url") != null;
 }
 
 fn encodeTelemetry(allocator: std.mem.Allocator, record: std.json.ObjectMap) ![]u8 {
@@ -318,6 +362,26 @@ test "records are split between the two repositories by shape" {
     try testing.expectEqual(@as(usize, 2), accepted.logs);
     try testing.expectEqual(@as(usize, 1), accepted.telemetry);
     try testing.expectEqual(@as(usize, 1), accepted.rejected);
+}
+
+test "analytics accepts one streamed event and overwrites its client IP" {
+    var collector = Collector.init(testing.allocator, 100, 4);
+    defer collector.deinit();
+
+    const accepted = try collector.ingestAnalyticsJson(
+        "{\"visitor_id\":\"visitor\",\"session_id\":\"session\",\"event_type\":\"page_view\",\"url\":\"/\",\"ip_address\":\"127.0.0.1\"}",
+        "203.0.113.8",
+    );
+    try testing.expectEqual(@as(usize, 1), accepted.analytics);
+    try testing.expectEqual(@as(usize, 0), accepted.rejected);
+
+    collector.flushStale(0);
+    var block = collector.takeBlock().?;
+    defer block.deinit(testing.allocator);
+    var doc = try parsedBody(block.body);
+    defer doc.deinit();
+    const record = doc.value.object.get("events").?.array.items[0].object;
+    try testing.expectEqualStrings("203.0.113.8", record.get("ip_address").?.string);
 }
 
 test "a block is sealed at the configured size and carries the writeBatch shape" {

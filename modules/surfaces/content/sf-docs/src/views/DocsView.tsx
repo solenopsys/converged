@@ -1,4 +1,4 @@
-import { useSurfaceTranslation } from "front-core";
+import { setPageTitle, useSurfaceTranslation } from "front-core";
 import { DEFAULT_LOCALE } from "front-core/landing";
 import { createMarkdownServiceClient } from "g-markdown";
 import { type MarkdownASTNode, MarkdownRenderer } from "md-tools";
@@ -180,6 +180,7 @@ export default function DocsView({
 	fixedGroup?: string;
 	sectionSlug?: string;
 }) {
+	const { t } = useSurfaceTranslation(SF_ID);
 	const scrollRef = useRef<HTMLDivElement | null>(null);
 	const resolvedIndexPath =
 		indexPath ??
@@ -251,6 +252,14 @@ export default function DocsView({
 					: sortedItems,
 		[activeGroup, activeLocale, group, mode, sectionSlug, sortedItems],
 	);
+	const currentArticle = sortedItems.find((item) =>
+		isCurrentSection(item, activeLocale, group, sectionSlug),
+	);
+	const docsTitle = currentArticle?.title ?? (t("index.heading") as string);
+
+	useEffect(() => {
+		if (!loading) setPageTitle(docsTitle);
+	}, [docsTitle, loading]);
 
 	useEffect(() => {
 		if (!anchor || loading) return;

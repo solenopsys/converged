@@ -63,15 +63,17 @@ The routing tests must cover these cases:
 
 ## Message streams
 
-Fujin carries four unrelated kinds of traffic, and they are worth keeping
+Fujin carries unrelated kinds of traffic, and they are worth keeping
 apart when reading the source:
 
 1. **Service messaging** — request/response NRPC between peers over ZMQ, plus
    the browsers that enter through WebSocket. This is the routing contract
    above (`registry.zig`, `main.zig`).
-2. **Log and telemetry ingest** — Fluent Bit receives the raw streams, hands
-   them back over HTTP, and `ingest.zig` groups them into blocks written to
-   `rp-logs` / `rp-telemetry` with one `writeBatch` per block.
+2. **Log, telemetry, and analytics ingest** — Fluent Bit hands operational
+   streams back over HTTP, while each browser document streams newline-delimited
+   analytics events to `/ingest/analytics` over one long-lived POST.
+   `ingest.zig` groups received records into blocks written to their
+   repositories with one `writeBatch` per block.
 3. **User notifications** — the `pushrouter` service: business messages
    addressed at a person (`pushrouter.zig`, `notifications.zig`).
 4. **Business events** — the `bus` service: facts addressed at nobody, handed
@@ -191,6 +193,13 @@ of `FUJIN_INGEST_BLOCK_SIZE` (default 100) are written with a single
 `writeBatch`; a partial block ships after `FUJIN_INGEST_FLUSH_MS`, and at most
 `FUJIN_INGEST_MAX_BLOCKS` wait for `services` before the oldest is dropped.
 Fujin's own calls to the repositories carry `SERVICE_TOKEN`.
+
+The shell opens one streaming `POST /ingest/analytics` per document on the same
+HTTP/1.1 listener and writes one JSON event per newline. Fujin parses each
+complete line as it arrives, replaces any client-supplied IP with the trusted
+forwarded client address, then uses the normal bounded ingest blocks for
+`rp-analytics`. The browser never sends a server secret; the request ends when
+the document unloads or the connection is interrupted.
 
 - `zimq` runs as a `ROUTER` server (`FUJIN_ZMQ_BIND`, default `tcp://0.0.0.0:5557`).
 - `GET /ws` exposes a multi-client WebSocket signal fan-out (`FUJIN_WS_HOST` / `FUJIN_WS_PORT`, default `0.0.0.0:8087`).

@@ -99,6 +99,13 @@ Provides the AI workspace for listing, editing, and saving named contexts in mul
 
 ## Analytics and telemetry
 
+### [rp-analytics](/en/docs/modules/rp-analytics)
+
+rp-analytics is a repository in the analytics domain. Its detailed purpose is maintained with the module source.
+
+- Direct dependencies: none
+- Solutions: `analitycs`
+
 ### [rp-counters](/en/docs/modules/rp-counters)
 
 Stores per-tenant external analytics counter configs (tracking ids, head snippets) for SSR injection.
@@ -130,6 +137,13 @@ rp-telemetry is a repository in the analytics domain. Its detailed purpose is ma
 ### [rp-usage](/en/docs/modules/rp-usage)
 
 rp-usage is a repository in the analytics domain. Its detailed purpose is maintained with the module source.
+
+- Direct dependencies: none
+- Solutions: `analitycs`
+
+### [sf-analytics](/en/docs/modules/sf-analytics)
+
+sf-analytics is a surface in the analytics domain. Its detailed purpose is maintained with the module source.
 
 - Direct dependencies: none
 - Solutions: `analitycs`
@@ -531,13 +545,6 @@ sf-files is a surface in the data domain. Its detailed purpose is maintained wit
 
 ## Message delivery providers
 
-### [lm-lemonsqueezy](/en/docs/modules/lm-lemonsqueezy)
-
-lm-lemonsqueezy is a lambda in the providers domain. Its detailed purpose is maintained with the module source.
-
-- Direct dependencies: none
-- Solutions: `billing`
-
 ### [lm-push](/en/docs/modules/lm-push)
 
 lm-push is a lambda in the providers domain. Its detailed purpose is maintained with the module source.
@@ -632,13 +639,6 @@ wf-order-review-request is a workflow in the platform domain. Its detailed purpo
 
 - Direct dependencies: none
 - Solutions: `production`
-
-### [wf-payment-settle](/en/docs/modules/wf-payment-settle)
-
-wf-payment-settle is a workflow in the platform domain. Its detailed purpose is maintained with the module source.
-
-- Direct dependencies: none
-- Solutions: `billing`
 
 ### [wf-request-analyze](/en/docs/modules/wf-request-analyze)
 

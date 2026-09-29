@@ -660,6 +660,7 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 				spec.gateway.hosts,
 				[
 					{ pathPrefix: "/ws", service: n.app(platform, "fujin"), port: 80 },
+					{ pathPrefix: "/ingest/analytics", service: n.app(platform, "fujin"), port: 80 },
 					{ pathPrefix: "/", service: n.ui(platform), port: 80 },
 				],
 			),

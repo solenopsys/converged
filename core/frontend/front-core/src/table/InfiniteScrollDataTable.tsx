@@ -175,6 +175,9 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 
 		return fallbackColumnWidths;
 	}, [columnWidths, fallbackColumnWidths, visibleColumns.length]);
+	const tableContentWidth =
+		resolvedColumnWidths.reduce((total, width) => total + width, 0) +
+		(selectable ? SELECTION_COLUMN_WIDTH : 0);
 
 	useEffect(() => {
 		if (visibleColumns.length === 0 || !tableRef.current) return;
@@ -537,7 +540,11 @@ export function InfiniteScrollDataTable<TData extends object = TableRowBase>({
 					tableClassName,
 				)}
 			>
-				<div ref={tableRef} class="w-full">
+				<div
+					ref={tableRef}
+					class="w-full"
+					style={{ width: `${tableContentWidth}px`, minWidth: "100%" }}
+				>
 					<div class="sticky top-0 z-20 flex h-[53px] border-b bg-background/95">
 						{selectable && (
 							<div

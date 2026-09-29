@@ -3,6 +3,7 @@ modules:
   ai/sf-assistants: ready
   ai/sf-contexts: ready
   analytics/sf-dasboards: _
+  analytics/sf-analytics: _
   analytics/sf-logs: _
   analytics/sf-telemetry: _
   analytics/sf-usage: _

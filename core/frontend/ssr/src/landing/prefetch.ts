@@ -180,6 +180,7 @@ export async function prefetchLanding(
 
 	return {
 		configPath,
+		title: readString(config.title) || undefined,
 		navigation: resolveNavigation(config.navigation, normalized),
 		blocks: normalized,
 	};

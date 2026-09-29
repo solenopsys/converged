@@ -4,6 +4,7 @@ modules:
   ai/rp-contexts: ready
   analytics/rp-counters: _
   analytics/rp-dashboard: _
+  analytics/rp-analytics: _
   analytics/rp-logs: _
   analytics/rp-telemetry: _
   analytics/rp-usage: _

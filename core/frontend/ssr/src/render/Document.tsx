@@ -14,6 +14,14 @@ export type SeoConfig = {
 	ogImage?: string;
 };
 
+function documentTitle(
+	pageTitle: string | undefined,
+	siteTitle: string,
+): string {
+	const page = pageTitle?.trim();
+	return page && page !== siteTitle ? `${page} | ${siteTitle}` : siteTitle;
+}
+
 function serializeInitialData(landing?: LandingPayload): string {
 	return JSON.stringify(landing ? { landing } : {})
 		.replace(/</g, "\\u003c")
@@ -38,9 +46,10 @@ export function Document({
 	counters: Counter[];
 }) {
 	const keywords = seo.keywords.filter(Boolean).join(", ");
+	const title = documentTitle(landing?.title, seo.title);
 
 	return (
-		<html lang={lang}>
+		<html lang={lang} data-site-title={seo.title}>
 			<head>
 				<script
 					// biome-ignore lint/security/noDangerouslySetInnerHtml: static pre-paint theme bootstrap
@@ -53,7 +62,7 @@ export function Document({
 				/>
 				<meta name="theme-color" content={themeColor} />
 				<AnalyticsScript counters={counters} />
-				<title>{seo.title}</title>
+				<title>{title}</title>
 				{seo.description ? (
 					<meta name="description" content={seo.description} />
 				) : null}
@@ -61,7 +70,7 @@ export function Document({
 				<meta name="robots" content="index,follow" />
 				{seo.canonical ? <link rel="canonical" href={seo.canonical} /> : null}
 				<meta property="og:type" content="website" />
-				<meta property="og:title" content={seo.title} />
+				<meta property="og:title" content={title} />
 				{seo.description ? (
 					<meta property="og:description" content={seo.description} />
 				) : null}

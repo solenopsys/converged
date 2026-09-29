@@ -42,6 +42,7 @@ export type LandingMenuLink = { href: string; label: string };
 
 export type LandingPayload = {
 	configPath: string;
+	title?: string;
 
 	locale?: string;
 	pathname?: string;

@@ -4,7 +4,7 @@ const Policy = @import("qjs_policy.zig").Policy;
 const Hub = @import("hub.zig").Hub;
 const transport = @import("transport");
 const FluentBit = @import("fluentbit.zig").Receiver;
-const WebSocket = @import("websocket.zig").Server;
+const Http = @import("http.zig");
 const Registry = @import("registry.zig").Registry;
 const Journal = @import("messages.zig").Journal;
 const Notifications = @import("notifications.zig").Store;
@@ -25,6 +25,7 @@ const services_target = "services";
 
 /// Where Fluent Bit posts its batches back to this process.
 const ingest_path = "/ingest/fluentbit";
+const analytics_ingest_path = "/ingest/analytics";
 
 /// A container runs this binary as PID 1, and the kernel gives PID 1 no default
 /// signal disposition: with no handler installed SIGTERM is discarded outright,
@@ -124,19 +125,50 @@ pub fn main(init: std.process.Init) !void {
 
     if (isScheduleLeader(&config)) try startScheduler(allocator, &config);
 
-    var websocket = WebSocket{
+    var websocket_route = Http.WebSocketRoute{
         .hub = &hub,
+        .jwt = &config.jwt,
+        .browser_scope = config.browser_scope,
+    };
+    var analytics_route = Http.AnalyticsRoute{
+        .collector = &collector,
+        .path = analytics_ingest_path,
+    };
+    var handlers: [3]Http.Handler = undefined;
+    var handler_count: usize = 0;
+    handlers[handler_count] = .{
+        .path = "/ws",
+        .context = @ptrCast(&websocket_route),
+        .handle = Http.websocketHandler,
+    };
+    handler_count += 1;
+    handlers[handler_count] = .{
+        .path = analytics_route.path,
+        .context = @ptrCast(&analytics_route),
+        .handle = Http.analyticsHandler,
+    };
+    handler_count += 1;
+
+    var fluentbit_route = Http.FluentBitRoute{
+        .collector = &collector,
+        .path = ingest_path,
+        .key = config.ingest_key,
+    };
+    if (config.fluentbit_enabled) {
+        handlers[handler_count] = .{
+            .path = ingest_path,
+            .context = @ptrCast(&fluentbit_route),
+            .handle = Http.fluentBitHandler,
+        };
+        handler_count += 1;
+    }
+
+    var http = Http.Server{
         .host = config.ws_host,
         .port = config.ws_port,
-        .browser_scope = config.browser_scope,
-        .jwt = &config.jwt,
-        .ingest = if (config.fluentbit_enabled) .{
-            .collector = &collector,
-            .path = ingest_path,
-            .key = config.ingest_key,
-        } else null,
+        .handlers = handlers[0..handler_count],
     };
-    try websocket.serve();
+    try http.serve();
 }
 
 /// Whether this process owns the schedule.

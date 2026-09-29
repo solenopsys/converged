@@ -51,6 +51,7 @@
   font-size: var(--hw-font-size-md);
   font-weight: var(--hw-weight-regular);
   line-height: 1.2;
+  text-decoration: none;
 }
 
 .tab-label {

@@ -3,8 +3,13 @@ import {
 	registerLandingBlocks,
 	registerLandingHeader,
 } from "front-core/landing";
-import { AppShell, bootstrapAppShell, registerTopBarCommands } from "front-core/shell";
+import {
+	AppShell,
+	bootstrapAppShell,
+	registerTopBarCommands,
+} from "front-core/shell";
 import { render } from "preact";
+import { startBrowserAnalytics } from "../../../front-core/src/analytics/browser-collector";
 import { BrandLogo, blocks, header, topbarCommands } from "./landing-blocks";
 
 function readLandingPayload(): LandingPayload {
@@ -28,6 +33,8 @@ const isConsoleRoute = route === "/console" || route.startsWith("/console/");
 
 const root = document.getElementById("app");
 if (!root) throw new Error("Missing #app root");
+
+startBrowserAnalytics();
 
 registerLandingBlocks(blocks);
 registerLandingHeader(header);
