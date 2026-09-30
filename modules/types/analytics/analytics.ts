@@ -149,6 +149,13 @@ export type GeoLiteLocationInput = {
 	time_zone: string;
 };
 
+export type GeoLiteImportBatch = {
+	importId: string;
+	dataset: GeoLiteDataset;
+	kind: "network" | "locations";
+	ref: { cacheKey: string; sizeBytes?: number };
+};
+
 export type GeoLiteDataset = "country" | "city" | "asn";
 
 export type GeoLiteDatabaseStatus = {
@@ -242,23 +249,7 @@ export interface AnalyticsService {
 	inspectEvents(
 		filter?: AnalyticsFilterObject,
 	): Promise<AnalyticsSelectionStats>;
-	importGeoLiteCountryBatch(
-		importId: string,
-		rows: GeoLiteCountryNetworkInput[],
-	): Promise<number>;
-	importGeoLiteAsnBatch(
-		importId: string,
-		rows: GeoLiteAsnNetworkInput[],
-	): Promise<number>;
-	importGeoLiteCityBatch(
-		importId: string,
-		rows: GeoLiteCityNetworkInput[],
-	): Promise<number>;
-	importGeoLiteLocationsBatch(
-		importId: string,
-		dataset: "country" | "city",
-		rows: GeoLiteLocationInput[],
-	): Promise<number>;
+	importGeoLiteBatch(batch: GeoLiteImportBatch): Promise<number>;
 	completeGeoLiteImport(
 		dataset: GeoLiteDataset,
 		importId: string,

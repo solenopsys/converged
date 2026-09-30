@@ -1,3 +1,4 @@
+import type { CacheAdapter } from "back-core";
 import { Access } from "nrpc";
 import { StoresController } from "./stores";
 import { AnalyticsStoreService } from "./stores/events/service";
@@ -15,6 +16,7 @@ import type {
 	GeoLiteDatabaseRow,
 	GeoLiteDatabaseStatus,
 	GeoLiteDataset,
+	GeoLiteImportBatch,
 	GeoLiteLocationInput,
 } from "./types";
 
@@ -27,6 +29,7 @@ const TIMELINE_HOURS = 24;
 export class AnalyticsServiceImpl implements AnalyticsService {
 	stores!: StoresController;
 	private readonly initPromise: Promise<void>;
+	private readonly cache?: CacheAdapter;
 	private archiveInProgress = false;
 	private readonly geoCache = new Map<
 		string,
@@ -43,7 +46,8 @@ export class AnalyticsServiceImpl implements AnalyticsService {
 		>
 	>();
 
-	constructor() {
+	constructor(config?: { cache?: CacheAdapter }) {
+		this.cache = config?.cache;
 		this.initPromise = this.init();
 	}
 
@@ -306,40 +310,50 @@ export class AnalyticsServiceImpl implements AnalyticsService {
 	}
 
 	@Access("user")
-	async importGeoLiteCountryBatch(
-		importId: string,
-		rows: GeoLiteCountryNetworkInput[],
-	): Promise<number> {
+	async importGeoLiteBatch(batch: GeoLiteImportBatch): Promise<number> {
 		await this.ensureReady();
-		return this.stores.geoCountry.importBatch(importId, rows);
-	}
+		const cache = this.cache;
+		if (!cache) throw new Error("GeoLite batch cache is not configured");
+		const cacheKey = batch.ref?.cacheKey;
+		if (typeof cacheKey !== "string" || !cacheKey.trim()) {
+			throw new Error("GeoLite batch cache reference is invalid");
+		}
+		const bytes = await cache.getBytes(cacheKey);
+		if (!bytes)
+			throw new Error("GeoLite batch cache entry is missing or expired");
+		const rows = JSON.parse(new TextDecoder().decode(bytes));
+		if (!Array.isArray(rows) || rows.length > 1_000) {
+			throw new Error("GeoLite cache entry must contain at most 1000 rows");
+		}
 
-	@Access("user")
-	async importGeoLiteAsnBatch(
-		importId: string,
-		rows: GeoLiteAsnNetworkInput[],
-	): Promise<number> {
-		await this.ensureReady();
-		return this.stores.geoAsn.importBatch(importId, rows);
-	}
-
-	@Access("user")
-	async importGeoLiteCityBatch(
-		importId: string,
-		rows: GeoLiteCityNetworkInput[],
-	): Promise<number> {
-		await this.ensureReady();
-		return this.stores.geoCity.importNetworkBatch(importId, rows);
-	}
-
-	@Access("user")
-	async importGeoLiteLocationsBatch(
-		importId: string,
-		dataset: "country" | "city",
-		rows: GeoLiteLocationInput[],
-	): Promise<number> {
-		await this.ensureReady();
-		return this.stores.geoCity.importLocationsBatch(importId, dataset, rows);
+		let imported: number;
+		if (batch.kind === "locations") {
+			if (batch.dataset === "asn") {
+				throw new Error("ASN imports do not contain location rows");
+			}
+			imported = await this.stores.geoCity.importLocationsBatch(
+				batch.importId,
+				batch.dataset,
+				rows as GeoLiteLocationInput[],
+			);
+		} else if (batch.dataset === "country") {
+			imported = await this.stores.geoCountry.importBatch(
+				batch.importId,
+				rows as GeoLiteCountryNetworkInput[],
+			);
+		} else if (batch.dataset === "city") {
+			imported = await this.stores.geoCity.importNetworkBatch(
+				batch.importId,
+				rows as GeoLiteCityNetworkInput[],
+			);
+		} else {
+			imported = await this.stores.geoAsn.importBatch(
+				batch.importId,
+				rows as GeoLiteAsnNetworkInput[],
+			);
+		}
+		await cache.del(batch.ref.cacheKey);
+		return imported;
 	}
 
 	@Access("user")

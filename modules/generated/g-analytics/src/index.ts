@@ -1,8 +1,8 @@
 // Auto-generated native NRPC package
 import {
-	type CrullerTransportClientConfig,
-	createCrullerTransportClient,
-	type ServiceMetadata,
+  createCrullerTransportClient,
+  type CrullerTransportClientConfig,
+  type ServiceMetadata,
 } from "nrpc";
 
 export type AnalyticsEvent = {
@@ -156,6 +156,13 @@ export type GeoLiteLocationInput = {
 	time_zone: string;
 };
 
+export type GeoLiteImportBatch = {
+	importId: string;
+	dataset: GeoLiteDataset;
+	kind: "network" | "locations";
+	ref: { cacheKey: string; sizeBytes?: number };
+};
+
 export type GeoLiteDataset = "country" | "city" | "asn";
 
 export type GeoLiteDatabaseStatus = {
@@ -231,570 +238,418 @@ export type AnalyticsSelectionStats = { totalCount: number };
 export type PaginatedResult<T> = { items: T[]; totalCount?: number };
 
 export const metadata: ServiceMetadata = {
-	interfaceName: "AnalyticsService",
-	serviceName: "analytics",
-	filePath: "analytics/analytics.ts",
-	methods: [
-		{
-			name: "write",
-			parameters: [
-				{
-					name: "event",
-					type: "AnalyticsEventInput",
-					optional: false,
-					isArray: false,
-				},
-			],
-			returnType: "void",
-			isAsync: true,
-			returnTypeIsArray: false,
-			isAsyncIterable: false,
-		},
-		{
-			name: "writeBatch",
-			parameters: [
-				{
-					name: "events",
-					type: "AnalyticsEventInput",
-					optional: false,
-					isArray: true,
-				},
-			],
-			returnType: "number",
-			isAsync: true,
-			returnTypeIsArray: false,
-			isAsyncIterable: false,
-		},
-		{
-			name: "listHot",
-			parameters: [
-				{
-					name: "params",
-					type: "AnalyticsQueryParams",
-					optional: false,
-					isArray: false,
-				},
-			],
-			returnType: "PaginatedResult<AnalyticsEvent>",
-			isAsync: true,
-			returnTypeIsArray: false,
-			isAsyncIterable: false,
-		},
-		{
-			name: "listCold",
-			parameters: [
-				{
-					name: "params",
-					type: "AnalyticsQueryParams",
-					optional: false,
-					isArray: false,
-				},
-			],
-			returnType: "PaginatedResult<AnalyticsEvent>",
-			isAsync: true,
-			returnTypeIsArray: false,
-			isAsyncIterable: false,
-		},
-		{
-			name: "getStatistic",
-			parameters: [],
-			returnType: "AnalyticsStatistic",
-			isAsync: true,
-			returnTypeIsArray: false,
-			isAsyncIterable: false,
-		},
-		{
-			name: "getDashboardSummary",
-			parameters: [],
-			returnType: "AnalyticsDashboardSummary",
-			isAsync: true,
-			returnTypeIsArray: false,
-			isAsyncIterable: false,
-		},
-		{
-			name: "listIpSessions",
-			parameters: [
-				{
-					name: "limit",
-					type: "number",
-					optional: false,
-					isArray: false,
-				},
-				{
-					name: "offset",
-					type: "number",
-					optional: false,
-					isArray: false,
-				},
-			],
-			returnType: "AnalyticsIpSessionPage",
-			isAsync: true,
-			returnTypeIsArray: false,
-			isAsyncIterable: false,
-		},
-		{
-			name: "describeSelection",
-			parameters: [
-				{
-					name: "objectType",
-					type: "string",
-					optional: false,
-					isArray: false,
-				},
-			],
-			returnType: "AnalyticsSelectionDescriptor",
-			isAsync: true,
-			returnTypeIsArray: false,
-			isAsyncIterable: false,
-		},
-		{
-			name: "inspectEvents",
-			parameters: [
-				{
-					name: "filter",
-					type: "AnalyticsFilterObject",
-					optional: true,
-					isArray: false,
-				},
-			],
-			returnType: "AnalyticsSelectionStats",
-			isAsync: true,
-			returnTypeIsArray: false,
-			isAsyncIterable: false,
-		},
-		{
-			name: "importGeoLiteCountryBatch",
-			parameters: [
-				{
-					name: "importId",
-					type: "string",
-					optional: false,
-					isArray: false,
-				},
-				{
-					name: "rows",
-					type: "GeoLiteCountryNetworkInput",
-					optional: false,
-					isArray: true,
-				},
-			],
-			returnType: "number",
-			isAsync: true,
-			returnTypeIsArray: false,
-			isAsyncIterable: false,
-		},
-		{
-			name: "importGeoLiteAsnBatch",
-			parameters: [
-				{
-					name: "importId",
-					type: "string",
-					optional: false,
-					isArray: false,
-				},
-				{
-					name: "rows",
-					type: "GeoLiteAsnNetworkInput",
-					optional: false,
-					isArray: true,
-				},
-			],
-			returnType: "number",
-			isAsync: true,
-			returnTypeIsArray: false,
-			isAsyncIterable: false,
-		},
-		{
-			name: "importGeoLiteCityBatch",
-			parameters: [
-				{
-					name: "importId",
-					type: "string",
-					optional: false,
-					isArray: false,
-				},
-				{
-					name: "rows",
-					type: "GeoLiteCityNetworkInput",
-					optional: false,
-					isArray: true,
-				},
-			],
-			returnType: "number",
-			isAsync: true,
-			returnTypeIsArray: false,
-			isAsyncIterable: false,
-		},
-		{
-			name: "importGeoLiteLocationsBatch",
-			parameters: [
-				{
-					name: "importId",
-					type: "string",
-					optional: false,
-					isArray: false,
-				},
-				{
-					name: "dataset",
-					type: '"country" | "city"',
-					optional: false,
-					isArray: false,
-				},
-				{
-					name: "rows",
-					type: "GeoLiteLocationInput",
-					optional: false,
-					isArray: true,
-				},
-			],
-			returnType: "number",
-			isAsync: true,
-			returnTypeIsArray: false,
-			isAsyncIterable: false,
-		},
-		{
-			name: "completeGeoLiteImport",
-			parameters: [
-				{
-					name: "dataset",
-					type: "GeoLiteDataset",
-					optional: false,
-					isArray: false,
-				},
-				{
-					name: "importId",
-					type: "string",
-					optional: false,
-					isArray: false,
-				},
-			],
-			returnType: "number",
-			isAsync: true,
-			returnTypeIsArray: false,
-			isAsyncIterable: false,
-		},
-		{
-			name: "getGeoLiteDatabaseStatus",
-			parameters: [],
-			returnType: "GeoLiteDatabaseStatus",
-			isAsync: true,
-			returnTypeIsArray: true,
-			isAsyncIterable: false,
-		},
-		{
-			name: "listGeoLiteDatabase",
-			parameters: [
-				{
-					name: "dataset",
-					type: "GeoLiteDataset",
-					optional: false,
-					isArray: false,
-				},
-				{
-					name: "limit",
-					type: "number",
-					optional: false,
-					isArray: false,
-				},
-				{
-					name: "offset",
-					type: "number",
-					optional: false,
-					isArray: false,
-				},
-			],
-			returnType: "GeoLiteDatabasePage",
-			isAsync: true,
-			returnTypeIsArray: false,
-			isAsyncIterable: false,
-		},
-		{
-			name: "clearGeoLiteCountry",
-			parameters: [],
-			returnType: "void",
-			isAsync: true,
-			returnTypeIsArray: false,
-			isAsyncIterable: false,
-		},
-		{
-			name: "clearGeoLiteAsn",
-			parameters: [],
-			returnType: "void",
-			isAsync: true,
-			returnTypeIsArray: false,
-			isAsyncIterable: false,
-		},
-		{
-			name: "archiveHotToCold",
-			parameters: [],
-			returnType: "number",
-			isAsync: true,
-			returnTypeIsArray: false,
-			isAsyncIterable: false,
-		},
-	],
-	types: [
-		{
-			name: "AnalyticsEvent",
-			kind: "type",
-			definition:
-				'{\n\tts: number;\n\tvisitor_id: string;\n\tsession_id: string;\n\tevent_type: string;\n\taudience_type: "authenticated" | "external" | "unknown";\n\tcontent_type: string;\n\tcontent_id: string;\n\tcompany_id: string;\n\tcampaign_id: string;\n\turl: string;\n\treferrer: string;\n\tlanguage: string;\n\ttimezone: string;\n\tuser_agent: string;\n\tscreen: string;\n\tviewport: string;\n\tpixel_ratio: number;\n\ttouch_points: number;\n\thardware_concurrency: number;\n\tdevice_memory: number;\n\twebdriver: boolean;\n\tvisible_ms: number;\n\thidden_ms: number;\n\tpointer_events: number;\n\tpointer_distance: number;\n\tpointer_directions: number;\n\tscroll_events: number;\n\tscroll_max: number;\n\ttrusted_clicks: number;\n\tuntrusted_clicks: number;\n\tkey_events: number;\n\tuser_activation: boolean;\n\tfirst_interaction_ms: number;\n\tip_address: string;\n\tcountry_code: string;\n\tcountry_name: string;\n\tregion_name: string;\n\tcity_name: string;\n\tasn: number;\n\tasn_organization: string;\n}',
-		},
-		{
-			name: "AnalyticsEventInput",
-			kind: "type",
-			definition:
-				"Partial<AnalyticsEvent> & {\n\tvisitor_id: string;\n\tsession_id: string;\n\tevent_type: string;\n\turl: string;\n}",
-		},
-		{
-			name: "AnalyticsQueryParams",
-			kind: "type",
-			definition:
-				'{\n\toffset: number;\n\tlimit: number;\n\tvisitor_id?: string;\n\tsession_id?: string;\n\tevent_type?: string;\n\taudience_type?: "authenticated" | "external" | "unknown";\n\tcontent_type?: string;\n\tcontent_id?: string;\n\turl?: string;\n\tcountry_code?: string;\n\tip_address?: string;\n\tfrom_ts?: number;\n\tto_ts?: number;\n\tfilter?: Record<string, unknown>;\n}',
-		},
-		{
-			name: "AnalyticsFilterObject",
-			kind: "type",
-			definition: "Record<string, unknown>",
-		},
-		{
-			name: "AnalyticsStatistic",
-			kind: "type",
-			definition:
-				"{\n\ttotalHot: number;\n\ttotalCold: number;\n\tbyEvent: Record<string, number>;\n\tdashboard: AnalyticsDashboardSummary;\n\ttimeline: AnalyticsTimelineBucket[];\n\tvisitorTypes: AnalyticsVisitorTypeCounts;\n\tgeoLiteDatabases: GeoLiteDatabaseStatus[];\n}",
-		},
-		{
-			name: "AnalyticsTimelineBucket",
-			kind: "type",
-			definition:
-				"{\n\ttimestamp: number;\n\tvisits: number;\n\tevents: number;\n}",
-		},
-		{
-			name: "AnalyticsVisitorTypeCounts",
-			kind: "type",
-			definition:
-				"{\n\thuman: number;\n\tbot: number;\n\tunverified: number;\n}",
-		},
-		{
-			name: "AnalyticsIpSession",
-			kind: "type",
-			definition:
-				'{\n\tvisitor_id: string;\n\tsession_id: string;\n\tip_address: string;\n\tnetwork: string;\n\tcountry_code: string;\n\tcountry_name: string;\n\tregion_name: string;\n\tcity_name: string;\n\tasn: number;\n\tasn_organization: string;\n\tuser_type: "human" | "bot" | "unverified";\n\taudience_type: "authenticated" | "external" | "unknown";\n\turl: string;\n\tfirst_seen: number;\n\tlast_seen: number;\n\tpage_views: number;\n\tclicks: number;\n\tvisible_ms: number;\n\tscroll_max: number;\n}',
-		},
-		{
-			name: "AnalyticsIpSessionPage",
-			kind: "type",
-			definition: "{\n\titems: AnalyticsIpSession[];\n\ttotalCount: number;\n}",
-		},
-		{
-			name: "GeoLiteCountryNetworkInput",
-			kind: "type",
-			definition:
-				"{\n\tnetwork: string;\n\tcountry_code?: string;\n\tcountry_name?: string;\n\tgeoname_id?: number;\n\tregistered_country_geoname_id?: number;\n}",
-		},
-		{
-			name: "GeoLiteAsnNetworkInput",
-			kind: "type",
-			definition:
-				"{\n\tnetwork: string;\n\tasn: number;\n\torganization: string;\n}",
-		},
-		{
-			name: "GeoLiteCityNetworkInput",
-			kind: "type",
-			definition:
-				"{\n\tnetwork: string;\n\tgeoname_id?: number;\n\tregistered_country_geoname_id?: number;\n}",
-		},
-		{
-			name: "GeoLiteLocationInput",
-			kind: "type",
-			definition:
-				'{\n\tdataset: "country" | "city";\n\tgeoname_id: number;\n\tcontinent_code: string;\n\tcontinent_name: string;\n\tcountry_code: string;\n\tcountry_name: string;\n\tregion_code: string;\n\tregion_name: string;\n\tcity_name: string;\n\ttime_zone: string;\n}',
-		},
-		{
-			name: "GeoLiteDataset",
-			kind: "type",
-			definition: '"country" | "city" | "asn"',
-		},
-		{
-			name: "GeoLiteDatabaseStatus",
-			kind: "type",
-			definition:
-				"{\n\tdataset: GeoLiteDataset;\n\trecords: number;\n\tupdated_at: number;\n}",
-		},
-		{
-			name: "GeoLiteDatabaseRow",
-			kind: "type",
-			definition:
-				"{\n\tnetwork: string;\n\tcountry_code: string;\n\tcountry_name: string;\n\tregion_name: string;\n\tcity_name: string;\n\tgeoname_id: number | null;\n\tregistered_country_geoname_id: number | null;\n\tasn: number | null;\n\torganization: string;\n}",
-		},
-		{
-			name: "GeoLiteDatabasePage",
-			kind: "type",
-			definition: "{\n\titems: GeoLiteDatabaseRow[];\n\ttotalCount: number;\n}",
-		},
-		{
-			name: "AnalyticsPageSummary",
-			kind: "type",
-			definition:
-				"{\n\turl: string;\n\tsessions: number;\n\tvisitors: number;\n}",
-		},
-		{
-			name: "AnalyticsUriPageViewSummary",
-			kind: "type",
-			definition: "{\n\turl: string;\n\tpage_views: number;\n}",
-		},
-		{
-			name: "AnalyticsCountrySummary",
-			kind: "type",
-			definition:
-				"{\n\tcountry_code: string;\n\tcountry_name: string;\n\tsessions: number;\n\tvisitors: number;\n}",
-		},
-		{
-			name: "AnalyticsDashboardSummary",
-			kind: "type",
-			definition:
-				"{\n\tpage_views_today: number;\n\tvisits_today: number;\n\tvisitors_today: number;\n\tevents_total: number;\n\tactive_sessions: number;\n\tactive_visitors: number;\n\tactive_pages: AnalyticsPageSummary[];\n\tpage_views_by_uri: AnalyticsUriPageViewSummary[];\n\tactive_countries: AnalyticsCountrySummary[];\n\tupdated_at: number;\n}",
-		},
-		{
-			name: "AnalyticsSelectionField",
-			kind: "type",
-			definition:
-				'{\n\tid: string;\n\tlabel: string;\n\tvalueType: "string" | "number" | "boolean" | "date" | "enum";\n\toperators: string[];\n}',
-		},
-		{
-			name: "AnalyticsSelectionDescriptor",
-			kind: "type",
-			definition:
-				"{\n\tobjectType: string;\n\ttitle: string;\n\tfields: AnalyticsSelectionField[];\n\trevision?: string;\n}",
-		},
-		{
-			name: "AnalyticsSelectionStats",
-			kind: "type",
-			definition: "{ totalCount: number }",
-		},
-		{
-			name: "PaginatedResult",
-			kind: "type",
-			typeParameters: "<T>",
-			definition: "{ items: T[]; totalCount?: number }",
-		},
-	],
+  "interfaceName": "AnalyticsService",
+  "serviceName": "analytics",
+  "filePath": "analytics/analytics.ts",
+  "methods": [
+    {
+      "name": "write",
+      "parameters": [
+        {
+          "name": "event",
+          "type": "AnalyticsEventInput",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "void",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "writeBatch",
+      "parameters": [
+        {
+          "name": "events",
+          "type": "AnalyticsEventInput",
+          "optional": false,
+          "isArray": true
+        }
+      ],
+      "returnType": "number",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "listHot",
+      "parameters": [
+        {
+          "name": "params",
+          "type": "AnalyticsQueryParams",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "PaginatedResult<AnalyticsEvent>",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "listCold",
+      "parameters": [
+        {
+          "name": "params",
+          "type": "AnalyticsQueryParams",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "PaginatedResult<AnalyticsEvent>",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "getStatistic",
+      "parameters": [],
+      "returnType": "AnalyticsStatistic",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "getDashboardSummary",
+      "parameters": [],
+      "returnType": "AnalyticsDashboardSummary",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "listIpSessions",
+      "parameters": [
+        {
+          "name": "limit",
+          "type": "number",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "offset",
+          "type": "number",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "AnalyticsIpSessionPage",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "describeSelection",
+      "parameters": [
+        {
+          "name": "objectType",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "AnalyticsSelectionDescriptor",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "inspectEvents",
+      "parameters": [
+        {
+          "name": "filter",
+          "type": "AnalyticsFilterObject",
+          "optional": true,
+          "isArray": false
+        }
+      ],
+      "returnType": "AnalyticsSelectionStats",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "importGeoLiteBatch",
+      "parameters": [
+        {
+          "name": "batch",
+          "type": "GeoLiteImportBatch",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "number",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "completeGeoLiteImport",
+      "parameters": [
+        {
+          "name": "dataset",
+          "type": "GeoLiteDataset",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "importId",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "number",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "getGeoLiteDatabaseStatus",
+      "parameters": [],
+      "returnType": "GeoLiteDatabaseStatus",
+      "isAsync": true,
+      "returnTypeIsArray": true,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "listGeoLiteDatabase",
+      "parameters": [
+        {
+          "name": "dataset",
+          "type": "GeoLiteDataset",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "limit",
+          "type": "number",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "offset",
+          "type": "number",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "GeoLiteDatabasePage",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "clearGeoLiteCountry",
+      "parameters": [],
+      "returnType": "void",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "clearGeoLiteAsn",
+      "parameters": [],
+      "returnType": "void",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "archiveHotToCold",
+      "parameters": [],
+      "returnType": "number",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    }
+  ],
+  "types": [
+    {
+      "name": "AnalyticsEvent",
+      "kind": "type",
+      "definition": "{\n\tts: number;\n\tvisitor_id: string;\n\tsession_id: string;\n\tevent_type: string;\n\taudience_type: \"authenticated\" | \"external\" | \"unknown\";\n\tcontent_type: string;\n\tcontent_id: string;\n\tcompany_id: string;\n\tcampaign_id: string;\n\turl: string;\n\treferrer: string;\n\tlanguage: string;\n\ttimezone: string;\n\tuser_agent: string;\n\tscreen: string;\n\tviewport: string;\n\tpixel_ratio: number;\n\ttouch_points: number;\n\thardware_concurrency: number;\n\tdevice_memory: number;\n\twebdriver: boolean;\n\tvisible_ms: number;\n\thidden_ms: number;\n\tpointer_events: number;\n\tpointer_distance: number;\n\tpointer_directions: number;\n\tscroll_events: number;\n\tscroll_max: number;\n\ttrusted_clicks: number;\n\tuntrusted_clicks: number;\n\tkey_events: number;\n\tuser_activation: boolean;\n\tfirst_interaction_ms: number;\n\tip_address: string;\n\tcountry_code: string;\n\tcountry_name: string;\n\tregion_name: string;\n\tcity_name: string;\n\tasn: number;\n\tasn_organization: string;\n}"
+    },
+    {
+      "name": "AnalyticsEventInput",
+      "kind": "type",
+      "definition": "Partial<AnalyticsEvent> & {\n\tvisitor_id: string;\n\tsession_id: string;\n\tevent_type: string;\n\turl: string;\n}"
+    },
+    {
+      "name": "AnalyticsQueryParams",
+      "kind": "type",
+      "definition": "{\n\toffset: number;\n\tlimit: number;\n\tvisitor_id?: string;\n\tsession_id?: string;\n\tevent_type?: string;\n\taudience_type?: \"authenticated\" | \"external\" | \"unknown\";\n\tcontent_type?: string;\n\tcontent_id?: string;\n\turl?: string;\n\tcountry_code?: string;\n\tip_address?: string;\n\tfrom_ts?: number;\n\tto_ts?: number;\n\tfilter?: Record<string, unknown>;\n}"
+    },
+    {
+      "name": "AnalyticsFilterObject",
+      "kind": "type",
+      "definition": "Record<string, unknown>"
+    },
+    {
+      "name": "AnalyticsStatistic",
+      "kind": "type",
+      "definition": "{\n\ttotalHot: number;\n\ttotalCold: number;\n\tbyEvent: Record<string, number>;\n\tdashboard: AnalyticsDashboardSummary;\n\ttimeline: AnalyticsTimelineBucket[];\n\tvisitorTypes: AnalyticsVisitorTypeCounts;\n\tgeoLiteDatabases: GeoLiteDatabaseStatus[];\n}"
+    },
+    {
+      "name": "AnalyticsTimelineBucket",
+      "kind": "type",
+      "definition": "{\n\ttimestamp: number;\n\tvisits: number;\n\tevents: number;\n}"
+    },
+    {
+      "name": "AnalyticsVisitorTypeCounts",
+      "kind": "type",
+      "definition": "{\n\thuman: number;\n\tbot: number;\n\tunverified: number;\n}"
+    },
+    {
+      "name": "AnalyticsIpSession",
+      "kind": "type",
+      "definition": "{\n\tvisitor_id: string;\n\tsession_id: string;\n\tip_address: string;\n\tnetwork: string;\n\tcountry_code: string;\n\tcountry_name: string;\n\tregion_name: string;\n\tcity_name: string;\n\tasn: number;\n\tasn_organization: string;\n\tuser_type: \"human\" | \"bot\" | \"unverified\";\n\taudience_type: \"authenticated\" | \"external\" | \"unknown\";\n\turl: string;\n\tfirst_seen: number;\n\tlast_seen: number;\n\tpage_views: number;\n\tclicks: number;\n\tvisible_ms: number;\n\tscroll_max: number;\n}"
+    },
+    {
+      "name": "AnalyticsIpSessionPage",
+      "kind": "type",
+      "definition": "{\n\titems: AnalyticsIpSession[];\n\ttotalCount: number;\n}"
+    },
+    {
+      "name": "GeoLiteCountryNetworkInput",
+      "kind": "type",
+      "definition": "{\n\tnetwork: string;\n\tcountry_code?: string;\n\tcountry_name?: string;\n\tgeoname_id?: number;\n\tregistered_country_geoname_id?: number;\n}"
+    },
+    {
+      "name": "GeoLiteAsnNetworkInput",
+      "kind": "type",
+      "definition": "{\n\tnetwork: string;\n\tasn: number;\n\torganization: string;\n}"
+    },
+    {
+      "name": "GeoLiteCityNetworkInput",
+      "kind": "type",
+      "definition": "{\n\tnetwork: string;\n\tgeoname_id?: number;\n\tregistered_country_geoname_id?: number;\n}"
+    },
+    {
+      "name": "GeoLiteLocationInput",
+      "kind": "type",
+      "definition": "{\n\tdataset: \"country\" | \"city\";\n\tgeoname_id: number;\n\tcontinent_code: string;\n\tcontinent_name: string;\n\tcountry_code: string;\n\tcountry_name: string;\n\tregion_code: string;\n\tregion_name: string;\n\tcity_name: string;\n\ttime_zone: string;\n}"
+    },
+    {
+      "name": "GeoLiteImportBatch",
+      "kind": "type",
+      "definition": "{\n\timportId: string;\n\tdataset: GeoLiteDataset;\n\tkind: \"network\" | \"locations\";\n\tref: { cacheKey: string; sizeBytes?: number };\n}"
+    },
+    {
+      "name": "GeoLiteDataset",
+      "kind": "type",
+      "definition": "\"country\" | \"city\" | \"asn\""
+    },
+    {
+      "name": "GeoLiteDatabaseStatus",
+      "kind": "type",
+      "definition": "{\n\tdataset: GeoLiteDataset;\n\trecords: number;\n\tupdated_at: number;\n}"
+    },
+    {
+      "name": "GeoLiteDatabaseRow",
+      "kind": "type",
+      "definition": "{\n\tnetwork: string;\n\tcountry_code: string;\n\tcountry_name: string;\n\tregion_name: string;\n\tcity_name: string;\n\tgeoname_id: number | null;\n\tregistered_country_geoname_id: number | null;\n\tasn: number | null;\n\torganization: string;\n}"
+    },
+    {
+      "name": "GeoLiteDatabasePage",
+      "kind": "type",
+      "definition": "{\n\titems: GeoLiteDatabaseRow[];\n\ttotalCount: number;\n}"
+    },
+    {
+      "name": "AnalyticsPageSummary",
+      "kind": "type",
+      "definition": "{\n\turl: string;\n\tsessions: number;\n\tvisitors: number;\n}"
+    },
+    {
+      "name": "AnalyticsUriPageViewSummary",
+      "kind": "type",
+      "definition": "{\n\turl: string;\n\tpage_views: number;\n}"
+    },
+    {
+      "name": "AnalyticsCountrySummary",
+      "kind": "type",
+      "definition": "{\n\tcountry_code: string;\n\tcountry_name: string;\n\tsessions: number;\n\tvisitors: number;\n}"
+    },
+    {
+      "name": "AnalyticsDashboardSummary",
+      "kind": "type",
+      "definition": "{\n\tpage_views_today: number;\n\tvisits_today: number;\n\tvisitors_today: number;\n\tevents_total: number;\n\tactive_sessions: number;\n\tactive_visitors: number;\n\tactive_pages: AnalyticsPageSummary[];\n\tpage_views_by_uri: AnalyticsUriPageViewSummary[];\n\tactive_countries: AnalyticsCountrySummary[];\n\tupdated_at: number;\n}"
+    },
+    {
+      "name": "AnalyticsSelectionField",
+      "kind": "type",
+      "definition": "{\n\tid: string;\n\tlabel: string;\n\tvalueType: \"string\" | \"number\" | \"boolean\" | \"date\" | \"enum\";\n\toperators: string[];\n}"
+    },
+    {
+      "name": "AnalyticsSelectionDescriptor",
+      "kind": "type",
+      "definition": "{\n\tobjectType: string;\n\ttitle: string;\n\tfields: AnalyticsSelectionField[];\n\trevision?: string;\n}"
+    },
+    {
+      "name": "AnalyticsSelectionStats",
+      "kind": "type",
+      "definition": "{ totalCount: number }"
+    },
+    {
+      "name": "PaginatedResult",
+      "kind": "type",
+      "typeParameters": "<T>",
+      "definition": "{ items: T[]; totalCount?: number }"
+    }
+  ]
 };
 
 // Server interface (to be implemented in microservice)
 export interface AnalyticsService {
-	write(event: AnalyticsEventInput): Promise<void>;
-	writeBatch(events: AnalyticsEventInput[]): Promise<number>;
-	listHot(
-		params: AnalyticsQueryParams,
-	): Promise<PaginatedResult<AnalyticsEvent>>;
-	listCold(
-		params: AnalyticsQueryParams,
-	): Promise<PaginatedResult<AnalyticsEvent>>;
-	getStatistic(): Promise<AnalyticsStatistic>;
-	getDashboardSummary(): Promise<AnalyticsDashboardSummary>;
-	listIpSessions(
-		limit: number,
-		offset: number,
-	): Promise<AnalyticsIpSessionPage>;
-	describeSelection(objectType: string): Promise<AnalyticsSelectionDescriptor>;
-	inspectEvents(
-		filter?: AnalyticsFilterObject,
-	): Promise<AnalyticsSelectionStats>;
-	importGeoLiteCountryBatch(
-		importId: string,
-		rows: GeoLiteCountryNetworkInput[],
-	): Promise<number>;
-	importGeoLiteAsnBatch(
-		importId: string,
-		rows: GeoLiteAsnNetworkInput[],
-	): Promise<number>;
-	importGeoLiteCityBatch(
-		importId: string,
-		rows: GeoLiteCityNetworkInput[],
-	): Promise<number>;
-	importGeoLiteLocationsBatch(
-		importId: string,
-		dataset: "country" | "city",
-		rows: GeoLiteLocationInput[],
-	): Promise<number>;
-	completeGeoLiteImport(
-		dataset: GeoLiteDataset,
-		importId: string,
-	): Promise<number>;
-	getGeoLiteDatabaseStatus(): Promise<GeoLiteDatabaseStatus[]>;
-	listGeoLiteDatabase(
-		dataset: GeoLiteDataset,
-		limit: number,
-		offset: number,
-	): Promise<GeoLiteDatabasePage>;
-	clearGeoLiteCountry(): Promise<void>;
-	clearGeoLiteAsn(): Promise<void>;
-	archiveHotToCold(): Promise<number>;
+  write(event: AnalyticsEventInput): Promise<void>;
+  writeBatch(events: AnalyticsEventInput[]): Promise<number>;
+  listHot(params: AnalyticsQueryParams): Promise<PaginatedResult<AnalyticsEvent>>;
+  listCold(params: AnalyticsQueryParams): Promise<PaginatedResult<AnalyticsEvent>>;
+  getStatistic(): Promise<AnalyticsStatistic>;
+  getDashboardSummary(): Promise<AnalyticsDashboardSummary>;
+  listIpSessions(limit: number, offset: number): Promise<AnalyticsIpSessionPage>;
+  describeSelection(objectType: string): Promise<AnalyticsSelectionDescriptor>;
+  inspectEvents(filter?: AnalyticsFilterObject): Promise<AnalyticsSelectionStats>;
+  importGeoLiteBatch(batch: GeoLiteImportBatch): Promise<number>;
+  completeGeoLiteImport(dataset: GeoLiteDataset, importId: string): Promise<number>;
+  getGeoLiteDatabaseStatus(): Promise<GeoLiteDatabaseStatus[]>;
+  listGeoLiteDatabase(dataset: GeoLiteDataset, limit: number, offset: number): Promise<GeoLiteDatabasePage>;
+  clearGeoLiteCountry(): Promise<void>;
+  clearGeoLiteAsn(): Promise<void>;
+  archiveHotToCold(): Promise<number>;
 }
 
 // Client interface
 export interface AnalyticsServiceClient {
-	write(event: AnalyticsEventInput): Promise<void>;
-	writeBatch(events: AnalyticsEventInput[]): Promise<number>;
-	listHot(
-		params: AnalyticsQueryParams,
-	): Promise<PaginatedResult<AnalyticsEvent>>;
-	listCold(
-		params: AnalyticsQueryParams,
-	): Promise<PaginatedResult<AnalyticsEvent>>;
-	getStatistic(): Promise<AnalyticsStatistic>;
-	getDashboardSummary(): Promise<AnalyticsDashboardSummary>;
-	listIpSessions(
-		limit: number,
-		offset: number,
-	): Promise<AnalyticsIpSessionPage>;
-	describeSelection(objectType: string): Promise<AnalyticsSelectionDescriptor>;
-	inspectEvents(
-		filter?: AnalyticsFilterObject,
-	): Promise<AnalyticsSelectionStats>;
-	importGeoLiteCountryBatch(
-		importId: string,
-		rows: GeoLiteCountryNetworkInput[],
-	): Promise<number>;
-	importGeoLiteAsnBatch(
-		importId: string,
-		rows: GeoLiteAsnNetworkInput[],
-	): Promise<number>;
-	importGeoLiteCityBatch(
-		importId: string,
-		rows: GeoLiteCityNetworkInput[],
-	): Promise<number>;
-	importGeoLiteLocationsBatch(
-		importId: string,
-		dataset: "country" | "city",
-		rows: GeoLiteLocationInput[],
-	): Promise<number>;
-	completeGeoLiteImport(
-		dataset: GeoLiteDataset,
-		importId: string,
-	): Promise<number>;
-	getGeoLiteDatabaseStatus(): Promise<GeoLiteDatabaseStatus[]>;
-	listGeoLiteDatabase(
-		dataset: GeoLiteDataset,
-		limit: number,
-		offset: number,
-	): Promise<GeoLiteDatabasePage>;
-	clearGeoLiteCountry(): Promise<void>;
-	clearGeoLiteAsn(): Promise<void>;
-	archiveHotToCold(): Promise<number>;
+  write(event: AnalyticsEventInput): Promise<void>;
+  writeBatch(events: AnalyticsEventInput[]): Promise<number>;
+  listHot(params: AnalyticsQueryParams): Promise<PaginatedResult<AnalyticsEvent>>;
+  listCold(params: AnalyticsQueryParams): Promise<PaginatedResult<AnalyticsEvent>>;
+  getStatistic(): Promise<AnalyticsStatistic>;
+  getDashboardSummary(): Promise<AnalyticsDashboardSummary>;
+  listIpSessions(limit: number, offset: number): Promise<AnalyticsIpSessionPage>;
+  describeSelection(objectType: string): Promise<AnalyticsSelectionDescriptor>;
+  inspectEvents(filter?: AnalyticsFilterObject): Promise<AnalyticsSelectionStats>;
+  importGeoLiteBatch(batch: GeoLiteImportBatch): Promise<number>;
+  completeGeoLiteImport(dataset: GeoLiteDataset, importId: string): Promise<number>;
+  getGeoLiteDatabaseStatus(): Promise<GeoLiteDatabaseStatus[]>;
+  listGeoLiteDatabase(dataset: GeoLiteDataset, limit: number, offset: number): Promise<GeoLiteDatabasePage>;
+  clearGeoLiteCountry(): Promise<void>;
+  clearGeoLiteAsn(): Promise<void>;
+  archiveHotToCold(): Promise<number>;
 }
 
 // Native factory: cruller-transport -> Fujin -> cluster peer.
 // Package exports select this entrypoint outside a browser build.
 export function createAnalyticsServiceClient(
-	config: CrullerTransportClientConfig,
+  config: CrullerTransportClientConfig,
 ): AnalyticsServiceClient {
-	return createCrullerTransportClient<AnalyticsServiceClient>(metadata, config);
+  return createCrullerTransportClient<AnalyticsServiceClient>(metadata, config);
 }
 
 export function createAnalyticsServiceCrullerTransportClient(
-	config: CrullerTransportClientConfig,
+  config: CrullerTransportClientConfig,
 ): AnalyticsServiceClient {
-	return createAnalyticsServiceClient(config);
+  return createAnalyticsServiceClient(config);
 }

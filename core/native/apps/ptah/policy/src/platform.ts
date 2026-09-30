@@ -555,7 +555,7 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 						REPOSITORIES: JSON.stringify(merged.repositories),
 						LAMBDAS: JSON.stringify(merged.lambdas),
 						WORKFLOWS: JSON.stringify(merged.workflows),
-				}),
+					}),
 					envFromConfigMap: n.domainsConfigMap(platform),
 					envFromSecret: spec.secretName,
 					envFromSecrets: accessSecrets,
@@ -660,7 +660,17 @@ export function reconcilePlatform(input: ReconcileInput): ReconcileOutput {
 				spec.gateway.hosts,
 				[
 					{ pathPrefix: "/ws", service: n.app(platform, "fujin"), port: 80 },
-					{ pathPrefix: "/ingest/analytics", service: n.app(platform, "fujin"), port: 80 },
+					{
+						pathPrefix: "/ingest/analytics",
+						service: n.app(platform, "fujin"),
+						port: 80,
+					},
+					{
+						pathPrefix: "/cache/blob",
+						service: n.services(platform),
+						port: 80,
+						method: "POST",
+					},
 					{ pathPrefix: "/", service: n.ui(platform), port: 80 },
 				],
 			),

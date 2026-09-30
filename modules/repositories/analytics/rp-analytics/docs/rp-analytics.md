@@ -20,11 +20,13 @@ bot classification, or presentation dashboards.
 
 The `analytics import country|city|asn` CLI command downloads and streams the
 GeoLite2 CSV archive from MaxMind. Set `MAXMIND_ACCOUNT_ID` and
-`MAXMIND_LICENSE_KEY` in the CLI environment. The command streams ZIP entries,
-parses CSV rows, and sends batches of 1,000 to this repository. The repository
-upserts each batch, then removes stale ranges only after the complete archive
-has been read successfully. The UI only pages through stored records; it does
-not download or unpack archives.
+`MAXMIND_LICENSE_KEY` in the CLI environment. The command streams ZIP entries
+and parses CSV rows in batches of 1,000. Each batch is staged in the shared cache
+through the HTTP `/cache/blob` endpoint; only its cache reference and import
+metadata travel over NRPC. The repository reads the cached batch and upserts it,
+then removes stale ranges only after the complete archive has been read
+successfully. The UI only pages through stored records; it does not download or
+unpack archives.
 
 Country and City network records are joined to their English Locations CSV by
 `geoname_id`; City locations also provide region and city names. ASN records

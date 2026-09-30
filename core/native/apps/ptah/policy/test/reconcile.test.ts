@@ -34,7 +34,7 @@ function fujinEnv(object: KubeObject): Record<string, string> {
 }
 
 interface RouteRuleShape {
-	matches: { path: { type: string; value: string } }[];
+	matches: { path: { type: string; value: string }; method?: string }[];
 	filters?: {
 		type: string;
 		requestHeaderModifier: { set: { name: string; value: string }[] };
@@ -302,6 +302,23 @@ describe("platform", () => {
 		expect(
 			envIn("converged-services").some((e) => e.name === "STORAGE_SCOPE"),
 		).toBe(false);
+	});
+
+	test("routes cache uploads to services while keeping the UI catch-all", () => {
+		const { resources } = reconcile(
+			input({ kind: "Platform", object: platform("mono") }),
+		);
+		const { rules } = specOf<{ rules: RouteRuleShape[] }>(
+			resources,
+			"HTTPRoute",
+			"converged",
+		);
+		expect(
+			rules.find((rule) => rule.matches[0]?.path.value === "/cache/blob"),
+		).toMatchObject({
+			matches: [{ method: "POST", path: { value: "/cache/blob" } }],
+			backendRefs: [{ name: "converged-services", port: 80 }],
+		});
 	});
 
 	test("the cache is behemoth's, not a workload of its own", () => {
@@ -591,7 +608,13 @@ describe("tenant", () => {
 			"HTTPRoute",
 			"converged-tenant-democnc",
 		);
-		expect(rules).toHaveLength(2);
+		expect(rules).toHaveLength(4);
+		expect(
+			rules.find((rule) => rule.matches[0]?.path.value === "/cache/blob"),
+		).toMatchObject({
+			matches: [{ method: "POST", path: { value: "/cache/blob" } }],
+			backendRefs: [{ name: "converged-services", port: 80 }],
+		});
 		for (const rule of rules) {
 			// `set`, not `add`: an inbound x-storage-scope is overwritten.
 			expect(rule.filters?.[0].type).toBe("RequestHeaderModifier");

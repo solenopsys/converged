@@ -26,24 +26,22 @@ export class GeoAsnStoreService {
 			import_id: importId,
 			updated_at: updatedAt,
 		}));
-		for (let index = 0; index < rows.length; index += 50) {
-			await this.store.db
-				.insertInto(TABLE)
-				.values(rows.slice(index, index + 50))
-				.onConflict((conflict) =>
-					conflict.column("network").doUpdateSet({
-						address_family: sql`excluded.address_family`,
-						network_start: sql`excluded.network_start`,
-						network_end: sql`excluded.network_end`,
-						prefix_length: sql`excluded.prefix_length`,
-						asn: sql`excluded.asn`,
-						organization: sql`excluded.organization`,
-						import_id: sql`excluded.import_id`,
-						updated_at: sql`excluded.updated_at`,
-					}),
-				)
-				.execute();
-		}
+		await this.store.db
+			.insertInto(TABLE)
+			.values(rows)
+			.onConflict((conflict) =>
+				conflict.column("network").doUpdateSet({
+					address_family: sql`excluded.address_family`,
+					network_start: sql`excluded.network_start`,
+					network_end: sql`excluded.network_end`,
+					prefix_length: sql`excluded.prefix_length`,
+					asn: sql`excluded.asn`,
+					organization: sql`excluded.organization`,
+					import_id: sql`excluded.import_id`,
+					updated_at: sql`excluded.updated_at`,
+				}),
+			)
+			.execute();
 		return rows.length;
 	}
 

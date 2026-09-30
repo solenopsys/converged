@@ -64,6 +64,7 @@ export interface RouteRule {
 	pathPrefix: string;
 	service: string;
 	port: number;
+	method?: string;
 	/**
 	 * Headers forced onto the request. This is `set`, not `add`: it overwrites
 	 * whatever the client sent, which is what makes a scope header
@@ -88,7 +89,12 @@ export function httpRoute(
 			parentRefs: [{ name: parentGateway, namespace }],
 			hostnames,
 			rules: rules.map((rule) => ({
-				matches: [{ path: { type: "PathPrefix", value: rule.pathPrefix } }],
+				matches: [
+					{
+						...(rule.method ? { method: rule.method } : {}),
+						path: { type: "PathPrefix", value: rule.pathPrefix },
+					},
+				],
 				...(rule.setHeaders
 					? {
 							filters: [

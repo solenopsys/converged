@@ -29,24 +29,22 @@ export class GeoCityStoreService {
 			import_id: importId,
 			updated_at: updatedAt,
 		}));
-		for (let offset = 0; offset < rows.length; offset += 50) {
-			await this.store.db
-				.insertInto(NETWORKS)
-				.values(rows.slice(offset, offset + 50))
-				.onConflict((conflict) =>
-					conflict.column("network").doUpdateSet({
-						address_family: sql`excluded.address_family`,
-						network_start: sql`excluded.network_start`,
-						network_end: sql`excluded.network_end`,
-						prefix_length: sql`excluded.prefix_length`,
-						geoname_id: sql`excluded.geoname_id`,
-						registered_country_geoname_id: sql`excluded.registered_country_geoname_id`,
-						import_id: sql`excluded.import_id`,
-						updated_at: sql`excluded.updated_at`,
-					}),
-				)
-				.execute();
-		}
+		await this.store.db
+			.insertInto(NETWORKS)
+			.values(rows)
+			.onConflict((conflict) =>
+				conflict.column("network").doUpdateSet({
+					address_family: sql`excluded.address_family`,
+					network_start: sql`excluded.network_start`,
+					network_end: sql`excluded.network_end`,
+					prefix_length: sql`excluded.prefix_length`,
+					geoname_id: sql`excluded.geoname_id`,
+					registered_country_geoname_id: sql`excluded.registered_country_geoname_id`,
+					import_id: sql`excluded.import_id`,
+					updated_at: sql`excluded.updated_at`,
+				}),
+			)
+			.execute();
 		return rows.length;
 	}
 
@@ -65,26 +63,24 @@ export class GeoCityStoreService {
 			import_id: importId,
 			updated_at: updatedAt,
 		}));
-		for (let offset = 0; offset < rows.length; offset += 50) {
-			await this.store.db
-				.insertInto(LOCATIONS)
-				.values(rows.slice(offset, offset + 50))
-				.onConflict((conflict) =>
-					conflict.columns(["dataset", "geoname_id"]).doUpdateSet({
-						continent_code: sql`excluded.continent_code`,
-						continent_name: sql`excluded.continent_name`,
-						country_code: sql`excluded.country_code`,
-						country_name: sql`excluded.country_name`,
-						region_code: sql`excluded.region_code`,
-						region_name: sql`excluded.region_name`,
-						city_name: sql`excluded.city_name`,
-						time_zone: sql`excluded.time_zone`,
-						import_id: sql`excluded.import_id`,
-						updated_at: sql`excluded.updated_at`,
-					}),
-				)
-				.execute();
-		}
+		await this.store.db
+			.insertInto(LOCATIONS)
+			.values(rows)
+			.onConflict((conflict) =>
+				conflict.columns(["dataset", "geoname_id"]).doUpdateSet({
+					continent_code: sql`excluded.continent_code`,
+					continent_name: sql`excluded.continent_name`,
+					country_code: sql`excluded.country_code`,
+					country_name: sql`excluded.country_name`,
+					region_code: sql`excluded.region_code`,
+					region_name: sql`excluded.region_name`,
+					city_name: sql`excluded.city_name`,
+					time_zone: sql`excluded.time_zone`,
+					import_id: sql`excluded.import_id`,
+					updated_at: sql`excluded.updated_at`,
+				}),
+			)
+			.execute();
 		return rows.length;
 	}
 

@@ -23,6 +23,7 @@ export type {
 	GeoLiteDatabaseRow,
 	GeoLiteDatabaseStatus,
 	GeoLiteDataset,
+	GeoLiteImportBatch,
 	GeoLiteLocationInput,
 	PaginatedResult,
 } from "g-analytics";

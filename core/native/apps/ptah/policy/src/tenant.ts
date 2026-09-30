@@ -99,6 +99,13 @@ export function reconcileTenant(input: ReconcileInput): ReconcileOutput {
 					setHeaders: scopeHeaders,
 				},
 				{
+					pathPrefix: "/cache/blob",
+					service: n.services(platform),
+					port: 80,
+					method: "POST",
+					setHeaders: scopeHeaders,
+				},
+				{
 					pathPrefix: "/",
 					service: n.ui(platform),
 					port: 80,
