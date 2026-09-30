@@ -5,8 +5,7 @@
 Stores first-party browser analytics events and compact interaction summaries
 for visitor sessions. The shell collector sends batches through Fujin, while
 this repository owns the column-store journal and query API. Server-side IP
-enrichment uses separate SQL stores for GeoLite2 Country and GeoLite2 ASN
-network ranges.
+enrichment uses SQL stores for GeoLite2 Country, City, and ASN IP ranges.
 
 ## Responsibility boundary
 
@@ -19,18 +18,21 @@ bot classification, or presentation dashboards.
 
 ## GeoLite2 import
 
-`importGeoLiteCountryBatch` and `importGeoLiteAsnBatch` accept up to 5,000
-normalized CIDR rows per call. Country rows contain `network`, `country_code`,
-and optionally `country_name`; ASN rows contain `network`, `asn`, and
-`organization`. Clear the matching store before loading a complete replacement
-dataset so obsolete ranges are removed. The stores keep IP ranges, not source
-CSV files.
+The `analytics import country|city|asn` CLI command downloads and streams the
+GeoLite2 CSV archive from MaxMind. Set `MAXMIND_ACCOUNT_ID` and
+`MAXMIND_LICENSE_KEY` in the CLI environment. The command streams ZIP entries,
+parses CSV rows, and sends batches of 1,000 to this repository. The repository
+upserts each batch, then removes stale ranges only after the complete archive
+has been read successfully. The UI only pages through stored records; it does
+not download or unpack archives.
 
-Country and ASN CSVs are provided by MaxMind for SQL imports. Country block
-records need to be joined to the English Locations CSV by geoname id before
-calling the import API. Keep the downloaded license and attribution files with
-the dataset. GeoLite data is restricted by MaxMind's EULA and must not be
-exposed to third parties without the applicable redistribution rights.
+Country and City network records are joined to their English Locations CSV by
+`geoname_id`; City locations also provide region and city names. ASN records
+contain the network, ASN number, and organization. The stores keep normalized
+IP ranges and location metadata, not source ZIP/CSV files.
+
+Keep MaxMind attribution in the product documentation and review the GeoLite
+license before exposing derived location data to analytics customers.
 
 ## Solution membership
 

@@ -1,4 +1,8 @@
-import { setPageTitle, useSurfaceTranslation } from "front-core";
+import {
+	AnalyticsContentBoundary,
+	setPageTitle,
+	useSurfaceTranslation,
+} from "front-core";
 import { DEFAULT_LOCALE } from "front-core/landing";
 import { createMarkdownServiceClient } from "g-markdown";
 import { type MarkdownASTNode, MarkdownRenderer } from "md-tools";
@@ -147,18 +151,29 @@ function DocsIndex({
 
 	return (
 		<>
-			<div className="docs-markdown max-w-4xl">
-				<h1>{t("index.heading") as string}</h1>
-				<p>{t("index.intro") as string}</p>
-			</div>
+			<AnalyticsContentBoundary
+				contentId={`${base}/index-intro`}
+				contentType="documentation_section"
+			>
+				<div className="docs-markdown max-w-4xl">
+					<h1>{t("index.heading") as string}</h1>
+					<p>{t("index.intro") as string}</p>
+				</div>
+			</AnalyticsContentBoundary>
 			<div className="mt-8 grid max-w-4xl gap-10">
 				{pages.map((page) => (
-					<section key={page.href}>
-						<h2 className="mb-2 border-b border-border pb-3 text-2xl font-semibold">
-							<a href={page.href}>{page.title}</a>
-						</h2>
-						<p className="max-w-3xl text-muted-foreground">{page.text}</p>
-					</section>
+					<AnalyticsContentBoundary
+						key={page.href}
+						contentId={page.href}
+						contentType="documentation_section"
+					>
+						<section>
+							<h2 className="mb-2 border-b border-border pb-3 text-2xl font-semibold">
+								<a href={page.href}>{page.title}</a>
+							</h2>
+							<p className="max-w-3xl text-muted-foreground">{page.text}</p>
+						</section>
+					</AnalyticsContentBoundary>
 				))}
 			</div>
 		</>
@@ -319,22 +334,27 @@ export default function DocsView({
 
 			{!error && !loading && mode !== "index"
 				? visibleItems.map((item) => (
-						<section
+						<AnalyticsContentBoundary
 							key={item.anchor}
-							id={item.anchor}
-							className="mb-12 scroll-mt-4"
-							data-docs-section="1"
-							data-docs-section-anchor={item.anchor}
-							data-docs-section-name={item.title || item.anchor}
+							contentId={item.markdownPath}
+							contentType="documentation_section"
 						>
-							{item.ast ? (
-								<div className="docs-markdown max-w-4xl">
-									<MarkdownRenderer ast={item.ast} />
-								</div>
-							) : (
-								<p className="text-slate-400">No content for {item.title}</p>
-							)}
-						</section>
+							<section
+								id={item.anchor}
+								className="mb-12 scroll-mt-4"
+								data-docs-section="1"
+								data-docs-section-anchor={item.anchor}
+								data-docs-section-name={item.title || item.anchor}
+							>
+								{item.ast ? (
+									<div className="docs-markdown max-w-4xl">
+										<MarkdownRenderer ast={item.ast} />
+									</div>
+								) : (
+									<p className="text-slate-400">No content for {item.title}</p>
+								)}
+							</section>
+						</AnalyticsContentBoundary>
 					))
 				: null}
 		</div>

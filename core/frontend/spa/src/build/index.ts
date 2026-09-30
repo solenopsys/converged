@@ -2,7 +2,6 @@ import { existsSync } from "node:fs";
 import { mkdir, rm } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
 import { bundleApp, bundleSurfaces, bundleWidget } from "./bundles";
-import { writeObjectIndex } from "./object-index";
 import { versionImportMap } from "./import-map";
 import {
 	assetsDir,
@@ -13,20 +12,21 @@ import {
 	isProduction,
 	landingBlocksEntry,
 	landingBlocksStyles,
-	surfaceDir,
-	surfaces,
-	surfacesDir,
 	pwaEnabled,
 	serviceWorkerEntry,
 	spaRoot,
 	storeWorkerBundle,
+	surfaceDir,
+	surfaces,
+	surfacesDir,
 	vendorDir,
 	vendorEntriesDir,
 	widgetEntry,
 } from "./layout";
+import { writeObjectIndex } from "./object-index";
 import { buildServiceWorker, copyPwaIcons, writeManifest } from "./pwa";
 import { measure, precompress, sizeRows } from "./report";
-import { buildSurfaceStyles, buildStyles } from "./styles";
+import { buildStyles, buildSurfaceStyles } from "./styles";
 import { buildVendor, vendorLayerFiles } from "./vendor";
 
 /**
@@ -119,12 +119,8 @@ export async function buildApp() {
 	// The surface layer is built first and separately: its CSS is glued
 	// into the shared `sf.css`, so styles can't be built in parallel with chunks.
 	const surfaceBundles = await bundleSurfaces();
-	const surfaceFiles = surfaceBundles.map(
-		(bundle) => bundle.script,
-	);
-	const surfaceModuleStyles = surfaceBundles.flatMap(
-		(bundle) => bundle.styles,
-	);
+	const surfaceFiles = surfaceBundles.map((bundle) => bundle.script);
+	const surfaceModuleStyles = surfaceBundles.flatMap((bundle) => bundle.styles);
 
 	// The vendor graph shares package entrypoints with the browser bundles.
 	// Build it first so Bun does not resolve those entrypoints concurrently.
@@ -135,9 +131,7 @@ export async function buildApp() {
 	const styleFiles = await buildStyles();
 	const logoFile = await copyConvergedLogo();
 	const workerFile = await copyStoreWorker();
-	const surfaceStyles = await buildSurfaceStyles(
-		surfaceModuleStyles,
-	);
+	const surfaceStyles = await buildSurfaceStyles(surfaceModuleStyles);
 	const iconFiles = await copyPwaIcons();
 	const objectIndexFile = await writeObjectIndex();
 

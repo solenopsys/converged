@@ -1,6 +1,7 @@
 import {
 	SHOW_ANALYTICS_DASHBOARD,
 	SHOW_ANALYTICS_EVENTS,
+	SHOW_ANALYTICS_IP_ACTIVITY,
 	SHOW_ANALYTICS_REALTIME,
 } from "./functions";
 
@@ -18,6 +19,11 @@ export const MENU = {
 			title: "menu.analytics.events",
 			key: "analytics-events",
 			action: SHOW_ANALYTICS_EVENTS,
+		},
+		{
+			title: "IP activity",
+			key: "analytics-ip-activity",
+			action: SHOW_ANALYTICS_IP_ACTIVITY,
 		},
 	],
 };

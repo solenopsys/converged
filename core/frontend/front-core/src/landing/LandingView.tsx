@@ -1,7 +1,8 @@
-import { Fragment } from "preact";
 import type { ComponentChildren } from "preact";
-import { renderBlock } from "./registry";
+import { Fragment } from "preact";
+import { AnalyticsContentBoundary } from "../analytics/AnalyticsContentBoundary";
 import { LandingLayout } from "./LandingLayout";
+import { renderBlock } from "./registry";
 import type { LandingPayload } from "./types";
 
 export function LandingView({
@@ -25,7 +26,14 @@ export function LandingView({
 	return (
 		<LandingLayout context={context} hidden={hidden}>
 			{payload.blocks.map((block) => (
-				<Fragment key={block.id}>{renderBlock(block, context)}</Fragment>
+				<Fragment key={block.id}>
+					<AnalyticsContentBoundary
+						contentId={block.id}
+						contentType="landing_block"
+					>
+						{renderBlock(block, context)}
+					</AnalyticsContentBoundary>
+				</Fragment>
 			))}
 		</LandingLayout>
 	);

@@ -2,6 +2,100 @@
 	color: var(--hw-ink);
 }
 
+.analytics-geolite {
+	color: var(--hw-ink);
+}
+
+.analytics-geolite-tabs {
+	display: flex;
+	gap: 4px;
+	border-bottom: 1px solid var(--hw-panel-border);
+}
+
+.analytics-geolite-tabs button {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 10px 12px;
+	border: 0;
+	border-bottom: 2px solid transparent;
+	background: transparent;
+	color: var(--hw-ink-muted);
+	cursor: pointer;
+}
+
+.analytics-geolite-tabs button[aria-pressed="true"] {
+	border-bottom-color: var(--hw-ink);
+	color: var(--hw-ink);
+}
+
+.analytics-geolite-tabs span,
+.analytics-geolite-count,
+.analytics-geolite-pagination {
+	color: var(--hw-ink-muted);
+}
+
+.analytics-geolite-count {
+	font-size: 12px;
+	margin: 10px 0;
+}
+
+.analytics-geolite-table-wrap {
+	overflow: auto;
+}
+
+.analytics-geolite-pagination {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 10px 0;
+	font-size: 12px;
+}
+
+.analytics-geolite-pagination > div {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.analytics-geolite-pagination button {
+	border: 1px solid var(--hw-panel-border);
+	border-radius: 4px;
+	padding: 5px 8px;
+	background: transparent;
+	color: var(--hw-ink);
+	cursor: pointer;
+}
+
+.analytics-geolite-pagination button:disabled {
+	cursor: default;
+	opacity: 0.5;
+}
+
+.analytics-geolite table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 13px;
+}
+
+.analytics-geolite th,
+.analytics-geolite td {
+	border-bottom: 1px solid var(--hw-panel-border);
+	padding: 10px 8px;
+	text-align: left;
+}
+
+.analytics-geolite-message,
+.analytics-geolite-error {
+	font-size: 13px;
+	margin-top: 12px;
+}
+
+.analytics-geolite-error {
+	color: var(--destructive, #e45b5b);
+}
+
 .analytics-live-counts {
 	display: grid;
 	grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -73,6 +167,11 @@
 .analytics-live-grid td:first-child {
 	max-width: 560px;
 	word-break: break-word;
+}
+
+.analytics-geolite thead th {
+	color: var(--hw-ink-muted);
+	font-weight: 500;
 }
 
 .analytics-country-code {

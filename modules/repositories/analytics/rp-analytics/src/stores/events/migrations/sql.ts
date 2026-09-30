@@ -1,4 +1,11 @@
-import CreateAnalyticsEvents from "./createAnalyticsEventsSql";
+import AddContentFields from "./addContentFieldsSql";
 import AddGeoFields from "./addGeoFieldsSql";
+import AddGeoLocationFields from "./addGeoLocationFieldsSql";
+import CreateAnalyticsEvents from "./createAnalyticsEventsSql";
 
-export default [CreateAnalyticsEvents, AddGeoFields];
+export default [
+	CreateAnalyticsEvents,
+	AddGeoFields,
+	AddContentFields,
+	AddGeoLocationFields,
+];

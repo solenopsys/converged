@@ -16,7 +16,6 @@ export type {
 	SurfaceLlmCatalog,
 	Widget,
 } from "front-core/core";
-export { setPageTitle } from "./page-title";
 export {
 	$registeredCommands,
 	ActionContextManager,
@@ -56,12 +55,19 @@ export {
 	getTableColumns,
 	InfiniteScrollDataTable,
 } from "front-core/table";
+export { AnalyticsContentBoundary } from "./analytics/AnalyticsContentBoundary";
+export {
+	type AnalyticsContentEvent,
+	type AnalyticsContentType,
+	emitAnalyticsContentEvent,
+} from "./analytics/content-events";
 export type { AudioDiagramTrack } from "./audio";
 export { AudioDiagram, LiveAudioDiagram, StereoCallPlayer } from "./audio";
 export type { AuthTokenPayload } from "./auth-token";
 export { authToken } from "./auth-token";
 export { configFromPage } from "./chat/config/from-page";
 export { renderMarkdown } from "./chat/ui/markdown";
+export { ContentContainer } from "./components/ContentContainer";
 export {
 	type CallTranscriptLine,
 	CallTranscriptPanel,
@@ -81,6 +87,15 @@ export type {
 	ThreadFlatNode,
 	ThreadMessageBase,
 } from "./components/chat/types";
+export {
+	EntityDropBox,
+	type EntityDropBoxProps,
+} from "./components/EntityDropBox";
+export {
+	type FormCommand,
+	FormCommandList,
+	FormLayout,
+} from "./components/FormLayout";
 export type {
 	HeaderAction,
 	HeaderPanelConfig,
@@ -88,16 +103,6 @@ export type {
 	HeaderTab,
 	SelectionAction,
 } from "./components/HeaderPanel";
-export { ContentContainer } from "./components/ContentContainer";
-export {
-	EntityDropBox,
-	type EntityDropBoxProps,
-} from "./components/EntityDropBox";
-export {
-	FormCommandList,
-	FormLayout,
-	type FormCommand,
-} from "./components/FormLayout";
 export { HeaderPanel } from "./components/HeaderPanel";
 export { HeaderPanelLayout } from "./components/HeaderPanelLayout";
 export { JsonRenderer } from "./components/json-renderer";
@@ -232,6 +237,7 @@ export * from "./icons";
 export { getIconByName } from "./icons";
 export { cn } from "./lib/utils";
 export * from "./object-runtime";
+export { setPageTitle } from "./page-title";
 export * from "./select";
 export { AppShell } from "./shell/AppShell";
 export { type OpenRecordTabRequest, openRecordTab } from "./shell/record-tabs";
@@ -253,8 +259,8 @@ export {
 	surfaceMounted,
 	surfacePinToggled,
 } from "./shell/workspace";
-export * from "./tabs";
 export { upsertSidebarTab } from "./sidebar-tabs";
+export * from "./tabs";
 export {
 	getTheme,
 	setTheme,
@@ -272,7 +278,6 @@ export {
 	EntityListView,
 	type EntityListViewProps,
 } from "./views/EntityListView";
-export { StatCardView } from "./views/StatCardView";
 export {
 	defaultsOf,
 	hasParameters,
@@ -281,3 +286,4 @@ export {
 	propertiesOf,
 	SchemaFields,
 } from "./views/SchemaFields";
+export { StatCardView } from "./views/StatCardView";

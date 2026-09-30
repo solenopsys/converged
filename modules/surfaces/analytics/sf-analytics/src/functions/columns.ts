@@ -9,21 +9,28 @@ const fields = [
 		tableVisible: true,
 		width: 130,
 	},
-	{ id: "url", title: "Page", type: "text", tableVisible: true, minWidth: 240 },
 	{
-		id: "country_name",
-		title: "Country",
+		id: "audience_type",
+		title: "Audience",
+		type: "text",
+		tableVisible: true,
+		width: 130,
+	},
+	{
+		id: "content_type",
+		title: "Content type",
 		type: "text",
 		tableVisible: true,
 		width: 150,
 	},
 	{
-		id: "asn_organization",
-		title: "Network",
+		id: "content_id",
+		title: "Content block",
 		type: "text",
 		tableVisible: true,
 		minWidth: 170,
 	},
+	{ id: "url", title: "Page", type: "text", tableVisible: true, minWidth: 240 },
 	{
 		id: "visitor_id",
 		title: "Visitor",
@@ -51,13 +58,6 @@ const fields = [
 		type: "number",
 		tableVisible: true,
 		width: 110,
-	},
-	{
-		id: "ip_address",
-		title: "IP address",
-		type: "text",
-		tableVisible: true,
-		width: 150,
 	},
 ];
 

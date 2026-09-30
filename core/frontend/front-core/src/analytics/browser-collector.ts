@@ -1,3 +1,5 @@
+import { authToken } from "../auth-token";
+
 type BrowserEvent = {
 	ts: number;
 	visitor_id: string;
@@ -29,6 +31,9 @@ type BrowserEvent = {
 	key_events: number;
 	user_activation: boolean;
 	first_interaction_ms: number;
+	audience_type: "authenticated" | "external";
+	content_type: string;
+	content_id: string;
 };
 
 type ActivityMetrics = Partial<
@@ -43,6 +48,8 @@ type ActivityMetrics = Partial<
 		| "trusted_clicks"
 		| "untrusted_clicks"
 		| "key_events"
+		| "content_type"
+		| "content_id"
 	>
 >;
 
@@ -54,6 +61,14 @@ const ANALYTICS_INGEST_URI = "/ingest/analytics";
 const VISITOR_KEY = "rp-analytics:visitor";
 const SESSION_KEY = "rp-analytics:session";
 const encoder = new TextEncoder();
+
+function isAuthenticatedAudience(): boolean {
+	try {
+		return authToken.isAuthenticated();
+	} catch {
+		return false;
+	}
+}
 
 function id(storage: Storage | undefined, key: string): string {
 	try {
@@ -122,6 +137,12 @@ export function startBrowserAnalytics(): void {
 
 	const visitorId = id(browserStorage("localStorage"), VISITOR_KEY);
 	const sessionId = id(browserStorage("sessionStorage"), SESSION_KEY);
+	let authenticatedAudience = isAuthenticatedAudience();
+	const updateAudience = () => {
+		authenticatedAudience = isAuthenticatedAudience();
+	};
+	window.addEventListener("auth-token-changed", updateAudience);
+	window.addEventListener("storage", updateAudience);
 	const startedAt = Date.now();
 	const query = new URLSearchParams(window.location.search);
 	const companyId = query.get("company_id") ?? query.get("company") ?? "";
@@ -185,6 +206,9 @@ export function startBrowserAnalytics(): void {
 			key_events: metrics.key_events ?? 0,
 			user_activation: nav.userActivation?.hasBeenActive ?? false,
 			first_interaction_ms: firstInteractionMs,
+			audience_type: authenticatedAudience ? "authenticated" : "external",
+			content_type: metrics.content_type ?? "",
+			content_id: metrics.content_id ?? "",
 		};
 	}
 
@@ -256,6 +280,23 @@ export function startBrowserAnalytics(): void {
 			activeController = undefined;
 		}
 	}
+
+	window.addEventListener("front-core:analytics-event", (event) => {
+		const detail = (
+			event as CustomEvent<{
+				event_type: string;
+				content_id: string;
+				content_type: string;
+				visible_ms?: number;
+			}>
+		).detail;
+		if (!detail) return;
+		send(detail.event_type, {
+			content_id: detail.content_id,
+			content_type: detail.content_type,
+			visible_ms: detail.visible_ms,
+		});
+	});
 
 	function markInteraction(): void {
 		if (firstInteractionMs === 0) firstInteractionMs = Date.now() - startedAt;
@@ -377,6 +418,7 @@ export function startBrowserAnalytics(): void {
 	startHeartbeat();
 
 	window.addEventListener("pagehide", () => {
+		window.dispatchEvent(new Event("front-core:analytics-before-exit"));
 		send("page_exit");
 		closed = true;
 		window.clearInterval(heartbeat);

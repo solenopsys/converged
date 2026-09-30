@@ -3,6 +3,9 @@ export type AnalyticsEvent = {
 	visitor_id: string;
 	session_id: string;
 	event_type: string;
+	audience_type: "authenticated" | "external" | "unknown";
+	content_type: string;
+	content_id: string;
 	company_id: string;
 	campaign_id: string;
 	url: string;
@@ -32,6 +35,8 @@ export type AnalyticsEvent = {
 	ip_address: string;
 	country_code: string;
 	country_name: string;
+	region_name: string;
+	city_name: string;
 	asn: number;
 	asn_organization: string;
 };
@@ -49,6 +54,9 @@ export type AnalyticsQueryParams = {
 	visitor_id?: string;
 	session_id?: string;
 	event_type?: string;
+	audience_type?: "authenticated" | "external" | "unknown";
+	content_type?: string;
+	content_id?: string;
 	url?: string;
 	country_code?: string;
 	ip_address?: string;
@@ -66,6 +74,7 @@ export type AnalyticsStatistic = {
 	dashboard: AnalyticsDashboardSummary;
 	timeline: AnalyticsTimelineBucket[];
 	visitorTypes: AnalyticsVisitorTypeCounts;
+	geoLiteDatabases: GeoLiteDatabaseStatus[];
 };
 
 export type AnalyticsTimelineBucket = {
@@ -80,16 +89,89 @@ export type AnalyticsVisitorTypeCounts = {
 	unverified: number;
 };
 
-export type GeoLiteCountryNetworkInput = {
+export type AnalyticsIpSession = {
+	visitor_id: string;
+	session_id: string;
+	ip_address: string;
 	network: string;
 	country_code: string;
+	country_name: string;
+	region_name: string;
+	city_name: string;
+	asn: number;
+	asn_organization: string;
+	user_type: "human" | "bot" | "unverified";
+	audience_type: "authenticated" | "external" | "unknown";
+	url: string;
+	first_seen: number;
+	last_seen: number;
+	page_views: number;
+	clicks: number;
+	visible_ms: number;
+	scroll_max: number;
+};
+
+export type AnalyticsIpSessionPage = {
+	items: AnalyticsIpSession[];
+	totalCount: number;
+};
+
+export type GeoLiteCountryNetworkInput = {
+	network: string;
+	country_code?: string;
 	country_name?: string;
+	geoname_id?: number;
+	registered_country_geoname_id?: number;
 };
 
 export type GeoLiteAsnNetworkInput = {
 	network: string;
 	asn: number;
 	organization: string;
+};
+
+export type GeoLiteCityNetworkInput = {
+	network: string;
+	geoname_id?: number;
+	registered_country_geoname_id?: number;
+};
+
+export type GeoLiteLocationInput = {
+	dataset: "country" | "city";
+	geoname_id: number;
+	continent_code: string;
+	continent_name: string;
+	country_code: string;
+	country_name: string;
+	region_code: string;
+	region_name: string;
+	city_name: string;
+	time_zone: string;
+};
+
+export type GeoLiteDataset = "country" | "city" | "asn";
+
+export type GeoLiteDatabaseStatus = {
+	dataset: GeoLiteDataset;
+	records: number;
+	updated_at: number;
+};
+
+export type GeoLiteDatabaseRow = {
+	network: string;
+	country_code: string;
+	country_name: string;
+	region_name: string;
+	city_name: string;
+	geoname_id: number | null;
+	registered_country_geoname_id: number | null;
+	asn: number | null;
+	organization: string;
+};
+
+export type GeoLiteDatabasePage = {
+	items: GeoLiteDatabaseRow[];
+	totalCount: number;
 };
 
 export type AnalyticsPageSummary = {
@@ -152,14 +234,41 @@ export interface AnalyticsService {
 	): Promise<PaginatedResult<AnalyticsEvent>>;
 	getStatistic(): Promise<AnalyticsStatistic>;
 	getDashboardSummary(): Promise<AnalyticsDashboardSummary>;
+	listIpSessions(
+		limit: number,
+		offset: number,
+	): Promise<AnalyticsIpSessionPage>;
 	describeSelection(objectType: string): Promise<AnalyticsSelectionDescriptor>;
 	inspectEvents(
 		filter?: AnalyticsFilterObject,
 	): Promise<AnalyticsSelectionStats>;
 	importGeoLiteCountryBatch(
+		importId: string,
 		rows: GeoLiteCountryNetworkInput[],
 	): Promise<number>;
-	importGeoLiteAsnBatch(rows: GeoLiteAsnNetworkInput[]): Promise<number>;
+	importGeoLiteAsnBatch(
+		importId: string,
+		rows: GeoLiteAsnNetworkInput[],
+	): Promise<number>;
+	importGeoLiteCityBatch(
+		importId: string,
+		rows: GeoLiteCityNetworkInput[],
+	): Promise<number>;
+	importGeoLiteLocationsBatch(
+		importId: string,
+		dataset: "country" | "city",
+		rows: GeoLiteLocationInput[],
+	): Promise<number>;
+	completeGeoLiteImport(
+		dataset: GeoLiteDataset,
+		importId: string,
+	): Promise<number>;
+	getGeoLiteDatabaseStatus(): Promise<GeoLiteDatabaseStatus[]>;
+	listGeoLiteDatabase(
+		dataset: GeoLiteDataset,
+		limit: number,
+		offset: number,
+	): Promise<GeoLiteDatabasePage>;
 	clearGeoLiteCountry(): Promise<void>;
 	clearGeoLiteAsn(): Promise<void>;
 	archiveHotToCold(): Promise<number>;

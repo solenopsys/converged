@@ -22,6 +22,21 @@ const analyticsFilterSchema: KyselyFilterSchema = {
 		operators: ["eq", "in", "contains"],
 		column: "event_type",
 	},
+	audience_type: {
+		valueType: "string",
+		operators: ["eq", "in"],
+		column: "audience_type",
+	},
+	content_type: {
+		valueType: "string",
+		operators: ["eq", "in"],
+		column: "content_type",
+	},
+	content_id: {
+		valueType: "string",
+		operators: ["eq", "contains"],
+		column: "content_id",
+	},
 	url: {
 		valueType: "string",
 		operators: ["eq", "contains", "startsWith"],
@@ -48,6 +63,9 @@ function normalize(event: AnalyticsEventInput): AnalyticsEvent {
 		visitor_id: event.visitor_id,
 		session_id: event.session_id,
 		event_type: event.event_type,
+		audience_type: event.audience_type ?? "unknown",
+		content_type: event.content_type ?? "",
+		content_id: event.content_id ?? "",
 		company_id: event.company_id ?? "",
 		campaign_id: event.campaign_id ?? "",
 		url: event.url,
@@ -77,6 +95,8 @@ function normalize(event: AnalyticsEventInput): AnalyticsEvent {
 		ip_address: event.ip_address ?? "",
 		country_code: event.country_code ?? "",
 		country_name: event.country_name ?? "",
+		region_name: event.region_name ?? "",
+		city_name: event.city_name ?? "",
 		asn: event.asn ?? 0,
 		asn_organization: event.asn_organization ?? "",
 	};
@@ -111,6 +131,11 @@ export class AnalyticsStoreService {
 			if (params.visitor_id) q = q.where("visitor_id", "=", params.visitor_id);
 			if (params.session_id) q = q.where("session_id", "=", params.session_id);
 			if (params.event_type) q = q.where("event_type", "=", params.event_type);
+			if (params.audience_type)
+				q = q.where("audience_type", "=", params.audience_type);
+			if (params.content_type)
+				q = q.where("content_type", "=", params.content_type);
+			if (params.content_id) q = q.where("content_id", "=", params.content_id);
 			if (params.url) q = q.where("url", "like", `%${params.url}%`);
 			if (params.country_code)
 				q = q.where("country_code", "=", params.country_code);
@@ -223,7 +248,13 @@ export class AnalyticsStoreService {
 	}
 
 	static realtimeSummary(
-		rows: Awaited<ReturnType<AnalyticsStoreService["realtimeRows"]>>,
+		rows: Array<{
+			visitor_id: string;
+			session_id: string;
+			url: string;
+			country_code: string;
+			country_name: string;
+		}>,
 	): {
 		active_sessions: number;
 		active_visitors: number;

@@ -10,7 +10,12 @@ import type {
 	AnalyticsService,
 	AnalyticsStatistic,
 	GeoLiteAsnNetworkInput,
+	GeoLiteCityNetworkInput,
 	GeoLiteCountryNetworkInput,
+	GeoLiteDatabaseRow,
+	GeoLiteDatabaseStatus,
+	GeoLiteDataset,
+	GeoLiteLocationInput,
 } from "./types";
 
 const REPOSITORY_ID = "rp-analytics";
@@ -28,8 +33,13 @@ export class AnalyticsServiceImpl implements AnalyticsService {
 		Promise<
 			Pick<
 				AnalyticsEventInput,
-				"country_code" | "country_name" | "asn" | "asn_organization"
-			>
+				| "country_code"
+				| "country_name"
+				| "region_name"
+				| "city_name"
+				| "asn"
+				| "asn_organization"
+			> & { network: string }
 		>
 	>();
 
@@ -54,7 +64,20 @@ export class AnalyticsServiceImpl implements AnalyticsService {
 		const enriched = await Promise.all(
 			events.map((event) => this.enrich(event)),
 		);
-		await this.stores.hot.insert(enriched);
+		await this.stores.ipSessions.record(enriched);
+		const storedEvents = enriched
+			.filter((event) => !isSessionSignal(event.event_type))
+			.map((event) => ({
+				...event,
+				ip_address: "",
+				country_code: "",
+				country_name: "",
+				region_name: "",
+				city_name: "",
+				asn: 0,
+				asn_organization: "",
+			}));
+		await this.stores.hot.insert(storedEvents);
 		return enriched.length;
 	}
 
@@ -85,9 +108,9 @@ export class AnalyticsServiceImpl implements AnalyticsService {
 			coldEvents,
 			hotTimeline,
 			coldTimeline,
-			hotSignals,
-			coldSignals,
+			visitorTypes,
 			dashboard,
+			geoLiteDatabases,
 		] = await Promise.all([
 			this.stores.hot.count(),
 			this.stores.cold.count(),
@@ -95,9 +118,13 @@ export class AnalyticsServiceImpl implements AnalyticsService {
 			this.stores.cold.byEvent(),
 			this.stores.hot.timeline(timelineStart, HOUR_MS),
 			this.stores.cold.timeline(timelineStart, HOUR_MS),
-			this.stores.hot.visitorSignals(today.getTime()),
-			this.stores.cold.visitorSignals(today.getTime()),
+			this.stores.ipSessions.typeSummary(today.getTime()),
 			this.getDashboardSummary(),
+			Promise.all([
+				this.stores.geoCity.statusRow("country"),
+				this.stores.geoCity.statusRow("city"),
+				this.stores.geoCity.statusRow("asn"),
+			]),
 		]);
 		const byEvent = { ...hotEvents };
 		for (const [name, count] of Object.entries(coldEvents))
@@ -122,47 +149,6 @@ export class AnalyticsServiceImpl implements AnalyticsService {
 				...(timelineByHour.get(timestamp) ?? { visits: 0, events: 0 }),
 			};
 		});
-		const signals = new Map<string, (typeof hotSignals)[number]>();
-		for (const signal of [...hotSignals, ...coldSignals]) {
-			const key = `${signal.visitor_id}:${signal.session_id}`;
-			const current = signals.get(key);
-			if (!current) {
-				signals.set(key, signal);
-				continue;
-			}
-			for (const field of [
-				"webdriver",
-				"user_activation",
-				"trusted_clicks",
-				"pointer_events",
-				"scroll_events",
-				"key_events",
-			] as const) {
-				current[field] = Math.max(current[field], signal[field]);
-			}
-			if (signal.user_agent) current.user_agent = signal.user_agent;
-		}
-		const visitorTypes = { human: 0, bot: 0, unverified: 0 };
-		for (const signal of signals.values()) {
-			if (
-				signal.webdriver > 0 ||
-				/(bot|crawler|spider|headless|preview|lighthouse|phantom|slurp)/i.test(
-					signal.user_agent,
-				)
-			) {
-				visitorTypes.bot++;
-			} else if (
-				signal.user_activation > 0 ||
-				signal.trusted_clicks > 0 ||
-				signal.pointer_events > 0 ||
-				signal.scroll_events > 0 ||
-				signal.key_events > 0
-			) {
-				visitorTypes.human++;
-			} else {
-				visitorTypes.unverified++;
-			}
-		}
 		return {
 			totalHot: hot,
 			totalCold: cold,
@@ -170,6 +156,7 @@ export class AnalyticsServiceImpl implements AnalyticsService {
 			dashboard,
 			timeline,
 			visitorTypes,
+			geoLiteDatabases,
 		};
 	}
 
@@ -184,8 +171,7 @@ export class AnalyticsServiceImpl implements AnalyticsService {
 		const [
 			hotToday,
 			coldToday,
-			hotRecent,
-			coldRecent,
+			recentSessions,
 			hotCount,
 			coldCount,
 			hotUriViews,
@@ -193,17 +179,13 @@ export class AnalyticsServiceImpl implements AnalyticsService {
 		] = await Promise.all([
 			this.stores.hot.todaySummary(today.getTime()),
 			this.stores.cold.todaySummary(today.getTime()),
-			this.stores.hot.realtimeRows(realtimeSince),
-			this.stores.cold.realtimeRows(realtimeSince),
+			this.stores.ipSessions.realtimeRows(realtimeSince),
 			this.stores.hot.count(),
 			this.stores.cold.count(),
 			this.stores.hot.pageViewsByUri(uriStatsSince),
 			this.stores.cold.pageViewsByUri(uriStatsSince),
 		]);
-		const realtime = AnalyticsStoreService.realtimeSummary([
-			...hotRecent,
-			...coldRecent,
-		]);
+		const realtime = AnalyticsStoreService.realtimeSummary(recentSessions);
 		const sessionsToday = new Set([
 			...hotToday.session_ids,
 			...coldToday.session_ids,
@@ -233,6 +215,14 @@ export class AnalyticsServiceImpl implements AnalyticsService {
 	}
 
 	@Access("user")
+	async listIpSessions(limit: number, offset: number) {
+		await this.ensureReady();
+		const safeLimit = Math.max(1, Math.min(500, Math.floor(limit || 100)));
+		const safeOffset = Math.max(0, Math.floor(offset || 0));
+		return this.stores.ipSessions.list(safeLimit, safeOffset);
+	}
+
+	@Access("user")
 	async describeSelection(
 		objectType: string,
 	): Promise<AnalyticsSelectionDescriptor> {
@@ -246,6 +236,24 @@ export class AnalyticsServiceImpl implements AnalyticsService {
 				{
 					id: "event_type",
 					label: "Event",
+					valueType: "string",
+					operators: ["eq", "contains"],
+				},
+				{
+					id: "audience_type",
+					label: "Audience",
+					valueType: "string",
+					operators: ["eq"],
+				},
+				{
+					id: "content_type",
+					label: "Content type",
+					valueType: "string",
+					operators: ["eq"],
+				},
+				{
+					id: "content_id",
+					label: "Content block",
 					valueType: "string",
 					operators: ["eq", "contains"],
 				},
@@ -280,7 +288,7 @@ export class AnalyticsServiceImpl implements AnalyticsService {
 					operators: ["gt", "gte", "lt", "lte", "between"],
 				},
 			],
-			revision: "analytics-events-v1",
+			revision: "analytics-events-v2",
 		};
 	}
 
@@ -297,22 +305,132 @@ export class AnalyticsServiceImpl implements AnalyticsService {
 		return { totalCount: (hot.totalCount ?? 0) + (cold.totalCount ?? 0) };
 	}
 
-	@Access("internal")
+	@Access("user")
 	async importGeoLiteCountryBatch(
+		importId: string,
 		rows: GeoLiteCountryNetworkInput[],
 	): Promise<number> {
 		await this.ensureReady();
-		const count = await this.stores.geoCountry.importBatch(rows);
-		this.geoCache.clear();
-		return count;
+		return this.stores.geoCountry.importBatch(importId, rows);
 	}
 
-	@Access("internal")
-	async importGeoLiteAsnBatch(rows: GeoLiteAsnNetworkInput[]): Promise<number> {
+	@Access("user")
+	async importGeoLiteAsnBatch(
+		importId: string,
+		rows: GeoLiteAsnNetworkInput[],
+	): Promise<number> {
 		await this.ensureReady();
-		const count = await this.stores.geoAsn.importBatch(rows);
+		return this.stores.geoAsn.importBatch(importId, rows);
+	}
+
+	@Access("user")
+	async importGeoLiteCityBatch(
+		importId: string,
+		rows: GeoLiteCityNetworkInput[],
+	): Promise<number> {
+		await this.ensureReady();
+		return this.stores.geoCity.importNetworkBatch(importId, rows);
+	}
+
+	@Access("user")
+	async importGeoLiteLocationsBatch(
+		importId: string,
+		dataset: "country" | "city",
+		rows: GeoLiteLocationInput[],
+	): Promise<number> {
+		await this.ensureReady();
+		return this.stores.geoCity.importLocationsBatch(importId, dataset, rows);
+	}
+
+	@Access("user")
+	async completeGeoLiteImport(
+		dataset: GeoLiteDataset,
+		importId: string,
+	): Promise<number> {
+		await this.ensureReady();
+		let records: number;
+		if (dataset === "country") {
+			records = await this.stores.geoCountry.completeImport(importId);
+			await this.stores.geoCity.completeLocations("country", importId);
+		} else if (dataset === "city") {
+			records = await this.stores.geoCity.completeNetworks(importId);
+			await this.stores.geoCity.completeLocations("city", importId);
+		} else {
+			records = await this.stores.geoAsn.completeImport(importId);
+		}
+		await this.stores.geoCity.saveStatus(dataset, records);
 		this.geoCache.clear();
-		return count;
+		return records;
+	}
+
+	@Access("user")
+	async getGeoLiteDatabaseStatus(): Promise<GeoLiteDatabaseStatus[]> {
+		await this.ensureReady();
+		return Promise.all([
+			this.stores.geoCity.statusRow("country"),
+			this.stores.geoCity.statusRow("city"),
+			this.stores.geoCity.statusRow("asn"),
+		]);
+	}
+
+	@Access("user")
+	async listGeoLiteDatabase(
+		dataset: GeoLiteDataset,
+		limit: number,
+		offset: number,
+	): Promise<{ items: GeoLiteDatabaseRow[]; totalCount: number }> {
+		await this.ensureReady();
+		const safeLimit = Math.max(1, Math.min(500, Math.floor(limit || 100)));
+		const safeOffset = Math.max(0, Math.floor(offset || 0));
+		if (dataset === "country") {
+			const page = await this.stores.geoCountry.list(safeLimit, safeOffset);
+			return {
+				totalCount: page.totalCount,
+				items: page.items.map((row) => ({
+					network: row.network,
+					country_code: row.country_code ?? "",
+					country_name: row.country_name ?? "",
+					region_name: "",
+					city_name: "",
+					geoname_id: row.geoname_id,
+					registered_country_geoname_id: row.registered_country_geoname_id,
+					asn: null,
+					organization: "",
+				})),
+			};
+		}
+		if (dataset === "city") {
+			const page = await this.stores.geoCity.list(safeLimit, safeOffset);
+			return {
+				totalCount: page.totalCount,
+				items: page.items.map((row) => ({
+					network: row.network,
+					country_code: row.country_code ?? "",
+					country_name: row.country_name ?? "",
+					region_name: row.region_name ?? "",
+					city_name: row.city_name ?? "",
+					geoname_id: row.geoname_id,
+					registered_country_geoname_id: row.registered_country_geoname_id,
+					asn: null,
+					organization: "",
+				})),
+			};
+		}
+		const page = await this.stores.geoAsn.list(safeLimit, safeOffset);
+		return {
+			totalCount: page.totalCount,
+			items: page.items.map((row) => ({
+				network: row.network,
+				country_code: "",
+				country_name: "",
+				region_name: "",
+				city_name: "",
+				geoname_id: null,
+				registered_country_geoname_id: null,
+				asn: row.asn,
+				organization: row.organization,
+			})),
+		};
 	}
 
 	@Access("internal")
@@ -360,20 +478,51 @@ export class AnalyticsServiceImpl implements AnalyticsService {
 
 	private async enrich(
 		event: AnalyticsEventInput,
-	): Promise<AnalyticsEventInput> {
+	): Promise<AnalyticsEventInput & { network?: string }> {
 		const ip = event.ip_address?.trim();
 		if (!ip) return event;
 		let lookup = this.geoCache.get(ip);
 		if (!lookup) {
 			lookup = Promise.all([
 				this.stores.geoCountry.lookup(ip),
+				this.stores.geoCity.lookup(ip),
 				this.stores.geoAsn.lookup(ip),
-			]).then(([country, asn]) => ({
-				country_code: country?.country_code ?? "",
-				country_name: country?.country_name ?? "",
-				asn: asn?.asn ?? 0,
-				asn_organization: asn?.organization ?? "",
-			}));
+			]).then(async ([countryNetwork, cityNetwork, asn]) => {
+				const countryLocationId =
+					countryNetwork?.geoname_id ??
+					countryNetwork?.registered_country_geoname_id;
+				const [countryLocation, cityLocation] = await Promise.all([
+					countryNetwork?.country_code
+						? undefined
+						: countryLocationId
+							? this.stores.geoCity.lookupLocation("country", countryLocationId)
+							: undefined,
+					cityNetwork?.geoname_id
+						? this.stores.geoCity.lookupLocation("city", cityNetwork.geoname_id)
+						: undefined,
+				]);
+				return {
+					country_code:
+						cityLocation?.country_code ??
+						countryLocation?.country_code ??
+						countryNetwork?.country_code ??
+						"",
+					country_name:
+						cityLocation?.country_name ??
+						countryLocation?.country_name ??
+						countryNetwork?.country_name ??
+						"",
+					region_name: cityLocation?.region_name ?? "",
+					city_name: cityLocation?.city_name ?? "",
+					network:
+						asn?.network ??
+						countryNetwork?.network ??
+						cityNetwork?.network ??
+						"",
+					asn: asn?.asn ?? 0,
+					asn_organization: asn?.organization ?? "",
+				};
+			});
 			this.geoCache.set(ip, lookup);
 			if (this.geoCache.size > 20_000) {
 				const oldest = this.geoCache.keys().next().value;
@@ -382,4 +531,10 @@ export class AnalyticsServiceImpl implements AnalyticsService {
 		}
 		return { ...event, ...(await lookup) };
 	}
+}
+
+function isSessionSignal(eventType: string): boolean {
+	return ["activity", "pointer", "scroll", "key", "visibility"].includes(
+		eventType,
+	);
 }

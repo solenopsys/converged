@@ -14,6 +14,8 @@ export default class extends SqlMigration {
 			["ip_address", "text NOT NULL DEFAULT ''"],
 			["country_code", "text NOT NULL DEFAULT ''"],
 			["country_name", "text NOT NULL DEFAULT ''"],
+			["region_name", "text NOT NULL DEFAULT ''"],
+			["city_name", "text NOT NULL DEFAULT ''"],
 			["asn", "integer NOT NULL DEFAULT 0"],
 			["asn_organization", "text NOT NULL DEFAULT ''"],
 		] as const;

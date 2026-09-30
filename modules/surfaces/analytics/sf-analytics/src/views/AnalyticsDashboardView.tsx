@@ -76,7 +76,7 @@ export function AnalyticsDashboardView() {
 						secondaryAxis={{ name: "Events", primaryName: "Visits" }}
 					/>
 				</div>
-				<div className="grid gap-4 lg:grid-cols-2">
+				<div className="grid gap-4 lg:grid-cols-3">
 					<DashboardPieChartCard
 						title="Sessions by visitor type today"
 						description="Estimated from browser and interaction signals"
@@ -102,6 +102,14 @@ export function AnalyticsDashboardView() {
 							key,
 							label: key,
 							value,
+						}))}
+					/>
+					<DashboardPieChartCard
+						title="GeoLite database records"
+						data={statistic.geoLiteDatabases.map((database) => ({
+							key: database.dataset,
+							label: database.dataset.toUpperCase(),
+							value: database.records,
 						}))}
 					/>
 				</div>

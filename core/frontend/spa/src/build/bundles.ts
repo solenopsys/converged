@@ -7,10 +7,10 @@ import {
 	isProduction,
 	landingBlocksEntry,
 	landingBlocksShim,
+	storeWorkerBundle,
 	surfaceDir,
 	surfaces,
 	surfacesDir,
-	storeWorkerBundle,
 	widgetDir,
 	widgetEntry,
 } from "./layout";
@@ -128,7 +128,6 @@ export async function bundleSurfaces(): Promise<SurfaceBundle[]> {
 		if (!result.success) {
 			throw new AggregateError(result.logs, `Build failed: sf-${name}`);
 		}
-
 		bundles.push({
 			script: join(surfacesDir, `${name}.js`),
 			styles: result.outputs

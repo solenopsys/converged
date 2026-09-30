@@ -5,7 +5,9 @@ import { analyticsColumns } from "./functions/columns";
 import analytics from "./service";
 import { AnalyticsSummary } from "./summary";
 import { AnalyticsDashboardView } from "./views/AnalyticsDashboardView";
+import { AnalyticsIpSessionsView } from "./views/AnalyticsIpSessionsView";
 import { AnalyticsRealtimeView } from "./views/AnalyticsRealtimeView";
+import { GeoDatabasesView } from "./views/GeoDatabasesView";
 
 const hasPreset = (params: Record<string, unknown>, id: string) =>
 	Array.isArray(params.presets) &&
@@ -49,12 +51,6 @@ export default defineSurface({
 					{ id: "event_type", label: "Event", type: "search", operator: "eq" },
 					{ id: "url", label: "Page", type: "search", operator: "contains" },
 					{
-						id: "country_code",
-						label: "Country",
-						type: "search",
-						operator: "eq",
-					},
-					{
 						id: "visitor_id",
 						label: "Visitor",
 						type: "search",
@@ -63,12 +59,6 @@ export default defineSurface({
 					{
 						id: "session_id",
 						label: "Session",
-						type: "search",
-						operator: "eq",
-					},
-					{
-						id: "ip_address",
-						label: "IP address",
 						type: "search",
 						operator: "eq",
 					},
@@ -118,6 +108,16 @@ export default defineSurface({
 			label: "Realtime analytics",
 			categories: ["core.statistic"],
 		},
+		{
+			id: "analytics.geodatabase",
+			label: "IP databases",
+			categories: ["core.statistic"],
+		},
+		{
+			id: "analytics.ip-sessions",
+			label: "IP activity",
+			categories: ["core.statistic"],
+		},
 	],
 	views: [
 		{
@@ -138,11 +138,25 @@ export default defineSurface({
 			accepts: setOf("analytics.realtime"),
 			component: AnalyticsRealtimeView,
 		},
+		{
+			id: "analytics.geodatabase.panel",
+			label: "IP databases",
+			accepts: setOf("analytics.geodatabase"),
+			component: GeoDatabasesView,
+		},
+		{
+			id: "analytics.ip-sessions.panel",
+			label: "IP activity",
+			accepts: setOf("analytics.ip-sessions"),
+			component: AnalyticsIpSessionsView,
+		},
 	],
 	operations: [],
 	menu: [
 		{ view: "analytics.statistic.dashboard", default: true },
 		{ view: "analytics.realtime.panel" },
+		{ view: "analytics.geodatabase.panel" },
+		{ view: "analytics.ip-sessions.panel" },
 		{ view: "analytics.event.table" },
 	],
 });
