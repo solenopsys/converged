@@ -20,6 +20,7 @@ export interface DashboardPieChartDatum {
 	key: string;
 	label: string;
 	value: number;
+	color?: string;
 }
 
 export interface DashboardPieChartCardProps {
@@ -83,7 +84,7 @@ export function DashboardPieChartCard({
 			...item,
 			color: isErrorLike(`${item.key} ${item.label}`)
 				? errorColor
-				: colors[index],
+				: (item.color ?? colors[index]),
 		}));
 	}, [data, maxSlices, otherLabel, isErrorLike, errorColor, colors]);
 

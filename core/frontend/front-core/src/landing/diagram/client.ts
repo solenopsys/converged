@@ -8,6 +8,7 @@ type Runtime = {
   row: number;
   rowHeight: number;
   active: boolean;
+  intersecting: boolean;
   streamId: string | null;
   stepRanges: Array<{ end: number; start: number; step: V2MachineStep }>;
 };
@@ -76,6 +77,7 @@ function setupRuntime(config: V2DiagramData): Runtime | null {
     row: 0,
     rowHeight: machine.rowHeight,
     active: false,
+    intersecting: false,
     startedAt: performance.now(),
     streamId,
     stepRanges,
@@ -152,6 +154,7 @@ function moveConnectionMessage(runtime: Runtime, connectionId: string, progress:
   }
 
   const point = pointOnPath(path, reverse ? 1 - progress : progress);
+  message.classList.toggle("is-reverse", reverse);
   message.style.opacity = "1";
   message.setAttribute("transform", `translate(${point.x} ${point.y})`);
 }
@@ -214,22 +217,51 @@ export function initDiagramRuntime() {
     setStream(runtime, "idle");
   }
 
+  function updateActivity(runtime: Runtime) {
+    const panel = runtime.root.closest<HTMLElement>(".product-case-panel");
+    const selected = !panel || panel.classList.contains("is-active");
+    const active = runtime.intersecting && selected;
+    if (active === runtime.active) return;
+
+    if (active) runtime.startedAt = performance.now();
+    else resetVisuals(runtime);
+    runtime.active = active;
+  }
+
   const observer = new IntersectionObserver(
     (entries) => {
       for (const entry of entries) {
         const runtime = runtimes.find((candidate) => candidate.root === entry.target);
         if (!runtime) continue;
 
-        const active = entry.intersectionRatio >= 0.5;
-        if (active && !runtime.active) runtime.startedAt = performance.now();
-        if (!active && runtime.active) resetVisuals(runtime);
-        runtime.active = active;
+        runtime.intersecting = entry.intersectionRatio >= 0.5;
+        updateActivity(runtime);
       }
     },
     { threshold: [0, 0.5] },
   );
 
-  runtimes.forEach((runtime) => observer.observe(runtime.root));
+  runtimes.forEach((runtime) => {
+    observer.observe(runtime.root);
+  });
+
+  const panels = new Map<HTMLElement, Runtime[]>();
+  for (const runtime of runtimes) {
+    const panel = runtime.root.closest<HTMLElement>(".product-case-panel");
+    if (!panel) continue;
+    const panelRuntimes = panels.get(panel) ?? [];
+    panelRuntimes.push(runtime);
+    panels.set(panel, panelRuntimes);
+  }
+  const panelObserver = new MutationObserver((entries) => {
+    for (const entry of entries) {
+      const panel = entry.target as HTMLElement;
+      panels.get(panel)?.forEach(updateActivity);
+    }
+  });
+  panels.forEach((_panelRuntimes, panel) => {
+    panelObserver.observe(panel, { attributes: true, attributeFilter: ["class"] });
+  });
 
   function frame(now: number) {
     runtimes.forEach((runtime) => {

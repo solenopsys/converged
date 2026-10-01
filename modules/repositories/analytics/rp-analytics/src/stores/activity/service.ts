@@ -10,6 +10,8 @@ type SessionBatch = Omit<AnalyticsIpSession, "user_type"> & {
 	session_key: string;
 	user_type: AnalyticsIpSession["user_type"];
 	user_agent: string;
+	device_type: "mobile" | "tablet" | "desktop" | "unknown";
+	screen: string;
 	webdriver: number;
 	user_activation: number;
 	pointer_events: number;
@@ -39,6 +41,11 @@ export class IpSessionsStoreService {
 					: interaction
 						? "human"
 						: "unverified";
+			const deviceType = classifyDevice(
+				event.user_agent ?? "",
+				event.screen ?? "",
+				event.touch_points ?? 0,
+			);
 			const next: SessionBatch = current ?? {
 				session_key: key,
 				visitor_id: event.visitor_id,
@@ -54,6 +61,8 @@ export class IpSessionsStoreService {
 				user_type: detectedType,
 				audience_type: event.audience_type ?? "unknown",
 				user_agent: event.user_agent ?? "",
+				device_type: deviceType,
+				screen: event.screen ?? "",
 				webdriver: Number(event.webdriver ?? false),
 				user_activation: Number(event.user_activation ?? false),
 				pointer_events: event.pointer_events ?? 0,
@@ -77,6 +86,9 @@ export class IpSessionsStoreService {
 						current.audience_type = event.audience_type;
 					}
 					current.user_agent = event.user_agent || current.user_agent;
+					current.device_type =
+						deviceType === "unknown" ? current.device_type : deviceType;
+					current.screen = event.screen || current.screen;
 					current.ip_address = event.ip_address || current.ip_address;
 					current.network = event.network || current.network;
 					current.country_code = event.country_code || current.country_code;
@@ -131,6 +143,8 @@ export class IpSessionsStoreService {
 						user_type: sql`CASE WHEN ${sql.ref(`${TABLE}.user_type`)} = 'bot' OR excluded.user_type = 'bot' THEN 'bot' WHEN ${sql.ref(`${TABLE}.user_type`)} = 'human' OR excluded.user_type = 'human' THEN 'human' ELSE 'unverified' END`,
 						audience_type: sql`COALESCE(NULLIF(excluded.audience_type, 'unknown'), ${sql.ref(`${TABLE}.audience_type`)})`,
 						user_agent: sql`COALESCE(NULLIF(excluded.user_agent, ''), ${sql.ref(`${TABLE}.user_agent`)})`,
+						device_type: sql`CASE WHEN excluded.device_type = 'unknown' THEN ${sql.ref(`${TABLE}.device_type`)} ELSE excluded.device_type END`,
+						screen: sql`COALESCE(NULLIF(excluded.screen, ''), ${sql.ref(`${TABLE}.screen`)})`,
 						webdriver: sql`MAX(${sql.ref(`${TABLE}.webdriver`)}, excluded.webdriver)`,
 						user_activation: sql`MAX(${sql.ref(`${TABLE}.user_activation`)}, excluded.user_activation)`,
 						pointer_events: sql`(${sql.ref(`${TABLE}.pointer_events`)} + excluded.pointer_events)`,
@@ -167,6 +181,71 @@ export class IpSessionsStoreService {
 		};
 	}
 
+	async deviceSummary(fromTs: number) {
+		const [deviceRows, resolutionRows] = await Promise.all([
+			this.store.db
+				.selectFrom(TABLE)
+				.select(["device_type", "user_type"])
+				.select(({ fn }) => fn.countAll().as("count"))
+				.where("last_seen", ">=", fromTs)
+				.groupBy(["device_type", "user_type"])
+				.execute(),
+			this.store.db
+				.selectFrom(TABLE)
+				.select(["screen", "user_type"])
+				.select(({ fn }) => fn.countAll().as("count"))
+				.where("last_seen", ">=", fromTs)
+				.where("screen", "<>", "")
+				.groupBy(["screen", "user_type"])
+				.execute(),
+		]);
+		const devices = new Map<
+			string,
+			{ device_type: string; human: number; bot: number; unverified: number }
+		>();
+		for (const row of deviceRows) {
+			const key = row.device_type || "unknown";
+			const counts = devices.get(key) ?? {
+				device_type: key,
+				human: 0,
+				bot: 0,
+				unverified: 0,
+			};
+			counts[row.user_type as "human" | "bot" | "unverified"] = Number(
+				row.count,
+			);
+			devices.set(key, counts);
+		}
+		const resolutions = new Map<
+			string,
+			{ resolution: string; human: number; bot: number; unverified: number }
+		>();
+		for (const row of resolutionRows) {
+			const key = row.screen || "unknown";
+			const counts = resolutions.get(key) ?? {
+				resolution: key,
+				human: 0,
+				bot: 0,
+				unverified: 0,
+			};
+			counts[row.user_type as "human" | "bot" | "unverified"] = Number(
+				row.count,
+			);
+			resolutions.set(key, counts);
+		}
+		return {
+			devices: [...devices.values()].sort((a, b) =>
+				a.device_type.localeCompare(b.device_type),
+			),
+			resolutions: [...resolutions.values()]
+				.sort(
+					(a, b) =>
+						b.human + b.bot + b.unverified - (a.human + a.bot + a.unverified),
+				)
+				.slice(0, 12),
+		};
+	}
+
 	async realtimeRows(fromTs: number) {
 		return this.store.db
 			.selectFrom(TABLE)
@@ -199,6 +278,8 @@ export class IpSessionsStoreService {
 					"asn",
 					"asn_organization",
 					"user_type",
+					"device_type",
+					"screen",
 					"audience_type",
 					"url",
 					"first_seen",
@@ -224,6 +305,24 @@ export class IpSessionsStoreService {
 			totalCount: Number(total?.count ?? 0),
 		};
 	}
+}
+
+function classifyDevice(
+	userAgent: string,
+	screen: string,
+	touchPoints: number,
+): "mobile" | "tablet" | "desktop" | "unknown" {
+	if (/ipad|tablet|kindle|silk/i.test(userAgent)) return "tablet";
+	if (/mobi|iphone|ipod|windows phone|android.*mobile/i.test(userAgent))
+		return "mobile";
+	if (/android/i.test(userAgent) && touchPoints > 0) return "tablet";
+	if (/windows|macintosh|x11|linux/i.test(userAgent)) return "desktop";
+	const dimensions = screen.match(/^(\d+)x(\d+)$/);
+	if (touchPoints > 0 && dimensions) {
+		const shortestSide = Math.min(Number(dimensions[1]), Number(dimensions[2]));
+		return shortestSide < 800 ? "mobile" : "tablet";
+	}
+	return "unknown";
 }
 
 function mergeUserType(

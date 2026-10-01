@@ -62,3 +62,77 @@ const fields = [
 ];
 
 export const analyticsColumns = getTableColumns(fields);
+
+export const analyticsIpSessionColumns = getTableColumns([
+	{
+		id: "ip_address",
+		title: "IP address",
+		type: "text",
+		tableVisible: true,
+		width: 145,
+	},
+	{
+		id: "network",
+		title: "Network",
+		type: "text",
+		tableVisible: true,
+		minWidth: 170,
+	},
+	{
+		id: "country_name",
+		title: "Country",
+		type: "text",
+		tableVisible: true,
+		width: 140,
+	},
+	{
+		id: "city_name",
+		title: "City",
+		type: "text",
+		tableVisible: true,
+		minWidth: 150,
+	},
+	{
+		id: "user_type",
+		title: "Visitor type",
+		type: "text",
+		tableVisible: true,
+		width: 120,
+	},
+	{
+		id: "device_type",
+		title: "Device",
+		type: "text",
+		tableVisible: true,
+		width: 105,
+	},
+	{
+		id: "screen",
+		title: "Screen",
+		type: "text",
+		tableVisible: true,
+		width: 105,
+	},
+	{ id: "url", title: "Page", type: "text", tableVisible: true, minWidth: 230 },
+	{
+		id: "clicks",
+		title: "Clicks",
+		type: "number",
+		tableVisible: true,
+		width: 85,
+	},
+	{
+		id: "visible_ms",
+		title: "Visible ms",
+		type: "number",
+		tableVisible: true,
+		width: 105,
+	},
+	{
+		id: "last_seen",
+		title: "Last seen",
+		type: "date",
+		tableVisible: true,
+		width: 170,
+	},
+]);

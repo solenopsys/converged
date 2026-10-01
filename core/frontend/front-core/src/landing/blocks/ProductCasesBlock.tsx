@@ -37,16 +37,15 @@ export function ProductCasesBlock({
 	diagramTexts?: DiagramTextsData;
 }) {
 	const [activeIndex, setActiveIndex] = useState(0);
-	const [mobileView, setMobileView] = useState<"text" | "diagram">("text");
 	const [isCompact, setIsCompact] = useState(false);
 	const sectionRef = useRef<HTMLElement>(null);
 	const activeIndexRef = useRef(0);
 	const scrollLockUntilRef = useRef(0);
+	const touchStartYRef = useRef<number | null>(null);
 	const cases = data.cases;
 	const activateCase = (index: number) => {
 		activeIndexRef.current = index;
 		setActiveIndex(index);
-		setMobileView("text");
 	};
 
 	useEffect(() => {
@@ -75,16 +74,26 @@ export function ProductCasesBlock({
 				const stage = host.querySelector<HTMLElement>(
 					".product-case-v2.v2-stage",
 				);
-				if (!stage || !host.clientWidth || !host.clientHeight) return;
+				if (!stage || !host.clientWidth) return;
 
 				const sectionWidth =
 					host.closest<HTMLElement>(".product-case-scroll")?.clientWidth ??
 					window.innerWidth;
-				const availHeight = host.clientHeight - (sectionWidth <= 900 ? 0 : 20);
 				const fittedWidth = host.clientWidth / stage.offsetWidth;
-				const fittedHeight = availHeight / stage.offsetHeight;
-				const scale = Math.min(maximumScale, fittedWidth, fittedHeight);
+				const scale =
+					sectionWidth <= 900
+						? Math.min(maximumScale, fittedWidth)
+						: Math.min(
+								maximumScale,
+								fittedWidth,
+								(host.clientHeight - 20) / stage.offsetHeight,
+							);
 				host.style.setProperty("--product-case-diagram-scale", String(scale));
+				if (sectionWidth <= 900) {
+					host.style.height = `${stage.offsetHeight * scale}px`;
+				} else {
+					host.style.removeProperty("height");
+				}
 			});
 		};
 
@@ -108,13 +117,7 @@ export function ProductCasesBlock({
 	useEffect(() => {
 		const handleWheel = (event: WheelEvent) => {
 			const section = sectionRef.current;
-			if (
-				!section ||
-				section.clientWidth <= 900 ||
-				event.ctrlKey ||
-				event.deltaY === 0
-			)
-				return;
+			if (!section || event.ctrlKey || event.deltaY === 0) return;
 
 			const bounds = section.getBoundingClientRect();
 			const viewportHeight = window.innerHeight;
@@ -130,9 +133,46 @@ export function ProductCasesBlock({
 			scrollLockUntilRef.current = Date.now() + 360;
 			activateCase(nextIndex);
 		};
+		const isPinned = () => {
+			const section = sectionRef.current;
+			if (!section) return false;
+			const bounds = section.getBoundingClientRect();
+			return bounds.top <= 1 && bounds.bottom >= window.innerHeight - 1;
+		};
+		const handleTouchStart = (event: TouchEvent) => {
+			touchStartYRef.current = event.touches[0]?.clientY ?? null;
+		};
+		const handleTouchMove = (event: TouchEvent) => {
+			const startY = touchStartYRef.current;
+			const currentY = event.touches[0]?.clientY;
+			if (startY == null || currentY == null || !isPinned()) return;
+
+			const delta = startY - currentY;
+			if (Math.abs(delta) < 36) return;
+			const direction = Math.sign(delta);
+			const nextIndex = activeIndexRef.current + direction;
+			if (nextIndex < 0 || nextIndex >= cases.length) return;
+
+			event.preventDefault();
+			touchStartYRef.current = currentY;
+			if (Date.now() < scrollLockUntilRef.current) return;
+			scrollLockUntilRef.current = Date.now() + 360;
+			activateCase(nextIndex);
+		};
+		const handleTouchEnd = () => {
+			touchStartYRef.current = null;
+		};
 
 		window.addEventListener("wheel", handleWheel, { passive: false });
-		return () => window.removeEventListener("wheel", handleWheel);
+		window.addEventListener("touchstart", handleTouchStart, { passive: true });
+		window.addEventListener("touchmove", handleTouchMove, { passive: false });
+		window.addEventListener("touchend", handleTouchEnd, { passive: true });
+		return () => {
+			window.removeEventListener("wheel", handleWheel);
+			window.removeEventListener("touchstart", handleTouchStart);
+			window.removeEventListener("touchmove", handleTouchMove);
+			window.removeEventListener("touchend", handleTouchEnd);
+		};
 	}, [cases.length]);
 
 	return (
@@ -151,6 +191,29 @@ export function ProductCasesBlock({
 					</span>
 				</div>
 				<div class="product-case-layout">
+					<fieldset class="product-case-mobile-nav" aria-label={data.eyebrow}>
+						<legend class="sr-only">{data.eyebrow}</legend>
+						<button
+							type="button"
+							aria-label="Previous capability"
+							disabled={activeIndex === 0}
+							onClick={() => activateCase(activeIndex - 1)}
+						>
+							<span aria-hidden="true">←</span>
+						</button>
+						<span class="product-case-mobile-nav-label">
+							<small>{String(activeIndex + 1).padStart(2, "0")}</small>
+							{cases[activeIndex]?.tab}
+						</span>
+						<button
+							type="button"
+							aria-label="Next capability"
+							disabled={activeIndex === cases.length - 1}
+							onClick={() => activateCase(activeIndex + 1)}
+						>
+							<span aria-hidden="true">→</span>
+						</button>
+					</fieldset>
 					<div
 						class="product-case-tabs"
 						role="tablist"
@@ -177,7 +240,7 @@ export function ProductCasesBlock({
 						{cases.map((item, index) => (
 							<article
 								aria-hidden={activeIndex !== index}
-								class={`product-case-panel${activeIndex === index ? " is-active" : ""}${mobileView === "diagram" ? " is-mobile-diagram" : ""}${item.image || item.diagram ? "" : " product-case-panel--no-visual"}`}
+								class={`product-case-panel${activeIndex === index ? " is-active" : ""}${item.image || item.diagram ? "" : " product-case-panel--no-visual"}`}
 								id={`${id}-case-${index}`}
 								key={item.title}
 								role="tabpanel"
@@ -199,42 +262,18 @@ export function ProductCasesBlock({
 									</div>
 								</div>
 								{(item.diagram || item.image) && (
-									<fieldset
-										class="product-case-mobile-views"
-										aria-label={`${item.tab} view`}
-									>
-										<button
-											type="button"
-											aria-pressed={mobileView === "text"}
-											class={mobileView === "text" ? "is-active" : ""}
-											onClick={() => setMobileView("text")}
-										>
-											Text
-										</button>
-										<button
-											type="button"
-											aria-pressed={mobileView === "diagram"}
-											class={mobileView === "diagram" ? "is-active" : ""}
-											onClick={() => setMobileView("diagram")}
-										>
-											Diagram
-										</button>
-									</fieldset>
+									<div class="product-case-diagram">
+										{item.image ? (
+											<VectorImage data={{ image: item.image }} />
+										) : item.diagram ? (
+											<V2Diagram
+												className="v2-ink product-case-v2"
+												config={resolveDiagram(diagrams, item.diagram)}
+												texts={diagramTexts?.[item.diagram]}
+											/>
+										) : null}
+									</div>
 								)}
-								<div
-									class={`product-case-diagram${mobileView === "diagram" ? " is-mobile-visible" : ""}`}
-								>
-									{item.image ? (
-										<VectorImage data={{ image: item.image }} />
-									) : item.diagram ? (
-										<V2Diagram
-											className="v2-ink product-case-v2"
-											config={resolveDiagram(diagrams, item.diagram)}
-											texts={diagramTexts?.[item.diagram]}
-											verticalOnMobile
-										/>
-									) : null}
-								</div>
 							</article>
 						))}
 					</div>

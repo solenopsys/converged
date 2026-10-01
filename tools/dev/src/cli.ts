@@ -243,7 +243,8 @@ if (startUi) {
 			...runtimeEnv,
 			PORT: String(landingPort),
 			SURFACES: surfaces.join(","),
-			FUJIN_TARGET: env.FUJIN_TARGET || "ui",
+			FUJIN_TARGET:
+				env.FUJIN_TARGET || `ui-${env.STORAGE_SCOPE?.trim() || "default"}`,
 		},
 		stdout: "pipe",
 		stderr: "pipe",

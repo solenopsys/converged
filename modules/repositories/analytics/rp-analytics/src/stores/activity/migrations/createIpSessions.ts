@@ -23,6 +23,8 @@ export default class extends SqlMigration {
 			.addColumn("user_type", "text", (column) => column.notNull())
 			.addColumn("audience_type", "text", (column) => column.notNull())
 			.addColumn("user_agent", "text", (column) => column.notNull())
+			.addColumn("device_type", "text", (column) => column.notNull())
+			.addColumn("screen", "text", (column) => column.notNull())
 			.addColumn("webdriver", "integer", (column) => column.notNull())
 			.addColumn("user_activation", "integer", (column) => column.notNull())
 			.addColumn("pointer_events", "integer", (column) => column.notNull())

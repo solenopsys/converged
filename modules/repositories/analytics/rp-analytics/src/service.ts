@@ -113,6 +113,7 @@ export class AnalyticsServiceImpl implements AnalyticsService {
 			hotTimeline,
 			coldTimeline,
 			visitorTypes,
+			deviceSummary,
 			dashboard,
 			geoLiteDatabases,
 		] = await Promise.all([
@@ -123,6 +124,7 @@ export class AnalyticsServiceImpl implements AnalyticsService {
 			this.stores.hot.timeline(timelineStart, HOUR_MS),
 			this.stores.cold.timeline(timelineStart, HOUR_MS),
 			this.stores.ipSessions.typeSummary(today.getTime()),
+			this.stores.ipSessions.deviceSummary(today.getTime()),
 			this.getDashboardSummary(),
 			Promise.all([
 				this.stores.geoCity.statusRow("country"),
@@ -160,6 +162,7 @@ export class AnalyticsServiceImpl implements AnalyticsService {
 			dashboard,
 			timeline,
 			visitorTypes,
+			...deviceSummary,
 			geoLiteDatabases,
 		};
 	}

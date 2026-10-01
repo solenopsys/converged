@@ -81,7 +81,23 @@ export type AnalyticsStatistic = {
 	dashboard: AnalyticsDashboardSummary;
 	timeline: AnalyticsTimelineBucket[];
 	visitorTypes: AnalyticsVisitorTypeCounts;
+	devices: AnalyticsDeviceCounts[];
+	resolutions: AnalyticsResolutionCounts[];
 	geoLiteDatabases: GeoLiteDatabaseStatus[];
+};
+
+export type AnalyticsDeviceCounts = {
+	device_type: "mobile" | "tablet" | "desktop" | "unknown";
+	human: number;
+	bot: number;
+	unverified: number;
+};
+
+export type AnalyticsResolutionCounts = {
+	resolution: string;
+	human: number;
+	bot: number;
+	unverified: number;
 };
 
 export type AnalyticsTimelineBucket = {
@@ -108,6 +124,8 @@ export type AnalyticsIpSession = {
 	asn: number;
 	asn_organization: string;
 	user_type: "human" | "bot" | "unverified";
+	device_type: "mobile" | "tablet" | "desktop" | "unknown";
+	screen: string;
 	audience_type: "authenticated" | "external" | "unknown";
 	url: string;
 	first_seen: number;
@@ -489,7 +507,17 @@ export const metadata: ServiceMetadata = {
     {
       "name": "AnalyticsStatistic",
       "kind": "type",
-      "definition": "{\n\ttotalHot: number;\n\ttotalCold: number;\n\tbyEvent: Record<string, number>;\n\tdashboard: AnalyticsDashboardSummary;\n\ttimeline: AnalyticsTimelineBucket[];\n\tvisitorTypes: AnalyticsVisitorTypeCounts;\n\tgeoLiteDatabases: GeoLiteDatabaseStatus[];\n}"
+      "definition": "{\n\ttotalHot: number;\n\ttotalCold: number;\n\tbyEvent: Record<string, number>;\n\tdashboard: AnalyticsDashboardSummary;\n\ttimeline: AnalyticsTimelineBucket[];\n\tvisitorTypes: AnalyticsVisitorTypeCounts;\n\tdevices: AnalyticsDeviceCounts[];\n\tresolutions: AnalyticsResolutionCounts[];\n\tgeoLiteDatabases: GeoLiteDatabaseStatus[];\n}"
+    },
+    {
+      "name": "AnalyticsDeviceCounts",
+      "kind": "type",
+      "definition": "{\n\tdevice_type: \"mobile\" | \"tablet\" | \"desktop\" | \"unknown\";\n\thuman: number;\n\tbot: number;\n\tunverified: number;\n}"
+    },
+    {
+      "name": "AnalyticsResolutionCounts",
+      "kind": "type",
+      "definition": "{\n\tresolution: string;\n\thuman: number;\n\tbot: number;\n\tunverified: number;\n}"
     },
     {
       "name": "AnalyticsTimelineBucket",
@@ -504,7 +532,7 @@ export const metadata: ServiceMetadata = {
     {
       "name": "AnalyticsIpSession",
       "kind": "type",
-      "definition": "{\n\tvisitor_id: string;\n\tsession_id: string;\n\tip_address: string;\n\tnetwork: string;\n\tcountry_code: string;\n\tcountry_name: string;\n\tregion_name: string;\n\tcity_name: string;\n\tasn: number;\n\tasn_organization: string;\n\tuser_type: \"human\" | \"bot\" | \"unverified\";\n\taudience_type: \"authenticated\" | \"external\" | \"unknown\";\n\turl: string;\n\tfirst_seen: number;\n\tlast_seen: number;\n\tpage_views: number;\n\tclicks: number;\n\tvisible_ms: number;\n\tscroll_max: number;\n}"
+      "definition": "{\n\tvisitor_id: string;\n\tsession_id: string;\n\tip_address: string;\n\tnetwork: string;\n\tcountry_code: string;\n\tcountry_name: string;\n\tregion_name: string;\n\tcity_name: string;\n\tasn: number;\n\tasn_organization: string;\n\tuser_type: \"human\" | \"bot\" | \"unverified\";\n\tdevice_type: \"mobile\" | \"tablet\" | \"desktop\" | \"unknown\";\n\tscreen: string;\n\taudience_type: \"authenticated\" | \"external\" | \"unknown\";\n\turl: string;\n\tfirst_seen: number;\n\tlast_seen: number;\n\tpage_views: number;\n\tclicks: number;\n\tvisible_ms: number;\n\tscroll_max: number;\n}"
     },
     {
       "name": "AnalyticsIpSessionPage",

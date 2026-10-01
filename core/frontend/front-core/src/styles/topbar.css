@@ -22,9 +22,9 @@
   padding-inline: var(--hw-space-4);
 }
 
-.top-bar a,
-.top-bar button,
-.top-bar select {
+.top-bar-controls a,
+.top-bar-controls button,
+.top-bar-controls select {
   color: inherit;
   font:
     700 12px "SFMono-Regular",
@@ -69,6 +69,11 @@ html.dark .top-bar-brand-logo {
 .top-bar-nav a {
   padding: var(--hw-space-1) 0;
   border-bottom: 1px solid transparent;
+  color: var(--hw-ink-muted);
+  font-family: var(--hw-font-sans);
+  font-size: var(--hw-font-size-md);
+  font-weight: var(--hw-weight-regular);
+  line-height: 1.2;
   text-decoration: none;
 }
 
@@ -76,7 +81,7 @@ html.dark .top-bar-brand-logo {
 .top-bar-nav a:focus-visible,
 .top-bar-nav a[aria-current="page"] {
   border-bottom-color: currentColor;
-  color: var(--hw-ink);
+  color: var(--hw-focus);
 }
 
 .top-bar-tabstrip {

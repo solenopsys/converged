@@ -25,6 +25,8 @@ const emptyStatistic: AnalyticsStatistic = {
 	dashboard: emptySummary,
 	timeline: [],
 	visitorTypes: { human: 0, bot: 0, unverified: 0 },
+	devices: [],
+	resolutions: [],
 	geoLiteDatabases: [],
 };
 

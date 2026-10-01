@@ -85,12 +85,19 @@ export function AnalyticsDashboardView() {
 								key: "human",
 								label: "Human",
 								value: statistic.visitorTypes.human,
+								color: "var(--ui-chart-1)",
 							},
-							{ key: "bot", label: "Bot", value: statistic.visitorTypes.bot },
+							{
+								key: "bot",
+								label: "Bot",
+								value: statistic.visitorTypes.bot,
+								color: "var(--ui-chart-2)",
+							},
 							{
 								key: "unverified",
 								label: "Unverified",
 								value: statistic.visitorTypes.unverified,
+								color: "var(--hw-ink-muted)",
 							},
 						]}
 					/>
@@ -113,8 +120,95 @@ export function AnalyticsDashboardView() {
 						}))}
 					/>
 				</div>
+				<div className="grid gap-4 xl:grid-cols-2">
+					<BreakdownTable
+						title="Sessions by device today"
+						firstColumn="Device"
+						rows={statistic.devices.map((row) => ({
+							label: deviceLabel(row.device_type),
+							human: row.human,
+							bot: row.bot,
+							unverified: row.unverified,
+						}))}
+					/>
+					<BreakdownTable
+						title="Sessions by screen resolution today"
+						firstColumn="Resolution"
+						rows={statistic.resolutions.map((row) => ({
+							label: row.resolution,
+							human: row.human,
+							bot: row.bot,
+							unverified: row.unverified,
+						}))}
+					/>
+				</div>
 			</div>
 		</div>
+	);
+}
+
+function deviceLabel(device: string) {
+	return (
+		(
+			{
+				mobile: "Mobile",
+				tablet: "Tablet",
+				desktop: "Desktop",
+				unknown: "Unknown",
+			} as Record<string, string>
+		)[device] ?? device
+	);
+}
+
+function BreakdownTable({
+	title,
+	firstColumn,
+	rows,
+}: {
+	title: string;
+	firstColumn: string;
+	rows: Array<{
+		label: string;
+		human: number;
+		bot: number;
+		unverified: number;
+	}>;
+}) {
+	return (
+		<section className="min-w-0">
+			<h2 className="mb-2 text-sm font-semibold">{title}</h2>
+			<div className="overflow-auto">
+				<table className="w-full border-collapse text-sm">
+					<thead>
+						<tr className="text-left text-muted-foreground">
+							<th className="border-b p-2">{firstColumn}</th>
+							<th className="border-b p-2">Human</th>
+							<th className="border-b p-2">Bot</th>
+							<th className="border-b p-2">Unverified</th>
+						</tr>
+					</thead>
+					<tbody>
+						{rows.map((row) => (
+							<tr key={row.label}>
+								<td className="border-b p-2">{row.label}</td>
+								<td className="border-b p-2">{row.human.toLocaleString()}</td>
+								<td className="border-b p-2">{row.bot.toLocaleString()}</td>
+								<td className="border-b p-2">
+									{row.unverified.toLocaleString()}
+								</td>
+							</tr>
+						))}
+						{rows.length === 0 && (
+							<tr>
+								<td className="p-2 text-muted-foreground" colSpan={4}>
+									No session data yet
+								</td>
+							</tr>
+						)}
+					</tbody>
+				</table>
+			</div>
+		</section>
 	);
 }
 

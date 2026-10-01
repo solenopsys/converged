@@ -74,7 +74,23 @@ export type AnalyticsStatistic = {
 	dashboard: AnalyticsDashboardSummary;
 	timeline: AnalyticsTimelineBucket[];
 	visitorTypes: AnalyticsVisitorTypeCounts;
+	devices: AnalyticsDeviceCounts[];
+	resolutions: AnalyticsResolutionCounts[];
 	geoLiteDatabases: GeoLiteDatabaseStatus[];
+};
+
+export type AnalyticsDeviceCounts = {
+	device_type: "mobile" | "tablet" | "desktop" | "unknown";
+	human: number;
+	bot: number;
+	unverified: number;
+};
+
+export type AnalyticsResolutionCounts = {
+	resolution: string;
+	human: number;
+	bot: number;
+	unverified: number;
 };
 
 export type AnalyticsTimelineBucket = {
@@ -101,6 +117,8 @@ export type AnalyticsIpSession = {
 	asn: number;
 	asn_organization: string;
 	user_type: "human" | "bot" | "unverified";
+	device_type: "mobile" | "tablet" | "desktop" | "unknown";
+	screen: string;
 	audience_type: "authenticated" | "external" | "unknown";
 	url: string;
 	first_seen: number;

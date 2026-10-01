@@ -1,11 +1,13 @@
 import { EntityListView } from "front-core";
 import { defineSurface, objectRef, setOf } from "front-core/object-runtime";
 import type { AnalyticsQueryParams } from "g-analytics";
-import { analyticsColumns } from "./functions/columns";
+import {
+	analyticsColumns,
+	analyticsIpSessionColumns,
+} from "./functions/columns";
 import analytics from "./service";
 import { AnalyticsSummary } from "./summary";
 import { AnalyticsDashboardView } from "./views/AnalyticsDashboardView";
-import { AnalyticsIpSessionsView } from "./views/AnalyticsIpSessionsView";
 import { AnalyticsRealtimeView } from "./views/AnalyticsRealtimeView";
 import { GeoDatabasesView } from "./views/GeoDatabasesView";
 
@@ -116,7 +118,23 @@ export default defineSurface({
 		{
 			id: "analytics.ip-sessions",
 			label: "IP activity",
-			categories: ["core.statistic"],
+			pluralLabel: "IP sessions",
+			categories: ["core.entity"],
+			infinity: {
+				tableId: "analytics-ip-sessions",
+				title: "IP activity",
+				columns: analyticsIpSessionColumns,
+				load: (params) =>
+					analytics.listIpSessions(
+						Number(params.limit ?? 20),
+						Number(params.offset ?? 0),
+					),
+				rowRef: (row) =>
+					objectRef(
+						"analytics.ip-sessions",
+						`${String(row.visitor_id)}:${String(row.session_id)}`,
+					),
+			},
 		},
 	],
 	views: [
@@ -148,7 +166,7 @@ export default defineSurface({
 			id: "analytics.ip-sessions.panel",
 			label: "IP activity",
 			accepts: setOf("analytics.ip-sessions"),
-			component: AnalyticsIpSessionsView,
+			component: EntityListView,
 		},
 	],
 	operations: [],
