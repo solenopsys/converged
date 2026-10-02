@@ -47,6 +47,7 @@ class TransportConnection implements DatabaseConnection {
     const isQuery =
       upper.startsWith("SELECT") ||
       upper.startsWith("WITH") ||
+      upper.startsWith("PRAGMA TABLE_INFO") ||
       upper.includes("RETURNING");
 
     if (isQuery) {

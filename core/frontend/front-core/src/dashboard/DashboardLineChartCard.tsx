@@ -197,6 +197,10 @@ export function DashboardLineChartCard({
 						: [],
 				);
 	const activeX = activePoints[0]?.point.x;
+	const selectedIndex =
+		activeIndex ?? (rows.length > 0 ? rows.length - 1 : null);
+	const selectedRow = selectedIndex === null ? undefined : rows[selectedIndex];
+	const selectedLabel = selectedRow?.[xField];
 
 	const updateActiveIndex = (event: MouseEvent) => {
 		const svg = event.currentTarget as SVGSVGElement;
@@ -236,7 +240,7 @@ export function DashboardLineChartCard({
 					)}
 				</CardHeader>
 			)}
-			<CardContent className="flex min-h-0 flex-1 flex-col gap-2 px-4 pb-4 pt-0 sm:flex-row sm:items-stretch">
+			<CardContent className="flex min-h-0 flex-1 flex-col gap-2 px-4 pb-4 pt-0 sm:flex-row sm:items-center">
 				{loading ? (
 					<div
 						className="flex flex-1 items-center justify-center text-muted-foreground"
@@ -250,114 +254,121 @@ export function DashboardLineChartCard({
 							ref={chartContainerRef}
 							className="min-h-[160px] min-w-0 flex-1 overflow-hidden"
 						>
-					<svg
-						viewBox={`0 0 ${chartWidth} ${VIEW_HEIGHT}`}
-						className="h-full w-full"
-						role="img"
-						aria-label={title}
-						onMouseMove={updateActiveIndex}
-						onMouseLeave={() => setActiveIndex(null)}
-					>
-						<g transform={`translate(${MARGIN.left},${MARGIN.top})`}>
-							<line
-								x1={0}
-								y1={chart.innerHeight}
-								x2={chart.innerWidth}
-								y2={chart.innerHeight}
-								stroke="currentColor"
-								className="text-border"
-							/>
-							{chart.xTicks.map((tick) => (
-								<text
-									key={tick}
-									x={(chart.xScale(tick) ?? 0) + chart.xScale.bandwidth() / 2}
-									y={chart.innerHeight + 14}
-									textAnchor="middle"
-									className="fill-muted-foreground"
-									fontSize={9}
-								>
-									{xFormatter(tick)}
-								</text>
-							))}
-							{chart.shapes.map((shape) =>
-								shape.kind === "bar" ? (
-									<g key={shape.config.key}>
-										{shape.bars.map((bar) => (
-											<rect
-												key={`${shape.config.key}-${bar.label}`}
-												x={bar.x}
-												y={bar.y}
-												width={Math.max(0, bar.width - 1)}
-												height={Math.max(0, bar.height)}
-												fill={shape.config.color}
-												opacity={0.85}
-											>
-												<title>
-													{shape.config.label}: {bar.value.toLocaleString()}
-												</title>
-											</rect>
-										))}
-									</g>
-								) : (
-									<g key={shape.config.key}>
-										{shape.areaPath && (
-											<path
-												d={shape.areaPath}
-												fill={shape.config.color}
-												opacity={shape.areaOpacity}
-												stroke="none"
-											/>
-										)}
-										<path
-											d={shape.path}
-											fill="none"
-											stroke={shape.config.color}
-											strokeWidth={2}
-											opacity={0.9}
-										/>
-									</g>
-								),
-							)}
-							{activeX !== undefined && (
-								<g pointerEvents="none">
+							<svg
+								viewBox={`0 0 ${chartWidth} ${VIEW_HEIGHT}`}
+								className="h-full w-full"
+								role="img"
+								aria-label={title}
+								onMouseMove={updateActiveIndex}
+								onMouseLeave={() => setActiveIndex(null)}
+							>
+								<g transform={`translate(${MARGIN.left},${MARGIN.top})`}>
 									<line
-										x1={activeX}
-										y1={0}
-										x2={activeX}
+										x1={0}
+										y1={chart.innerHeight}
+										x2={chart.innerWidth}
 										y2={chart.innerHeight}
-										className="stroke-border"
-										strokeDasharray="3 3"
+										stroke="currentColor"
+										className="text-border"
 									/>
-									{activePoints.map(({ point, color, label }) => (
-										<circle
-											key={label}
-											cx={point.x}
-											cy={point.y}
-											r={3.5}
-											fill="white"
-											stroke={color}
-											strokeWidth={2}
+									{chart.xTicks.map((tick) => (
+										<text
+											key={tick}
+											x={
+												(chart.xScale(tick) ?? 0) + chart.xScale.bandwidth() / 2
+											}
+											y={chart.innerHeight + 14}
+											textAnchor="middle"
+											className="fill-muted-foreground"
+											fontSize={9}
 										>
-											<title>
-												{label}: {point.value.toLocaleString()}
-											</title>
-										</circle>
+											{xFormatter(tick)}
+										</text>
 									))}
+									{chart.shapes.map((shape) =>
+										shape.kind === "bar" ? (
+											<g key={shape.config.key}>
+												{shape.bars.map((bar) => (
+													<rect
+														key={`${shape.config.key}-${bar.label}`}
+														x={bar.x}
+														y={bar.y}
+														width={Math.max(0, bar.width - 1)}
+														height={Math.max(0, bar.height)}
+														fill={shape.config.color}
+														opacity={0.85}
+													>
+														<title>
+															{shape.config.label}: {bar.value.toLocaleString()}
+														</title>
+													</rect>
+												))}
+											</g>
+										) : (
+											<g key={shape.config.key}>
+												{shape.areaPath && (
+													<path
+														d={shape.areaPath}
+														fill={shape.config.color}
+														opacity={shape.areaOpacity}
+														stroke="none"
+													/>
+												)}
+												<path
+													d={shape.path}
+													fill="none"
+													stroke={shape.config.color}
+													strokeWidth={2}
+													opacity={0.9}
+												/>
+											</g>
+										),
+									)}
+									{activeX !== undefined && (
+										<g pointerEvents="none">
+											<line
+												x1={activeX}
+												y1={0}
+												x2={activeX}
+												y2={chart.innerHeight}
+												className="stroke-border"
+												strokeDasharray="3 3"
+											/>
+											{activePoints.map(({ point, color, label }) => (
+												<circle
+													key={label}
+													cx={point.x}
+													cy={point.y}
+													r={3.5}
+													fill="white"
+													stroke={color}
+													strokeWidth={2}
+												>
+													<title>
+														{label}: {point.value.toLocaleString()}
+													</title>
+												</circle>
+											))}
+										</g>
+									)}
 								</g>
-							)}
-						</g>
 							</svg>
 						</div>
 						{legend && (
 							<ChartLegend
+								caption={
+									selectedLabel == null
+										? undefined
+										: xFormatter(String(selectedLabel))
+								}
 								rows={series.map((item) => ({
 									key: item.key,
 									label: item.label,
 									color: item.color,
 									value:
-										rows.at(-1)?.[item.key] == null
+										selectedRow?.[item.key] == null
 											? ""
-											: Number(rows.at(-1)?.[item.key]).toLocaleString(),
+											: Number(selectedRow[item.key]).toLocaleString(),
 								}))}
 							/>
 						)}

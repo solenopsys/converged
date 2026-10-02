@@ -1,0 +1,7 @@
+{
+	"title": "Clients",
+	"summary": "Client records and their contact details.",
+	"keywords": ["clients", "contacts", "crm"],
+	"repositories": ["clients"],
+	"dependencies": ["security"]
+}

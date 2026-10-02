@@ -64,6 +64,10 @@ function parseObject(value: string | null): Record<string, unknown> | null {
 	}
 }
 
+function presetUrlValue(preset: { id: string; urlValue?: string }): string {
+	return preset.urlValue ?? preset.id.split(".").at(-1) ?? preset.id;
+}
+
 function routeFromUrl(href: string): ConsoleRoute | null {
 	const url = new URL(href, "http://localhost");
 	if (!isConsolePath(url.pathname)) return null;
@@ -100,10 +104,35 @@ function routeFromUrl(href: string): ConsoleRoute | null {
 
 	const filter = parseObject(url.searchParams.get("filter"));
 	if (filter === null) return null;
+	const type = objectRegistry.type(view.accepts.type);
+	const tabPresets =
+		type?.infinity?.presets?.filter((preset) => preset.control === "tab") ?? [];
+	const tabValue = url.searchParams.get("tab");
+	const selectedPreset = tabValue
+		? tabPresets.find(
+				(preset) =>
+					presetUrlValue(preset) === tabValue || preset.id === tabValue,
+			)
+		: tabPresets[0];
 	return {
 		surface,
 		viewId: view.id,
-		ref: setRef(view.accepts.type, { kind: "query", filter }),
+		ref: setRef(view.accepts.type, {
+			kind: "query",
+			filter,
+			...(selectedPreset
+				? {
+						presets: [
+							{
+								id: selectedPreset.id,
+								...(selectedPreset.defaults
+									? { params: selectedPreset.defaults }
+									: {}),
+							},
+						],
+					}
+				: {}),
+		}),
 	};
 }
 
@@ -147,7 +176,24 @@ function urlForRoute(
 
 	const selection = ref?.kind === "set" ? ref.selection : undefined;
 	if (selection?.kind === "query") {
-		url.searchParams.set("filter", JSON.stringify(selection.filter ?? {}));
+		if (selection.filter && Object.keys(selection.filter).length > 0) {
+			url.searchParams.set("filter", JSON.stringify(selection.filter));
+		}
+		const infinity = projection?.accepts.type
+			? objectRegistry.type(projection.accepts.type)?.infinity
+			: undefined;
+		const tabPresets =
+			infinity?.presets?.filter((preset) => preset.control === "tab") ?? [];
+		const selectedPreset =
+			selection.presets?.find((preset) =>
+				tabPresets.some((definition) => definition.id === preset.id),
+			) ?? tabPresets[0];
+		if (selectedPreset) {
+			const definition = tabPresets.find(
+				(preset) => preset.id === selectedPreset.id,
+			);
+			if (definition) url.searchParams.set("tab", presetUrlValue(definition));
+		}
 	}
 	return `${url.pathname}${url.search}${url.hash}`;
 }
@@ -218,6 +264,15 @@ async function restoreFromLocation(): Promise<void> {
 		);
 	} finally {
 		restoring = false;
+		const subtab = $pressedSubtab.getState();
+		const next = urlForWorkspace(
+			window.location.href,
+			$activeSurface.getState(),
+			subtab ?? null,
+		);
+		const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+		if (current !== next)
+			window.history.replaceState(window.history.state, "", next);
 	}
 }
 

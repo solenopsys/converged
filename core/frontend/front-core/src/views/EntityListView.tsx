@@ -364,11 +364,15 @@ export function EntityListView<TData extends object = Record<string, unknown>>({
 					infinity?.presets?.some((definition) => definition.id === preset.id),
 				)
 			: undefined;
+	const defaultConfiguredPreset = infinity?.presets?.find(
+		(preset) => preset.control === "tab",
+	);
 	useEffect(() => {
-		if (selectedConfiguredPreset) {
-			tabStateStore.setHeader({ activeTabId: selectedConfiguredPreset.id });
+		const activePreset = selectedConfiguredPreset ?? defaultConfiguredPreset;
+		if (activePreset) {
+			tabStateStore.setHeader({ activeTabId: activePreset.id });
 		}
-	}, [selectedConfiguredPreset, tabStateStore]);
+	}, [defaultConfiguredPreset, selectedConfiguredPreset, tabStateStore]);
 	const activeStore = activeTab?.store ?? store ?? projectionStore;
 	if (!activeStore) {
 		throw new Error(

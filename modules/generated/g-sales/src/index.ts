@@ -143,6 +143,7 @@ export type OutreachTarget = {
 	templateId: string;
 	status: OutreachTargetStatus | string;
 	position: number;
+	messageId?: string | null;
 	data: OutreachTargetData;
 	createdAt: Date;
 	updatedAt: Date;
@@ -156,6 +157,7 @@ export type OutreachTargetInput = {
 	templateId: string;
 	status?: OutreachTargetStatus | string;
 	position?: number;
+	messageId?: string | null;
 	data: OutreachTargetData;
 };
 
@@ -169,6 +171,7 @@ export type OutreachTargetListParams = PaginationParams & {
 export type OutreachTargetStatusUpdate = {
 	id: string;
 	status: OutreachTargetStatus | string;
+	messageId?: string | null;
 };
 
 export type OutreachProgressStat = {
@@ -1231,12 +1234,12 @@ export const metadata: ServiceMetadata = {
     {
       "name": "OutreachTarget",
       "kind": "type",
-      "definition": "{\n\tid: string;\n\t/** Temporary queue owner while Campaign is being replaced by Enrichment. */\n\toutreachId: string;\n\t/** The string id of the company this work belongs to. */\n\tcompanyId: string;\n\t/** The template the UI and delivery load when they need to render this target. */\n\ttemplateId: string;\n\tstatus: OutreachTargetStatus | string;\n\tposition: number;\n\tdata: OutreachTargetData;\n\tcreatedAt: Date;\n\tupdatedAt: Date;\n}"
+      "definition": "{\n\tid: string;\n\t/** Temporary queue owner while Campaign is being replaced by Enrichment. */\n\toutreachId: string;\n\t/** The string id of the company this work belongs to. */\n\tcompanyId: string;\n\t/** The template the UI and delivery load when they need to render this target. */\n\ttemplateId: string;\n\tstatus: OutreachTargetStatus | string;\n\tposition: number;\n\tmessageId?: string | null;\n\tdata: OutreachTargetData;\n\tcreatedAt: Date;\n\tupdatedAt: Date;\n}"
     },
     {
       "name": "OutreachTargetInput",
       "kind": "type",
-      "definition": "{\n\tid?: string;\n\toutreachId: string;\n\t/** Legacy storage field. New callers identify the queue only by outreachId. */\n\tcompanyId?: string;\n\ttemplateId: string;\n\tstatus?: OutreachTargetStatus | string;\n\tposition?: number;\n\tdata: OutreachTargetData;\n}"
+      "definition": "{\n\tid?: string;\n\toutreachId: string;\n\t/** Legacy storage field. New callers identify the queue only by outreachId. */\n\tcompanyId?: string;\n\ttemplateId: string;\n\tstatus?: OutreachTargetStatus | string;\n\tposition?: number;\n\tmessageId?: string | null;\n\tdata: OutreachTargetData;\n}"
     },
     {
       "name": "OutreachTargetListParams",
@@ -1246,7 +1249,7 @@ export const metadata: ServiceMetadata = {
     {
       "name": "OutreachTargetStatusUpdate",
       "kind": "type",
-      "definition": "{\n\tid: string;\n\tstatus: OutreachTargetStatus | string;\n}"
+      "definition": "{\n\tid: string;\n\tstatus: OutreachTargetStatus | string;\n\tmessageId?: string | null;\n}"
     },
     {
       "name": "OutreachProgressStat",

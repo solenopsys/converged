@@ -47,11 +47,11 @@ export function AnalyticsDashboardView() {
 					<Metric label="Page views today" value={summary.page_views_today} />
 					<Metric label="Active visitors" value={summary.active_visitors} />
 				</div>
-				<div className="grid min-h-[300px] gap-4">
+				<div className="grid min-h-[300px] gap-4 lg:grid-cols-2">
 					<DashboardLineChartCard
-						data={statistic.timeline}
-						title="Traffic over the last 24 hours"
-						description="Visits and collected events by hour"
+						data={statistic.humanTimeline}
+						title="Human traffic over the last 24 hours"
+						description="Sessions and page views by hour"
 						xField="timestamp"
 						xFormatter={(value) =>
 							new Date(Number(value)).toLocaleTimeString([], {
@@ -61,19 +61,46 @@ export function AnalyticsDashboardView() {
 						series={[
 							{
 								key: "visits",
-								label: "Visits",
+								label: "Sessions",
 								color: "var(--ui-chart-1)",
 								smooth: true,
 							},
 							{
 								key: "events",
-								label: "Events",
+								label: "Page views",
 								color: "var(--ui-chart-2)",
 								yAxisIndex: 1,
 								smooth: true,
 							},
 						]}
-						secondaryAxis={{ name: "Events", primaryName: "Visits" }}
+						secondaryAxis={{ name: "Page views", primaryName: "Sessions" }}
+					/>
+					<DashboardLineChartCard
+						data={statistic.botTimeline}
+						title="Bot traffic over the last 24 hours"
+						description="Sessions and page views by hour"
+						xField="timestamp"
+						xFormatter={(value) =>
+							new Date(Number(value)).toLocaleTimeString([], {
+								hour: "2-digit",
+							})
+						}
+						series={[
+							{
+								key: "visits",
+								label: "Sessions",
+								color: "var(--ui-chart-1)",
+								smooth: true,
+							},
+							{
+								key: "events",
+								label: "Page views",
+								color: "var(--ui-chart-2)",
+								yAxisIndex: 1,
+								smooth: true,
+							},
+						]}
+						secondaryAxis={{ name: "Page views", primaryName: "Sessions" }}
 					/>
 				</div>
 				<div className="grid gap-4 lg:grid-cols-3">

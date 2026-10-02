@@ -80,6 +80,8 @@ export type AnalyticsStatistic = {
 	byEvent: Record<string, number>;
 	dashboard: AnalyticsDashboardSummary;
 	timeline: AnalyticsTimelineBucket[];
+	humanTimeline: AnalyticsTimelineBucket[];
+	botTimeline: AnalyticsTimelineBucket[];
 	visitorTypes: AnalyticsVisitorTypeCounts;
 	devices: AnalyticsDeviceCounts[];
 	resolutions: AnalyticsResolutionCounts[];
@@ -350,6 +352,12 @@ export const metadata: ServiceMetadata = {
           "type": "number",
           "optional": false,
           "isArray": false
+        },
+        {
+          "name": "filter",
+          "type": "AnalyticsFilterObject",
+          "optional": true,
+          "isArray": false
         }
       ],
       "returnType": "AnalyticsIpSessionPage",
@@ -507,7 +515,7 @@ export const metadata: ServiceMetadata = {
     {
       "name": "AnalyticsStatistic",
       "kind": "type",
-      "definition": "{\n\ttotalHot: number;\n\ttotalCold: number;\n\tbyEvent: Record<string, number>;\n\tdashboard: AnalyticsDashboardSummary;\n\ttimeline: AnalyticsTimelineBucket[];\n\tvisitorTypes: AnalyticsVisitorTypeCounts;\n\tdevices: AnalyticsDeviceCounts[];\n\tresolutions: AnalyticsResolutionCounts[];\n\tgeoLiteDatabases: GeoLiteDatabaseStatus[];\n}"
+      "definition": "{\n\ttotalHot: number;\n\ttotalCold: number;\n\tbyEvent: Record<string, number>;\n\tdashboard: AnalyticsDashboardSummary;\n\ttimeline: AnalyticsTimelineBucket[];\n\thumanTimeline: AnalyticsTimelineBucket[];\n\tbotTimeline: AnalyticsTimelineBucket[];\n\tvisitorTypes: AnalyticsVisitorTypeCounts;\n\tdevices: AnalyticsDeviceCounts[];\n\tresolutions: AnalyticsResolutionCounts[];\n\tgeoLiteDatabases: GeoLiteDatabaseStatus[];\n}"
     },
     {
       "name": "AnalyticsDeviceCounts",
@@ -636,7 +644,7 @@ export interface AnalyticsService {
   listCold(params: AnalyticsQueryParams): Promise<PaginatedResult<AnalyticsEvent>>;
   getStatistic(): Promise<AnalyticsStatistic>;
   getDashboardSummary(): Promise<AnalyticsDashboardSummary>;
-  listIpSessions(limit: number, offset: number): Promise<AnalyticsIpSessionPage>;
+  listIpSessions(limit: number, offset: number, filter?: AnalyticsFilterObject): Promise<AnalyticsIpSessionPage>;
   describeSelection(objectType: string): Promise<AnalyticsSelectionDescriptor>;
   inspectEvents(filter?: AnalyticsFilterObject): Promise<AnalyticsSelectionStats>;
   importGeoLiteBatch(batch: GeoLiteImportBatch): Promise<number>;
@@ -656,7 +664,7 @@ export interface AnalyticsServiceClient {
   listCold(params: AnalyticsQueryParams): Promise<PaginatedResult<AnalyticsEvent>>;
   getStatistic(): Promise<AnalyticsStatistic>;
   getDashboardSummary(): Promise<AnalyticsDashboardSummary>;
-  listIpSessions(limit: number, offset: number): Promise<AnalyticsIpSessionPage>;
+  listIpSessions(limit: number, offset: number, filter?: AnalyticsFilterObject): Promise<AnalyticsIpSessionPage>;
   describeSelection(objectType: string): Promise<AnalyticsSelectionDescriptor>;
   inspectEvents(filter?: AnalyticsFilterObject): Promise<AnalyticsSelectionStats>;
   importGeoLiteBatch(batch: GeoLiteImportBatch): Promise<number>;

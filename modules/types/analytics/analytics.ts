@@ -73,6 +73,8 @@ export type AnalyticsStatistic = {
 	byEvent: Record<string, number>;
 	dashboard: AnalyticsDashboardSummary;
 	timeline: AnalyticsTimelineBucket[];
+	humanTimeline: AnalyticsTimelineBucket[];
+	botTimeline: AnalyticsTimelineBucket[];
 	visitorTypes: AnalyticsVisitorTypeCounts;
 	devices: AnalyticsDeviceCounts[];
 	resolutions: AnalyticsResolutionCounts[];
@@ -262,6 +264,7 @@ export interface AnalyticsService {
 	listIpSessions(
 		limit: number,
 		offset: number,
+		filter?: AnalyticsFilterObject,
 	): Promise<AnalyticsIpSessionPage>;
 	describeSelection(objectType: string): Promise<AnalyticsSelectionDescriptor>;
 	inspectEvents(

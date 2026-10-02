@@ -158,6 +158,7 @@ export type OutreachTarget = {
 	templateId: string;
 	status: OutreachTargetStatus | string;
 	position: number;
+	messageId?: string | null;
 	data: OutreachTargetData;
 	createdAt: Date;
 	updatedAt: Date;
@@ -171,6 +172,7 @@ export type OutreachTargetInput = {
 	templateId: string;
 	status?: OutreachTargetStatus | string;
 	position?: number;
+	messageId?: string | null;
 	data: OutreachTargetData;
 };
 
@@ -184,6 +186,7 @@ export type OutreachTargetListParams = PaginationParams & {
 export type OutreachTargetStatusUpdate = {
 	id: string;
 	status: OutreachTargetStatus | string;
+	messageId?: string | null;
 };
 
 export type OutreachProgressStat = {

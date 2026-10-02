@@ -124,11 +124,107 @@ export default defineSurface({
 				tableId: "analytics-ip-sessions",
 				title: "IP activity",
 				columns: analyticsIpSessionColumns,
-				load: (params) =>
-					analytics.listIpSessions(
+				filters: [
+					{
+						id: "ip_address",
+						label: "IP address",
+						type: "search",
+						operator: "contains",
+					},
+					{
+						id: "network",
+						label: "Network",
+						type: "search",
+						operator: "contains",
+					},
+					{
+						id: "country_name",
+						label: "Country",
+						type: "search",
+						operator: "contains",
+					},
+					{
+						id: "city_name",
+						label: "City",
+						type: "search",
+						operator: "contains",
+					},
+					{
+						id: "user_type",
+						label: "Visitor type",
+						type: "select",
+						operator: "eq",
+						options: [
+							{ value: "human", label: "Human" },
+							{ value: "bot", label: "Bot" },
+							{ value: "unverified", label: "Unverified" },
+						],
+					},
+					{
+						id: "device_type",
+						label: "Device",
+						type: "select",
+						operator: "eq",
+						options: [
+							{ value: "mobile", label: "Mobile" },
+							{ value: "tablet", label: "Tablet" },
+							{ value: "desktop", label: "Desktop" },
+							{ value: "unknown", label: "Unknown" },
+						],
+					},
+					{
+						id: "screen",
+						label: "Screen",
+						type: "search",
+						operator: "contains",
+					},
+					{
+						id: "url",
+						label: "Page",
+						type: "search",
+						operator: "contains",
+					},
+				],
+				presets: [
+					{
+						id: "analytics.sessions.humans",
+						label: "Humans",
+						control: "tab",
+						group: "analytics-session-type",
+					},
+					{
+						id: "analytics.sessions.bots",
+						label: "Bots",
+						control: "tab",
+						group: "analytics-session-type",
+					},
+					{
+						id: "analytics.sessions.all",
+						label: "All",
+						control: "tab",
+						group: "analytics-session-type",
+					},
+				],
+				load: (params) => {
+					const presetFilter = hasPreset(params, "analytics.sessions.bots")
+						? { user_type: { eq: "bot" } }
+						: hasPreset(params, "analytics.sessions.all")
+							? undefined
+							: { user_type: { eq: "human" } };
+					const activeFilters = params.filter as
+						| Record<string, unknown>
+						| undefined;
+					const filter = presetFilter
+						? activeFilters
+							? { AND: [presetFilter, activeFilters] }
+							: presetFilter
+						: activeFilters;
+					return analytics.listIpSessions(
 						Number(params.limit ?? 20),
 						Number(params.offset ?? 0),
-					),
+						filter,
+					);
+				},
 				rowRef: (row) =>
 					objectRef(
 						"analytics.ip-sessions",

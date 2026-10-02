@@ -1,5 +1,5 @@
 import { arc as d3Arc, pie as d3Pie } from "d3";
-import { useMemo } from "preact/compat";
+import { useMemo, useState } from "preact/compat";
 import {
 	Card,
 	CardContent,
@@ -87,6 +87,7 @@ export function DashboardPieChartCard({
 				: (item.color ?? colors[index]),
 		}));
 	}, [data, maxSlices, otherLabel, isErrorLike, errorColor, colors]);
+	const [hoveredKey, setHoveredKey] = useState<string | null>(null);
 
 	const arcs = useMemo(() => {
 		if (chartData.length === 0) return [];
@@ -102,6 +103,8 @@ export function DashboardPieChartCard({
 			datum: slice.data,
 		}));
 	}, [chartData, radius]);
+	const activeDatum = chartData.find((item) => item.key === hoveredKey);
+	const activeKey = activeDatum?.key ?? null;
 
 	return (
 		<Card
@@ -117,7 +120,7 @@ export function DashboardPieChartCard({
 					)}
 				</CardHeader>
 			)}
-			<CardContent className="flex min-h-0 flex-1 flex-wrap gap-4 px-4 pb-4 pt-0">
+			<CardContent className="flex min-h-0 flex-1 flex-wrap items-center gap-4 px-4 pb-4 pt-0">
 				{loading ? (
 					<div
 						className="flex flex-1 items-center justify-center text-muted-foreground"
@@ -131,24 +134,9 @@ export function DashboardPieChartCard({
 					</div>
 				) : (
 					<>
-						<div className="flex h-full min-h-[220px] min-w-[150px] flex-1 items-center justify-center overflow-hidden">
-							<svg
-								viewBox={`${-VIEW_SIZE / 2} ${-VIEW_SIZE / 2} ${VIEW_SIZE} ${VIEW_SIZE}`}
-								className="h-[220px] w-[220px] shrink-0"
-								role="img"
-								aria-label={title ?? "Pie chart"}
-							>
-								{arcs.map(({ path, datum }) => (
-									<path key={datum.key} d={path} fill={datum.color}>
-										<title>
-											{datum.label}: {datum.value.toLocaleString()}
-										</title>
-									</path>
-								))}
-							</svg>
-						</div>
 						{legend && (
 							<ChartLegend
+								activeKey={activeKey}
 								rows={chartData.map((item) => ({
 									key: item.key,
 									label: item.label,
@@ -157,6 +145,33 @@ export function DashboardPieChartCard({
 								}))}
 							/>
 						)}
+						<div className="flex h-full min-h-[220px] min-w-[150px] flex-1 items-center justify-center overflow-hidden">
+							<svg
+								viewBox={`${-VIEW_SIZE / 2} ${-VIEW_SIZE / 2} ${VIEW_SIZE} ${VIEW_SIZE}`}
+								className="h-[220px] w-[220px] shrink-0"
+								role="img"
+								aria-label={title ?? "Pie chart"}
+								onMouseLeave={() => setHoveredKey(null)}
+							>
+								{arcs.map(({ path, datum }) => {
+									const active = activeKey === datum.key;
+									return (
+										<path
+											key={datum.key}
+											d={path}
+											fill={datum.color}
+											className="cursor-pointer transition-[opacity] duration-150"
+											opacity={activeKey && !active ? 0.45 : 1}
+											onMouseEnter={() => setHoveredKey(datum.key)}
+										>
+											<title>
+												{datum.label}: {datum.value.toLocaleString()}
+											</title>
+										</path>
+									);
+								})}
+							</svg>
+						</div>
 					</>
 				)}
 			</CardContent>

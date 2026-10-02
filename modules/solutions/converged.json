@@ -11,7 +11,8 @@
 		"automation",
 		"communications",
 		"production",
-		"billing"
+		"billing",
+		"clients"
 	],
 	"containers": {
 		"converged": [
@@ -23,8 +24,6 @@
 			"fujin",
 			"centimanus"
 		],
-		"ai": [
-			"case"
-		]
+		"ai": ["case"]
 	}
 }

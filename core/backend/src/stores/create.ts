@@ -7,6 +7,7 @@ import {
 import { settings } from "../config/settings";
 import { ColumnStore } from "../engines/column/column-store";
 import { FileStore } from "../engines/files/file-store";
+import { GraphStore } from "../engines/graph/graph-store";
 import { JsonStore } from "../engines/json/json-store";
 import { KVStore } from "../engines/kv/kv-store";
 import { SqlStore } from "../engines/sql/sql-store";
@@ -295,6 +296,9 @@ function createStore(
 	}
 	if (type === StoreType.VECTOR) {
 		return new VectorStore(conn, msName, storeDir, migrations);
+	}
+	if (type === StoreType.GRAPH) {
+		return new GraphStore(conn, msName, storeDir, migrations);
 	}
 
 	throw new Error(`Store type ${type} not implemented`);

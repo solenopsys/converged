@@ -100,6 +100,8 @@ export type InfinityDefinition<TData extends object = Record<string, unknown>> =
 			label: string;
 			group?: string;
 			control?: "tab" | "button" | "menu";
+			/** Short value written to the route's `tab` query parameter. */
+			urlValue?: string;
 			defaults?: Record<string, unknown>;
 		}[];
 		mobile?: {

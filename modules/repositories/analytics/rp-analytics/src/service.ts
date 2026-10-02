@@ -112,6 +112,8 @@ export class AnalyticsServiceImpl implements AnalyticsService {
 			coldEvents,
 			hotTimeline,
 			coldTimeline,
+			humanTimeline,
+			botTimeline,
 			visitorTypes,
 			deviceSummary,
 			dashboard,
@@ -123,6 +125,8 @@ export class AnalyticsServiceImpl implements AnalyticsService {
 			this.stores.cold.byEvent(),
 			this.stores.hot.timeline(timelineStart, HOUR_MS),
 			this.stores.cold.timeline(timelineStart, HOUR_MS),
+			this.stores.ipSessions.timeline(timelineStart, HOUR_MS, "human"),
+			this.stores.ipSessions.timeline(timelineStart, HOUR_MS, "bot"),
 			this.stores.ipSessions.typeSummary(today.getTime()),
 			this.stores.ipSessions.deviceSummary(today.getTime()),
 			this.getDashboardSummary(),
@@ -161,6 +165,28 @@ export class AnalyticsServiceImpl implements AnalyticsService {
 			byEvent,
 			dashboard,
 			timeline,
+			humanTimeline: Array.from({ length: TIMELINE_HOURS }, (_, index) => {
+				const timestamp = timelineStart + index * HOUR_MS;
+				return {
+					timestamp,
+					...(humanTimeline.find(
+						(bucket) => bucket.timestamp === timestamp,
+					) ?? {
+						visits: 0,
+						events: 0,
+					}),
+				};
+			}),
+			botTimeline: Array.from({ length: TIMELINE_HOURS }, (_, index) => {
+				const timestamp = timelineStart + index * HOUR_MS;
+				return {
+					timestamp,
+					...(botTimeline.find((bucket) => bucket.timestamp === timestamp) ?? {
+						visits: 0,
+						events: 0,
+					}),
+				};
+			}),
 			visitorTypes,
 			...deviceSummary,
 			geoLiteDatabases,
@@ -222,11 +248,15 @@ export class AnalyticsServiceImpl implements AnalyticsService {
 	}
 
 	@Access("user")
-	async listIpSessions(limit: number, offset: number) {
+	async listIpSessions(
+		limit: number,
+		offset: number,
+		filter?: Record<string, unknown>,
+	) {
 		await this.ensureReady();
 		const safeLimit = Math.max(1, Math.min(500, Math.floor(limit || 100)));
 		const safeOffset = Math.max(0, Math.floor(offset || 0));
-		return this.stores.ipSessions.list(safeLimit, safeOffset);
+		return this.stores.ipSessions.list(safeLimit, safeOffset, filter);
 	}
 
 	@Access("user")

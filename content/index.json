@@ -623,6 +623,22 @@
       ]
     },
     {
+      "owner": "rp-clients",
+      "path": "modules/repositories/business/rp-clients/docs",
+      "sections": [
+        {
+          "id": "modules",
+          "index": "modules/repositories/business/rp-clients/docs/index.json",
+          "articles": [
+            {
+              "slug": "rp-clients",
+              "file": "modules/repositories/business/rp-clients/docs/rp-clients.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "owner": "rp-community",
       "path": "modules/repositories/communications/rp-community/docs",
       "sections": [
@@ -985,22 +1001,6 @@
             {
               "slug": "rp-reviews",
               "file": "modules/repositories/business/rp-reviews/docs/rp-reviews.md"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "owner": "rp-sales",
-      "path": "modules/repositories/business/rp-sales/docs",
-      "sections": [
-        {
-          "id": "modules",
-          "index": "modules/repositories/business/rp-sales/docs/index.json",
-          "articles": [
-            {
-              "slug": "rp-sales",
-              "file": "modules/repositories/business/rp-sales/docs/rp-sales.md"
             }
           ]
         }

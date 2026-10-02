@@ -1,7 +1,58 @@
-import { type SqlStore, sql } from "back-core";
-import type { AnalyticsEventInput, AnalyticsIpSession } from "../../../types";
+import {
+	applyKyselyFilter,
+	type KyselyFilterSchema,
+	type SqlStore,
+	sql,
+} from "back-core";
+import type {
+	AnalyticsEventInput,
+	AnalyticsFilterObject,
+	AnalyticsIpSession,
+} from "../../../types";
 
 const TABLE = "analytics_ip_sessions";
+const ipSessionFilterSchema: KyselyFilterSchema = {
+	ip_address: {
+		valueType: "string",
+		operators: ["eq", "contains"],
+		column: "ip_address",
+	},
+	network: {
+		valueType: "string",
+		operators: ["eq", "contains"],
+		column: "network",
+	},
+	country_name: {
+		valueType: "string",
+		operators: ["eq", "contains"],
+		column: "country_name",
+	},
+	city_name: {
+		valueType: "string",
+		operators: ["eq", "contains"],
+		column: "city_name",
+	},
+	user_type: {
+		valueType: "string",
+		operators: ["eq", "in"],
+		column: "user_type",
+	},
+	device_type: {
+		valueType: "string",
+		operators: ["eq", "in"],
+		column: "device_type",
+	},
+	screen: {
+		valueType: "string",
+		operators: ["eq", "contains"],
+		column: "screen",
+	},
+	url: {
+		valueType: "string",
+		operators: ["eq", "contains", "startsWith"],
+		column: "url",
+	},
+};
 const BOT_AGENT =
 	/(bot|crawler|spider|headless|preview|lighthouse|phantom|slurp)/i;
 
@@ -246,6 +297,30 @@ export class IpSessionsStoreService {
 		};
 	}
 
+	async timeline(
+		fromTs: number,
+		bucketMs: number,
+		userType: AnalyticsIpSession["user_type"],
+	): Promise<Array<{ timestamp: number; visits: number; events: number }>> {
+		const bucket = sql<number>`CAST(first_seen / ${bucketMs} AS INTEGER) * ${bucketMs}`;
+		const rows = await this.store.db
+			.selectFrom(TABLE)
+			.select(bucket.as("timestamp"))
+			.select(({ fn }) => [
+				fn.countAll().as("visits"),
+				fn.sum<number>("page_views").as("events"),
+			])
+			.where("first_seen", ">=", fromTs)
+			.where("user_type", "=", userType)
+			.groupBy(bucket)
+			.execute();
+		return rows.map((row) => ({
+			timestamp: Number(row.timestamp),
+			visits: Number(row.visits),
+			events: Number(row.events ?? 0),
+		}));
+	}
+
 	async realtimeRows(fromTs: number) {
 		return this.store.db
 			.selectFrom(TABLE)
@@ -262,43 +337,50 @@ export class IpSessionsStoreService {
 			.execute();
 	}
 
-	async list(limit: number, offset: number) {
+	async list(limit: number, offset: number, filter?: AnalyticsFilterObject) {
+		const apply = (query: any) =>
+			applyKyselyFilter(
+				query.where("ip_address", "<>", ""),
+				filter,
+				ipSessionFilterSchema,
+			);
 		const [items, total] = await Promise.all([
-			this.store.db
-				.selectFrom(TABLE)
-				.select([
-					"visitor_id",
-					"session_id",
-					"ip_address",
-					"network",
-					"country_code",
-					"country_name",
-					"region_name",
-					"city_name",
-					"asn",
-					"asn_organization",
-					"user_type",
-					"device_type",
-					"screen",
-					"audience_type",
-					"url",
-					"first_seen",
-					"last_seen",
-					"page_views",
-					"clicks",
-					"visible_ms",
-					"scroll_max",
-				])
-				.where("ip_address", "<>", "")
+			apply(
+				this.store.db
+					.selectFrom(TABLE)
+					.select([
+						"visitor_id",
+						"session_id",
+						"ip_address",
+						"network",
+						"country_code",
+						"country_name",
+						"region_name",
+						"city_name",
+						"asn",
+						"asn_organization",
+						"user_type",
+						"device_type",
+						"screen",
+						"audience_type",
+						"url",
+						"first_seen",
+						"last_seen",
+						"page_views",
+						"clicks",
+						"visible_ms",
+						"scroll_max",
+					]),
+			)
 				.orderBy("last_seen", "desc")
 				.limit(limit)
 				.offset(offset)
 				.execute(),
-			this.store.db
-				.selectFrom(TABLE)
-				.select(({ fn }) => fn.countAll().as("count"))
-				.where("ip_address", "<>", "")
-				.executeTakeFirst(),
+			apply(
+				this.store.db
+					.selectFrom(TABLE)
+					.select(({ fn }) => fn.countAll().as("count")),
+			).executeTakeFirst(),
 		]);
 		return {
 			items: items as AnalyticsIpSession[],

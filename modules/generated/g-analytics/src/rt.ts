@@ -76,6 +76,8 @@ export type AnalyticsStatistic = {
 	byEvent: Record<string, number>;
 	dashboard: AnalyticsDashboardSummary;
 	timeline: AnalyticsTimelineBucket[];
+	humanTimeline: AnalyticsTimelineBucket[];
+	botTimeline: AnalyticsTimelineBucket[];
 	visitorTypes: AnalyticsVisitorTypeCounts;
 	devices: AnalyticsDeviceCounts[];
 	resolutions: AnalyticsResolutionCounts[];
@@ -346,6 +348,12 @@ const metadata: ServiceMetadata = {
           "type": "number",
           "optional": false,
           "isArray": false
+        },
+        {
+          "name": "filter",
+          "type": "AnalyticsFilterObject",
+          "optional": true,
+          "isArray": false
         }
       ],
       "returnType": "AnalyticsIpSessionPage",
@@ -503,7 +511,7 @@ const metadata: ServiceMetadata = {
     {
       "name": "AnalyticsStatistic",
       "kind": "type",
-      "definition": "{\n\ttotalHot: number;\n\ttotalCold: number;\n\tbyEvent: Record<string, number>;\n\tdashboard: AnalyticsDashboardSummary;\n\ttimeline: AnalyticsTimelineBucket[];\n\tvisitorTypes: AnalyticsVisitorTypeCounts;\n\tdevices: AnalyticsDeviceCounts[];\n\tresolutions: AnalyticsResolutionCounts[];\n\tgeoLiteDatabases: GeoLiteDatabaseStatus[];\n}"
+      "definition": "{\n\ttotalHot: number;\n\ttotalCold: number;\n\tbyEvent: Record<string, number>;\n\tdashboard: AnalyticsDashboardSummary;\n\ttimeline: AnalyticsTimelineBucket[];\n\thumanTimeline: AnalyticsTimelineBucket[];\n\tbotTimeline: AnalyticsTimelineBucket[];\n\tvisitorTypes: AnalyticsVisitorTypeCounts;\n\tdevices: AnalyticsDeviceCounts[];\n\tresolutions: AnalyticsResolutionCounts[];\n\tgeoLiteDatabases: GeoLiteDatabaseStatus[];\n}"
     },
     {
       "name": "AnalyticsDeviceCounts",
@@ -632,7 +640,7 @@ export interface AnalyticsServiceRtClient {
   listCold(params: AnalyticsQueryParams): PaginatedResult<AnalyticsEvent>;
   getStatistic(): AnalyticsStatistic;
   getDashboardSummary(): AnalyticsDashboardSummary;
-  listIpSessions(limit: number, offset: number): AnalyticsIpSessionPage;
+  listIpSessions(limit: number, offset: number, filter?: AnalyticsFilterObject): AnalyticsIpSessionPage;
   describeSelection(objectType: string): AnalyticsSelectionDescriptor;
   inspectEvents(filter?: AnalyticsFilterObject): AnalyticsSelectionStats;
   importGeoLiteBatch(batch: GeoLiteImportBatch): number;

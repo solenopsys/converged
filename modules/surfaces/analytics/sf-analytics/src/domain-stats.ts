@@ -24,6 +24,8 @@ const emptyStatistic: AnalyticsStatistic = {
 	byEvent: {},
 	dashboard: emptySummary,
 	timeline: [],
+	humanTimeline: [],
+	botTimeline: [],
 	visitorTypes: { human: 0, bot: 0, unverified: 0 },
 	devices: [],
 	resolutions: [],
