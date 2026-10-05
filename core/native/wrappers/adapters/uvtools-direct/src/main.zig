@@ -15,8 +15,8 @@ const Mutex = struct {
 };
 
 fn enumFromInt(comptime T: type, value: anytype) ?T {
-    inline for (std.meta.fields(T)) |field| {
-        if (value == field.value) return @enumFromInt(field.value);
+    inline for (@typeInfo(T).@"enum".field_values) |field_value| {
+        if (value == field_value) return @enumFromInt(field_value);
     }
     return null;
 }

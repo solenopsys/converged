@@ -4,9 +4,7 @@
 // .so exposes exactly what our services need and nothing else.
 const std = @import("std");
 
-const c = @cImport({
-    @cInclude("opus.h");
-});
+const c = @import("c");
 
 const c_allocator = std.heap.c_allocator;
 
