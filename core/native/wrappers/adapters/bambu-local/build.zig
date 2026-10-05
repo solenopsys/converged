@@ -2,7 +2,7 @@ const std = @import("std");
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
-    const optimize = b.option(std.builtin.OptimizeMode, "optimize", "Prioritize performance, safety, or binary size") orelse .ReleaseFast;
+    const optimize = b.option(std.builtin.OptimizeMode, "optimize", "Prioritize performance, safety, or binary size") orelse .fast;
     const openssl_inc = b.path("vendor/openssl-devel/usr/include");
     const openssl_lib = b.path("vendor/openssl-devel/usr/lib64");
 
@@ -16,7 +16,17 @@ pub fn build(b: *std.Build) void {
         }),
     });
 
+    const version_info = b.addWriteFiles();
+    _ = version_info.add("VersionInfo.h", "#define BUILD_TIMESTAMP \"zig-build\"\n#define CLIENT_VERSION \"1.3.16\"\n#define PAHO_MQTT_C_VERSION \"1.3.16\"\n#define PAHO_MQTT_C_VERSION_MAJOR 1\n#define PAHO_MQTT_C_VERSION_MINOR 3\n#define PAHO_MQTT_C_VERSION_PATCH 16\n");
+    const c_headers = b.addTranslateC(.{
+        .root_source_file = b.path("src/c_imports.h"),
+        .target = target,
+        .optimize = optimize,
+    });
+    c_headers.addIncludePath(b.path("vendor/paho.mqtt.c/src"));
+    lib.root_module.addImport("c", c_headers.createModule());
     lib.root_module.link_libc = true;
+    lib.root_module.addIncludePath(version_info.getDirectory());
     lib.root_module.addIncludePath(openssl_inc);
     lib.root_module.addIncludePath(b.path("vendor/paho.mqtt.c/src"));
     lib.root_module.addLibraryPath(openssl_lib);
@@ -72,7 +82,15 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
         }),
     });
+    const test_c_headers = b.addTranslateC(.{
+        .root_source_file = b.path("src/c_imports.h"),
+        .target = target,
+        .optimize = optimize,
+    });
+    test_c_headers.addIncludePath(b.path("vendor/paho.mqtt.c/src"));
+    tests.root_module.addImport("c", test_c_headers.createModule());
     tests.root_module.link_libc = true;
+    tests.root_module.addIncludePath(version_info.getDirectory());
     tests.use_new_linker = false;
     tests.root_module.addIncludePath(openssl_inc);
     tests.root_module.addIncludePath(b.path("vendor/paho.mqtt.c/src"));

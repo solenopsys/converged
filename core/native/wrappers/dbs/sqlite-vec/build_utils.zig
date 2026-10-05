@@ -1,7 +1,6 @@
 const std = @import("std");
 
-/// Supported target configurations for cross-compilation
-/// Using .baseline for x86_64 to ensure compatibility with older AMD CPUs (like t3a.medium with AMD EPYC 1st Gen)
+/// Supported target configurations for cross-compilation.
 pub const supported_targets = [_]std.Target.Query{
     .{ .cpu_arch = .x86_64, .os_tag = .linux, .abi = .gnu, .cpu_model = .{ .explicit = &std.Target.x86.cpu.x86_64 } },
     .{ .cpu_arch = .x86_64, .os_tag = .linux, .abi = .musl, .cpu_model = .{ .explicit = &std.Target.x86.cpu.x86_64 } },
@@ -9,148 +8,120 @@ pub const supported_targets = [_]std.Target.Query{
     .{ .cpu_arch = .aarch64, .os_tag = .linux, .abi = .musl },
 };
 
-/// Get a string representation of the target (e.g., "x86_64-gnu")
 pub fn getTargetString(target: std.Build.ResolvedTarget) []const u8 {
-    const cpu_arch = target.result.cpu.arch;
-    const abi = target.result.abi;
-
-    const arch_str = switch (cpu_arch) {
+    const arch = switch (target.result.cpu.arch) {
         .x86_64 => "x86_64",
         .aarch64 => "aarch64",
         else => "unknown",
     };
-
-    const libc_str = switch (abi) {
+    const abi = switch (target.result.abi) {
         .musl, .musleabi, .musleabihf => "musl",
         .gnu, .gnueabi, .gnueabihf => "gnu",
         else => "gnu",
     };
-
-    return std.fmt.allocPrint(
-        std.heap.page_allocator,
-        "{s}-{s}",
-        .{ arch_str, libc_str },
-    ) catch "unknown";
+    return std.fmt.allocPrint(std.heap.page_allocator, "{s}-{s}", .{ arch, abi }) catch "unknown";
 }
 
-/// Step that hashes the built library and moves it to artifacts directory
-pub const HashAndMoveStep = struct {
-    step: std.Build.Step,
-    lib_name: []const u8,
-    target_str: []const u8,
-    artifacts_dir: []const u8,
-    hashes: *std.StringHashMap([]const u8),
+const artifact_script = @embedFile("build_artifact.py");
 
+fn addArtifactCommand(
+    b: *std.Build,
+    kind: []const u8,
+    source: []const u8,
+    target: []const u8,
+    artifacts: []const u8,
+    manifest: []const u8,
+) *std.Build.Step.Run {
+    const command = b.addSystemCommand(&.{ "python3", "-c", artifact_script });
+    command.setCwd(b.path("."));
+    command.addArgs(&.{ kind, source, target, artifacts, manifest });
+    return command;
+}
+
+pub const HashAndMoveStep = struct {
     pub fn create(
         b: *std.Build,
         lib_name: []const u8,
         target_str: []const u8,
         artifacts_dir: []const u8,
-        hashes: *std.StringHashMap([]const u8),
-    ) *HashAndMoveStep {
-        const self = b.allocator.create(HashAndMoveStep) catch @panic("OOM");
-        self.* = .{
-            .step = std.Build.Step.init(.{
-                .id = .custom,
-                .name = "hash_and_move",
-                .owner = b,
-                .makeFn = make,
-            }),
-            .lib_name = lib_name,
-            .target_str = target_str,
-            .artifacts_dir = artifacts_dir,
-            .hashes = hashes,
-        };
-        return self;
-    }
-
-    fn make(step: *std.Build.Step, _: std.Build.Step.MakeOptions) !void {
-        const self: *HashAndMoveStep = @fieldParentPtr("step", step);
-        const io = step.owner.graph.io;
-        const cwd = std.Io.Dir.cwd();
-
-        const path = try std.fmt.allocPrint(step.owner.allocator, "zig-out/lib/lib{s}.so", .{self.lib_name});
-        const content = try cwd.readFileAlloc(io, path, step.owner.allocator, .limited(100 * 1024 * 1024));
-        defer step.owner.allocator.free(content);
-
-        var hasher = std.crypto.hash.sha2.Sha256.init(.{});
-        hasher.update(content);
-        const digest = hasher.finalResult();
-
-        var hash_str: [64]u8 = undefined;
-        const hex_chars = "0123456789abcdef";
-        for (digest, 0..) |byte, j| {
-            hash_str[j * 2] = hex_chars[byte >> 4];
-            hash_str[j * 2 + 1] = hex_chars[byte & 0xf];
-        }
-
-        const dest_path = try std.fmt.allocPrint(step.owner.allocator, "{s}/{s}.so", .{ self.artifacts_dir, hash_str });
-
-        try cwd.createDirPath(io, self.artifacts_dir);
-        try cwd.copyFile(path, cwd, dest_path, io, .{});
-
-        const hash_copy = try step.owner.allocator.dupe(u8, &hash_str);
-        try self.hashes.put(self.target_str, hash_copy);
+        _: *std.StringHashMap([]const u8),
+    ) *std.Build.Step.Run {
+        return addArtifactCommand(
+            b,
+            "library",
+            std.fmt.allocPrint(b.allocator, "zig-out/lib/lib{s}.so", .{lib_name}) catch @panic("OOM"),
+            target_str,
+            artifacts_dir,
+            "current.json",
+        );
     }
 };
 
-/// Step that writes the current.json file with all hashes
 pub const WriteJsonStep = struct {
-    step: std.Build.Step,
-    hashes: *std.StringHashMap([]const u8),
-    json_path: []const u8,
-
     pub fn create(
         b: *std.Build,
-        hashes: *std.StringHashMap([]const u8),
+        _: *std.StringHashMap([]const u8),
         json_path: []const u8,
-    ) *WriteJsonStep {
-        const self = b.allocator.create(WriteJsonStep) catch @panic("OOM");
-        self.* = .{
-            .step = std.Build.Step.init(.{
-                .id = .custom,
-                .name = "write_json",
-                .owner = b,
-                .makeFn = make,
-            }),
-            .hashes = hashes,
-            .json_path = json_path,
-        };
-        return self;
-    }
-
-    fn make(step: *std.Build.Step, _: std.Build.Step.MakeOptions) !void {
-        const self: *WriteJsonStep = @fieldParentPtr("step", step);
-
-        var json = std.array_list.Managed(u8).init(step.owner.allocator);
-        defer json.deinit();
-        try json.appendSlice("{\n");
-        var first = true;
-        var it = self.hashes.iterator();
-        while (it.next()) |entry| {
-            if (!first) try json.appendSlice(",\n");
-            first = false;
-            const line = try std.fmt.allocPrint(step.owner.allocator, "  \"{s}\": \"{s}\"", .{ entry.key_ptr.*, entry.value_ptr.* });
-            defer step.owner.allocator.free(line);
-            try json.appendSlice(line);
-        }
-        try json.appendSlice("\n}\n");
-        try std.Io.Dir.cwd().writeFile(step.owner.graph.io, .{ .sub_path = self.json_path, .data = json.items });
+    ) *std.Build.Step.Run {
+        const command = b.addSystemCommand(&.{ "python3", "-c", "import json,pathlib,sys; p=pathlib.Path(sys.argv[1]); p.write_text(json.dumps(json.loads(p.read_text()), indent=2) + '\\n')" });
+        command.setCwd(b.path("."));
+        command.addArg(json_path);
+        return command;
     }
 };
 
-/// Create a hash map for storing target->hash mappings
 pub fn createHashMap(b: *std.Build) *std.StringHashMap([]const u8) {
     const hashes = b.allocator.create(std.StringHashMap([]const u8)) catch @panic("OOM");
     hashes.* = std.StringHashMap([]const u8).init(b.allocator);
     return hashes;
 }
 
-/// Helper to build a library name with target suffix
 pub fn getLibName(allocator: std.mem.Allocator, base_name: []const u8, target_str: []const u8) []const u8 {
-    return std.fmt.allocPrint(
-        allocator,
-        "{s}-{s}",
-        .{ base_name, target_str },
-    ) catch base_name;
+    return std.fmt.allocPrint(allocator, "{s}-{s}", .{ base_name, target_str }) catch base_name;
+}
+
+pub fn loadArtifactPath(
+    allocator: std.mem.Allocator,
+    json_path: []const u8,
+    artifacts_dir: []const u8,
+    target_str: []const u8,
+) ![]const u8 {
+    const json_content = try std.Io.Dir.cwd().readFileAlloc(std.Options.debug_io, json_path, allocator, .limited(10 * 1024));
+    defer allocator.free(json_content);
+    const parsed = try std.json.parseFromSlice(std.json.Value, allocator, json_content, .{});
+    defer parsed.deinit();
+    const hash = parsed.value.object.get(target_str) orelse return error.TargetNotFound;
+    return std.fmt.allocPrint(allocator, "{s}/{s}.so", .{ artifacts_dir, hash.string });
+}
+
+pub fn loadArtifactHash(allocator: std.mem.Allocator, json_path: []const u8, target_str: []const u8) ![]const u8 {
+    const json_content = try std.Io.Dir.cwd().readFileAlloc(std.Options.debug_io, json_path, allocator, .limited(10 * 1024));
+    defer allocator.free(json_content);
+    const parsed = try std.json.parseFromSlice(std.json.Value, allocator, json_content, .{});
+    defer parsed.deinit();
+    const hash = parsed.value.object.get(target_str) orelse return error.TargetNotFound;
+    return allocator.dupe(u8, hash.string);
+}
+
+pub const HashAndMoveExeStep = struct {
+    pub fn create(
+        b: *std.Build,
+        exe_name: []const u8,
+        target_str: []const u8,
+        artifacts_dir: []const u8,
+        _: *std.StringHashMap([]const u8),
+    ) *std.Build.Step.Run {
+        return addArtifactCommand(
+            b,
+            "executable",
+            std.fmt.allocPrint(b.allocator, "zig-out/bin/{s}", .{exe_name}) catch @panic("OOM"),
+            target_str,
+            artifacts_dir,
+            "current.json",
+        );
+    }
+};
+
+pub fn getExeName(allocator: std.mem.Allocator, base_name: []const u8, target_str: []const u8) []const u8 {
+    return std.fmt.allocPrint(allocator, "{s}-{s}", .{ base_name, target_str }) catch base_name;
 }

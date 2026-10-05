@@ -69,7 +69,7 @@ pub fn main(init: std.process.Init) !void {
     // signalling and outgoing command-layer calls (Store to services).
     // WebRTC/SIP/HTTP use separate interfaces and do not use this transport.
     const fujin_target = init.environ_map.get("FUJIN_TARGET") orelse "resonus";
-    const fujin_endpoint = try allocator.dupeZ(u8, cfg.fujin_endpoint);
+    const fujin_endpoint = try allocator.dupeSentinel(u8, cfg.fujin_endpoint, 0);
     defer allocator.free(fujin_endpoint);
     const runtime = try allocator.create(transport.Runtime);
     runtime.* = try transport.Runtime.init(allocator, .{

@@ -56,7 +56,7 @@ pub fn run(init: std.process.Init, processor: Processor, options: Options) !void
 
     const endpoint_value = cache.env(init.environ_map, options.env_prefix, "FUJIN_ZMQ_ENDPOINT") orelse
         "tcp://127.0.0.1:5557";
-    const endpoint = try allocator.dupeZ(u8, endpoint_value);
+    const endpoint = try allocator.dupeSentinel(u8, endpoint_value, 0);
     defer allocator.free(endpoint);
     const target = cache.env(init.environ_map, options.env_prefix, "FUJIN_TARGET") orelse options.service;
 

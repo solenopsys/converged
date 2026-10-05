@@ -122,11 +122,11 @@ pub const CuraEngine = struct {
         var search_files = try readSearchFiles(allocator, object);
         defer search_files.deinit(allocator);
 
-        const model_name_z = try allocator.dupeZ(u8, model_name);
+        const model_name_z = try allocator.dupeSentinel(u8, model_name, 0);
         defer allocator.free(model_name_z);
-        const definition_name_z = try allocator.dupeZ(u8, definition_name);
+        const definition_name_z = try allocator.dupeSentinel(u8, definition_name, 0);
         defer allocator.free(definition_name_z);
-        const engine_path_z = if (engine_path) |path| try allocator.dupeZ(u8, path) else null;
+        const engine_path_z = if (engine_path) |path| try allocator.dupeSentinel(u8, path, 0) else null;
         defer if (engine_path_z) |path| allocator.free(path);
 
         var result = std.mem.zeroes(SliceResult);
@@ -214,7 +214,7 @@ fn readSettings(allocator: std.mem.Allocator, object: std.json.ObjectMap) !Setti
             .string => |string| string,
             else => return error.SettingMustBeString,
         };
-        const z = try allocator.dupeZ(u8, text);
+        const z = try allocator.dupeSentinel(u8, text, 0);
         out.values.append(allocator, z) catch |err| {
             allocator.free(z);
             return err;
@@ -252,7 +252,7 @@ fn readSearchFiles(allocator: std.mem.Allocator, object: std.json.ObjectMap) !Se
         };
         const name = json.stringField(item, "name") orelse return error.SearchFileNameRequired;
         const path = json.stringField(item, "path") orelse return error.SearchFilePathRequired;
-        const name_z = try allocator.dupeZ(u8, name);
+        const name_z = try allocator.dupeSentinel(u8, name, 0);
         const data = json.readFile(allocator, path, max_definition_bytes) catch |err| {
             allocator.free(name_z);
             return err;

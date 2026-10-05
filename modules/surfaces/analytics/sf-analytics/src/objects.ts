@@ -11,6 +11,8 @@ import {
 	analyticsIpSessionColumns,
 } from "./functions/columns";
 import analytics from "./service";
+import { geoLiteStore } from "./domain-geolite";
+import { geoLiteColumns } from "./functions/geolite-columns";
 import { AnalyticsSummary } from "./summary";
 import { AnalyticsDashboardView } from "./views/AnalyticsDashboardView";
 import { AnalyticsRealtimeView } from "./views/AnalyticsRealtimeView";
@@ -120,6 +122,32 @@ export default defineSurface({
 			id: "analytics.geodatabase",
 			label: "IP databases",
 			categories: ["core.statistic"],
+			infinity: {
+				tableId: "analytics-geolite-databases",
+				title: "IP databases",
+				columns: geoLiteColumns,
+				store: geoLiteStore,
+				presets: [
+					{
+						id: "analytics.geolite.country",
+						label: "Country",
+						control: "tab",
+						group: "analytics-geolite-dataset",
+					},
+					{
+						id: "analytics.geolite.city",
+						label: "City",
+						control: "tab",
+						group: "analytics-geolite-dataset",
+					},
+					{
+						id: "analytics.geolite.asn",
+						label: "ASN",
+						control: "tab",
+						group: "analytics-geolite-dataset",
+					},
+				],
+			},
 		},
 		{
 			id: "analytics.ip-sessions",

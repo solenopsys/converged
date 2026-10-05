@@ -18,7 +18,7 @@ fn targetTriple(b: *std.Build, target: std.Build.ResolvedTarget) []const u8 {
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
-    const optimize = b.option(std.builtin.OptimizeMode, "optimize", "Prioritize performance, safety, or binary size") orelse .ReleaseFast;
+    const optimize = b.option(std.builtin.OptimizeMode, "optimize", "Prioritize performance, safety, or binary size") orelse .fast;
     const host = b.graph.host.result;
     // The container is Alpine, so a native build targets musl too: the same
     // binary that is tested here is the one that ships.
@@ -45,7 +45,7 @@ pub fn build(b: *std.Build) void {
     exe.root_module.addImport("processor", processor_dep.module("processor"));
     exe.root_module.addImport("transport", transport_dep.module("transport"));
     exe.root_module.link_libc = true;
-    exe.root_module.strip = optimize != .Debug;
+    exe.root_module.strip = optimize != .debug;
     // transport links libzimq.so dynamically, and the container keeps every
     // shared object in one directory beside the binary.
     exe.root_module.addRPathSpecial("$ORIGIN/lib");

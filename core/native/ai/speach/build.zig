@@ -56,7 +56,7 @@ pub fn build(b: *std.Build) void {
         .abi = .gnu,
         .glibc_version = host.os.version_range.linux.glibc,
     }) else requested;
-    const optimize = b.option(std.builtin.OptimizeMode, "optimize", "Build mode") orelse .ReleaseFast;
+    const optimize = b.option(std.builtin.OptimizeMode, "optimize", "Build mode") orelse .fast;
     const exe = b.addExecutable(.{
         .name = "speach",
         .root_module = b.createModule(.{
@@ -87,6 +87,5 @@ pub fn build(b: *std.Build) void {
     b.installArtifact(exe);
     const run = b.addRunArtifact(exe);
     run.step.dependOn(b.getInstallStep());
-    if (b.args) |args| run.addArgs(args);
     b.step("run", "Run SPEACH").dependOn(&run.step);
 }

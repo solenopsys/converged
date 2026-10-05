@@ -17,9 +17,7 @@ const descriptor = @import("descriptor.zig");
 const provider = @import("provider.zig");
 const registry_mod = @import("registry.zig");
 
-const c = @cImport({
-    @cInclude("libdatachannel_wrapper.h");
-});
+const c = @import("c");
 
 const Mutex = struct {
     raw: std.c.pthread_mutex_t = std.c.PTHREAD_MUTEX_INITIALIZER,
@@ -394,15 +392,15 @@ const Session = struct {
         const t = &config.entry.table.transport;
         const url_text = try registry_mod.substitute(allocator, t.url, model, config.secrets);
         defer allocator.free(url_text);
-        const url = try allocator.dupeZ(u8, url_text);
+        const url = try allocator.dupeSentinel(u8, url_text, 0);
         defer allocator.free(url);
 
         if (t.header_names.len == 0) return error.SessionHeadersMissing;
-        const header_name = try allocator.dupeZ(u8, t.header_names[0]);
+        const header_name = try allocator.dupeSentinel(u8, t.header_names[0], 0);
         defer allocator.free(header_name);
         const header_text = try registry_mod.substitute(allocator, t.header_values[0], model, config.secrets);
         defer allocator.free(header_text);
-        const header_value = try allocator.dupeZ(u8, header_text);
+        const header_value = try allocator.dupeSentinel(u8, header_text, 0);
         defer allocator.free(header_value);
 
         var socket_id: i32 = -1;

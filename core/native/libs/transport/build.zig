@@ -61,6 +61,14 @@ fn createTransportModule(
     });
     module.addImport("zimq", zimq.module("zimq"));
     module.linkLibrary(zimq.artifact("zimq"));
+    const c_headers = b.addTranslateC(.{
+        .root_source_file = b.path("src/c_imports.h"),
+        .target = target,
+        .optimize = optimize,
+    });
+    c_headers.addIncludePath(b.path("include"));
+    c_headers.addIncludePath(b.path("src/storage/generated"));
+    module.addImport("c", c_headers.createModule());
     return module;
 }
 
@@ -80,6 +88,14 @@ fn addMessageLib(
             .optimize = optimize,
         }),
     });
+
+    const c_headers = b.addTranslateC(.{
+        .root_source_file = b.path("src/c_imports.h"),
+        .target = target,
+        .optimize = optimize,
+    });
+    c_headers.addIncludePath(b.path("include"));
+    lib.root_module.addImport("c", c_headers.createModule());
     lib.root_module.addImport("transport", transport_module);
     lib.root_module.link_libc = true;
     lib.root_module.addRPathSpecial("$ORIGIN");

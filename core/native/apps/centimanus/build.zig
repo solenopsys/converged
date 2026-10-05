@@ -167,7 +167,7 @@ pub fn build(b: *Build) void {
         })
     else
         requested_target;
-    const optimize = b.option(std.builtin.OptimizeMode, "optimize", "Prioritize performance, safety, or binary size") orelse .ReleaseFast;
+    const optimize = b.option(std.builtin.OptimizeMode, "optimize", "Prioritize performance, safety, or binary size") orelse .fast;
     const build_all = b.option(bool, "all", "Build for all supported targets") orelse false;
     const nrpc_generation = addNrpcGeneration(b);
 
@@ -193,7 +193,6 @@ pub fn build(b: *Build) void {
 
     const run_cmd = b.addRunArtifact(exe);
     run_cmd.step.dependOn(b.getInstallStep());
-    if (b.args) |args| run_cmd.addArgs(args);
     const run_step = b.step("run", "Run the centimanus HTTP server");
     run_step.dependOn(&run_cmd.step);
 

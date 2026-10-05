@@ -25,7 +25,7 @@ const Connection = struct {
 };
 
 var registry_mutex: Mutex = .{};
-var connections: [max_connections]?Connection = [_]?Connection{null} ** max_connections;
+var connections: [max_connections]?Connection = @splat(null);
 
 const OwnedAddress = struct {
     target: [:0]const u8,
@@ -442,11 +442,10 @@ pub export fn msg_in_free(message: ?*IncomingMessage) void {
 
 test "C ABI peer exchanges an envelope and payload with a Router" {
     var endpoint_buffer: [128]u8 = undefined;
-    const endpoint_name = try std.fmt.bufPrintZ(
+    const endpoint_name = try std.fmt.bufPrintSentinel(
         &endpoint_buffer,
         "ipc:///tmp/transport-abi-test-{d}.sock",
-        .{std.c.getpid()},
-    );
+        .{std.c.getpid()}, 0);
     const limits = transport.Limits{ .max_envelope_bytes = 4096, .max_payload_bytes = 1 << 20 };
 
     var router = try transport.Router.init(endpoint_name, limits);
@@ -511,11 +510,10 @@ test "C ABI peer exchanges an envelope and payload with a Router" {
 
 test "FFI system controller owns target registration and restart recovery" {
     var endpoint_buffer: [128]u8 = undefined;
-    const endpoint_name = try std.fmt.bufPrintZ(
+    const endpoint_name = try std.fmt.bufPrintSentinel(
         &endpoint_buffer,
         "ipc:///tmp/transport-abi-system-{d}.sock",
-        .{std.c.getpid()},
-    );
+        .{std.c.getpid()}, 0);
     const limits = transport.Limits{ .max_envelope_bytes = 4096, .max_payload_bytes = 1 << 20 };
     var router = try transport.Router.init(endpoint_name, limits);
     defer router.deinit();

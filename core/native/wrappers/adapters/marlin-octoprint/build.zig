@@ -3,7 +3,7 @@ const std = @import("std");
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const native_musl = b.resolveTargetQuery(.{ .cpu_arch = .x86_64, .os_tag = .linux, .abi = .musl });
-    const optimize = b.option(std.builtin.OptimizeMode, "optimize", "Prioritize performance, safety, or binary size") orelse .ReleaseFast;
+    const optimize = b.option(std.builtin.OptimizeMode, "optimize", "Prioritize performance, safety, or binary size") orelse .fast;
 
     const lib = b.addLibrary(.{
         .name = "marlin_octoprint_adapter",
@@ -15,6 +15,12 @@ pub fn build(b: *std.Build) void {
         }),
     });
 
+    const c_headers = b.addTranslateC(.{
+        .root_source_file = b.path("src/c_imports.h"),
+        .target = target,
+        .optimize = optimize,
+    });
+    lib.root_module.addImport("c", c_headers.createModule());
     lib.root_module.link_libc = true;
     b.installArtifact(lib);
     b.installFile("include/marlin_octoprint_adapter.h", "include/marlin_octoprint_adapter.h");
@@ -26,6 +32,13 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
         }),
     });
+    const test_target = if (target.query.isNative()) native_musl else target;
+    const test_c_headers = b.addTranslateC(.{
+        .root_source_file = b.path("src/c_imports.h"),
+        .target = test_target,
+        .optimize = optimize,
+    });
+    tests.root_module.addImport("c", test_c_headers.createModule());
     tests.root_module.link_libc = true;
 
     const run_tests = b.addRunArtifact(tests);

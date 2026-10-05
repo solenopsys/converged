@@ -19,13 +19,7 @@
 
 const std = @import("std");
 
-const c = @cImport({
-    @cInclude("mbedtls/ssl.h");
-    @cInclude("mbedtls/net_sockets.h");
-    @cInclude("psa/crypto.h");
-    @cInclude("mbedtls/x509_crt.h");
-    @cInclude("mbedtls/error.h");
-});
+const c = @import("c");
 
 pub const Error = error{
     TlsInit,
@@ -72,7 +66,7 @@ pub const Context = struct {
 
         if (ca_path) |path| {
             var buf: [std.fs.max_path_bytes]u8 = undefined;
-            const zpath = std.fmt.bufPrintZ(&buf, "{s}", .{path}) catch return Error.CaLoadFailed;
+            const zpath = std.fmt.bufPrintSentinel(&buf, "{s}", .{path}, 0) catch return Error.CaLoadFailed;
             // A negative return is a hard failure; a positive one counts certs
             // that failed to parse, and a bundle we could not fully read is not
             // a bundle worth trusting.
@@ -233,8 +227,8 @@ pub fn fetch(gpa: std.mem.Allocator, ctx: *Context, req: Request) !Response {
 
     var host_buf: [256]u8 = undefined;
     var port_buf: [8]u8 = undefined;
-    const host = std.fmt.bufPrintZ(&host_buf, "{s}", .{url.host}) catch return Error.BadUrl;
-    const port = std.fmt.bufPrintZ(&port_buf, "{s}", .{url.port}) catch return Error.BadUrl;
+    const host = std.fmt.bufPrintSentinel(&host_buf, "{s}", .{url.host}, 0) catch return Error.BadUrl;
+    const port = std.fmt.bufPrintSentinel(&port_buf, "{s}", .{url.port}, 0) catch return Error.BadUrl;
 
     var conn: Connection = undefined;
     try conn.open(ctx, host, port, url.tls);

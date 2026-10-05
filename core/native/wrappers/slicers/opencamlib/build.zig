@@ -24,7 +24,7 @@ fn targetProcessor(target: std.Build.ResolvedTarget) []const u8 {
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
-    const optimize = b.option(std.builtin.OptimizeMode, "optimize", "Prioritize performance, safety, or binary size") orelse .ReleaseFast;
+    const optimize = b.option(std.builtin.OptimizeMode, "optimize", "Prioritize performance, safety, or binary size") orelse .fast;
     const triple = targetTriple(b, target);
     const build_dir = b.fmt(".zig-cache/cmake-current/{s}/{s}", .{ triple, @tagName(optimize) });
 
@@ -37,7 +37,7 @@ pub fn build(b: *std.Build) void {
         "-G",
         "Ninja",
         b.fmt("-DCMAKE_BUILD_TYPE={s}", .{switch (optimize) {
-            .Debug => "Debug",
+            .debug => "Debug",
             else => "Release",
         }}),
         "-DCMAKE_SYSTEM_NAME=Linux",

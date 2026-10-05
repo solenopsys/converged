@@ -265,7 +265,7 @@ pub fn substitute(
             const key = if (split) |i| spec[0..i] else spec;
             const fallback = if (split) |i| spec[i + 1 ..] else "";
             var name_buf: [128]u8 = undefined;
-            const name = std.fmt.bufPrintZ(&name_buf, "{s}", .{key}) catch return error.PlaceholderUnknown;
+            const name = std.fmt.bufPrintSentinel(&name_buf, "{s}", .{key}, 0) catch return error.PlaceholderUnknown;
             try out.appendSlice(a, env.opt(name) orelse fallback);
         } else {
             return error.PlaceholderUnknown;
@@ -325,9 +325,9 @@ pub fn collectSecrets(gpa: std.mem.Allocator, registry: *Registry) !Secrets {
                 var buf: [64]u8 = undefined;
                 var upper: [32]u8 = undefined;
                 if (key.len >= upper.len) continue;
-                const var_name = std.fmt.bufPrintZ(&buf, "{s}_API_KEY", .{
+                const var_name = std.fmt.bufPrintSentinel(&buf, "{s}_API_KEY", .{
                     std.ascii.upperString(upper[0..key.len], key),
-                }) catch continue;
+                }, 0) catch continue;
 
                 const secret = env.opt(var_name) orelse {
                     std.log.warn("provider {s}: {s} is not set; this provider will fail on use", .{

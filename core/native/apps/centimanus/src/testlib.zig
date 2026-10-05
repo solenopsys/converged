@@ -197,7 +197,7 @@ fn mockRunWorkflow(
     _ = .{ ctx, parent_exec_id, parent_node };
     const resolver = g_sub orelse
         return .{ .ok = false, .body = try a.dupe(u8, "rt.sub: no workflow resolver registered"), .exec_id = "" };
-    const sp = try a.dupeZ(u8, script_path);
+    const sp = try a.dupeSentinel(u8, script_path, 0);
     const ret = resolver(sp.ptr) orelse
         return .{ .ok = false, .body = try std.fmt.allocPrint(a, "rt.sub: unknown workflow {s}", .{script_path}), .exec_id = "" };
 
@@ -210,10 +210,10 @@ fn mockRunWorkflow(
 fn mockCall(ctx: *anyopaque, a: std.mem.Allocator, target: []const u8, service: []const u8, method: []const u8, body: []const u8) anyerror!vm.Reply {
     _ = ctx;
     const handler = g_handler orelse return error.NoCallHandler;
-    const t = try a.dupeZ(u8, target);
-    const s = try a.dupeZ(u8, service);
-    const m = try a.dupeZ(u8, method);
-    const b = try a.dupeZ(u8, body);
+    const t = try a.dupeSentinel(u8, target, 0);
+    const s = try a.dupeSentinel(u8, service, 0);
+    const m = try a.dupeSentinel(u8, method, 0);
+    const b = try a.dupeSentinel(u8, body, 0);
 
     const ret = handler(t.ptr, s.ptr, m.ptr, b.ptr) orelse
         return .{ .ok = false, .status = 500, .body = try a.dupe(u8, "{\"error\":\"mock call handler threw\"}") };
@@ -228,7 +228,7 @@ fn mockCall(ctx: *anyopaque, a: std.mem.Allocator, target: []const u8, service: 
 fn mockGet(ctx: *anyopaque, a: std.mem.Allocator, key: []const u8) anyerror!?[]const u8 {
     _ = ctx;
     if (g_get) |get| {
-        const k = try a.dupeZ(u8, key);
+        const k = try a.dupeSentinel(u8, key, 0);
         const ret = get(k.ptr) orelse return null;
         return try a.dupe(u8, std.mem.span(ret));
     }
@@ -239,8 +239,8 @@ fn mockGet(ctx: *anyopaque, a: std.mem.Allocator, key: []const u8) anyerror!?[]c
 fn mockSet(ctx: *anyopaque, a: std.mem.Allocator, key: []const u8, value: []const u8) anyerror!void {
     _ = ctx;
     if (g_set) |set| {
-        const k = try a.dupeZ(u8, key);
-        const v = try a.dupeZ(u8, value);
+        const k = try a.dupeSentinel(u8, key, 0);
+        const v = try a.dupeSentinel(u8, value, 0);
         set(k.ptr, v.ptr);
         return;
     }
@@ -256,7 +256,7 @@ fn mockSet(ctx: *anyopaque, a: std.mem.Allocator, key: []const u8, value: []cons
 fn mockDel(ctx: *anyopaque, a: std.mem.Allocator, key: []const u8) anyerror!void {
     _ = ctx;
     if (g_del) |del| {
-        const k = try a.dupeZ(u8, key);
+        const k = try a.dupeSentinel(u8, key, 0);
         del(k.ptr);
         return;
     }
@@ -275,7 +275,7 @@ fn mockLlm(ctx: *anyopaque, a: std.mem.Allocator, request_json: []const u8) anye
     _ = ctx;
     const handler = g_llm orelse
         return .{ .ok = false, .body = try a.dupe(u8, "rt.llm: no mock llm handler registered") };
-    const req = try a.dupeZ(u8, request_json);
+    const req = try a.dupeSentinel(u8, request_json, 0);
     const ret = handler(req.ptr) orelse
         return .{ .ok = false, .body = try a.dupe(u8, "mock llm handler threw") };
     const span = std.mem.span(ret);

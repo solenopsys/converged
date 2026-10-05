@@ -262,7 +262,7 @@ fn resolveHost(host: []const u8, port: u16) !std.posix.sockaddr.in {
     @memcpy(host_z[0..host.len], host);
     host_z[host.len] = 0;
     var port_buf: [16:0]u8 = undefined;
-    const port_str = try std.fmt.bufPrintZ(&port_buf, "{d}", .{port});
+    const port_str = try std.fmt.bufPrintSentinel(&port_buf, "{d}", .{port}, 0);
 
     var hints = std.mem.zeroes(std.c.addrinfo);
     hints.family = std.posix.AF.INET;
@@ -270,7 +270,7 @@ fn resolveHost(host: []const u8, port: u16) !std.posix.sockaddr.in {
     hints.protocol = std.posix.IPPROTO.TCP;
     var res: ?*std.c.addrinfo = null;
     const rc = std.c.getaddrinfo(&host_z, port_str.ptr, &hints, &res);
-    if (@intFromEnum(rc) != 0 or res == null) return error.ResolveFailed;
+    if (@backingInt(rc) != 0 or res == null) return error.ResolveFailed;
     defer std.c.freeaddrinfo(res.?);
 
     const sa = res.?.addr orelse return error.ResolveFailed;
@@ -292,7 +292,7 @@ fn parseIp4Address(host: []const u8, port: u16) !std.posix.sockaddr.in {
         .family = std.posix.AF.INET,
         .port = std.mem.nativeToBig(u16, port),
         .addr = 0,
-        .zero = [_]u8{0} ** 8,
+        .zero = @splat(0),
     };
     addr.addr = (@as(u32, octets[0]) << 24) | (@as(u32, octets[1]) << 16) | (@as(u32, octets[2]) << 8) | octets[3];
     addr.addr = std.mem.nativeToBig(u32, addr.addr);

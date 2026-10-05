@@ -91,7 +91,7 @@ pub fn main(init: std.process.Init) !void {
     }
     defer if (fluentbit) |*receiver| receiver.deinit();
 
-    const endpoint = try allocator.dupeZ(u8, config.zmq_endpoint);
+    const endpoint = try allocator.dupeSentinel(u8, config.zmq_endpoint, 0);
     defer allocator.free(endpoint);
     var router = try transport.Router.init(endpoint, .{
         .max_envelope_bytes = config.max_control_bytes,
@@ -188,7 +188,7 @@ fn isScheduleLeader(config: *const Config) bool {
 /// work. It lives in this process only because a schedule needs exactly one
 /// clock, and Fujin is the component there is exactly one of.
 fn startScheduler(allocator: std.mem.Allocator, config: *const Config) !void {
-    const endpoint = try allocator.dupeZ(u8, config.scheduler_endpoint);
+    const endpoint = try allocator.dupeSentinel(u8, config.scheduler_endpoint, 0);
     const runtime = try allocator.create(transport.Runtime);
     runtime.* = transport.Runtime.init(allocator, .{
         .endpoint = endpoint,

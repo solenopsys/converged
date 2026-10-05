@@ -70,7 +70,7 @@ pub fn resolveHost(host: []const u8, port: u16) !std.posix.sockaddr.in {
     // hostname — use getaddrinfo
     const host_z = try std.posix.toPosixPath(host);
     var port_buf: [6]u8 = undefined;
-    const port_str = std.fmt.bufPrintZ(&port_buf, "{d}", .{port}) catch return error.Unexpected;
+    const port_str = std.fmt.bufPrintSentinel(&port_buf, "{d}", .{port}, 0) catch return error.Unexpected;
 
     var hints = std.mem.zeroes(std.c.addrinfo);
     hints.family = std.posix.AF.INET;

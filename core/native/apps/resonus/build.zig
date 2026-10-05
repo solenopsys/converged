@@ -48,6 +48,14 @@ fn linkRealtimeWrapper(
 
     exe.step.dependOn(&build_cmd.step);
     exe.root_module.addIncludePath(b.path("../../wrappers/protocols/libdatachannel/include"));
+    const c_headers = b.addTranslateC(.{
+        .root_source_file = b.path("src/c_imports.h"),
+        .target = target,
+        .optimize = optimize,
+    });
+    c_headers.addIncludePath(b.path("../../wrappers/protocols/libdatachannel/include"));
+    c_headers.step.dependOn(&build_cmd.step);
+    exe.root_module.addImport("c", c_headers.createModule());
     exe.root_module.addLibraryPath(.{ .cwd_relative = lib_dir });
     exe.root_module.addRPathSpecial("$ORIGIN/lib");
     exe.root_module.addRPathSpecial("$ORIGIN/../lib");
@@ -69,7 +77,7 @@ pub fn build(b: *std.Build) void {
         .abi = .gnu,
         .glibc_version = host.os.version_range.linux.glibc,
     }) else target;
-    const optimize = b.option(std.builtin.OptimizeMode, "optimize", "Prioritize performance, safety, or binary size") orelse .ReleaseFast;
+    const optimize = b.option(std.builtin.OptimizeMode, "optimize", "Prioritize performance, safety, or binary size") orelse .fast;
     const transport_dep = b.dependency("transport", .{ .target = runtime_target, .optimize = optimize });
 
     const exe = b.addExecutable(.{
@@ -102,12 +110,10 @@ pub fn build(b: *std.Build) void {
     linkRealtimeWrapper(b, dictation_smoke, runtime_target, optimize);
 
     const run_dictation_smoke = b.addRunArtifact(dictation_smoke);
-    if (b.args) |args| run_dictation_smoke.addArgs(args);
     const dictation_smoke_step = b.step("dictation-smoke", "Send a known Opus fixture directly through the OpenAI dictation bridge");
     dictation_smoke_step.dependOn(&run_dictation_smoke.step);
 
     const run_cmd = b.addRunArtifact(exe);
-    if (b.args) |args| run_cmd.addArgs(args);
 
     const run_step = b.step("run", "Run resonus");
     run_step.dependOn(&run_cmd.step);

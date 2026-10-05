@@ -1,11 +1,11 @@
 const std = @import("std");
 
 pub fn build(b: *std.Build) void {
-    const optimize = b.option(std.builtin.OptimizeMode, "optimize", "Prioritize performance, safety, or binary size") orelse .ReleaseFast;
+    const optimize = b.option(std.builtin.OptimizeMode, "optimize", "Prioritize performance, safety, or binary size") orelse .fast;
     const zig = b.graph.zig_exe;
     const build_dir = b.fmt(".zig-cache/cmake/{s}", .{@tagName(optimize)});
     const cmake = b.addSystemCommand(&.{ "cmake", "-S", ".", "-B", build_dir, "-G", "Ninja" });
-    cmake.addArg(b.fmt("-DCMAKE_BUILD_TYPE={s}", .{if (optimize == .Debug) "Debug" else "Release"}));
+    cmake.addArg(b.fmt("-DCMAKE_BUILD_TYPE={s}", .{if (optimize == .debug) "Debug" else "Release"}));
     cmake.addArg(b.fmt("-DCMAKE_C_COMPILER={s}", .{zig}));
     cmake.addArg("-DCMAKE_C_COMPILER_ARG1=cc");
     cmake.addArg(b.fmt("-DCMAKE_CXX_COMPILER={s}", .{zig}));

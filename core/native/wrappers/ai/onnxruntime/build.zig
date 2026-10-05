@@ -2,7 +2,7 @@ const std = @import("std");
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
-    const optimize = b.option(std.builtin.OptimizeMode, "optimize", "Build mode") orelse .ReleaseFast;
+    const optimize = b.option(std.builtin.OptimizeMode, "optimize", "Build mode") orelse .fast;
     const arch = switch (target.result.cpu.arch) {
         .x86_64 => "x86_64",
         .aarch64 => "aarch64",

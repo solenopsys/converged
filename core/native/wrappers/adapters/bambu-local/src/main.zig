@@ -1,8 +1,6 @@
 const std = @import("std");
 
-const c = @cImport({
-    @cInclude("MQTTClient.h");
-});
+const c = @import("c");
 
 const Allocator = std.mem.Allocator;
 
@@ -27,7 +25,7 @@ fn milliTimestamp() i64 {
 fn allocPrintZ(allocator: Allocator, comptime fmt: []const u8, args: anytype) ![:0]u8 {
     const tmp = try std.fmt.allocPrint(allocator, fmt, args);
     defer allocator.free(tmp);
-    return try allocator.dupeZ(u8, tmp);
+    return try allocator.dupeSentinel(u8, tmp, 0);
 }
 
 fn defaultConnectOptions() c.MQTTClient_connectOptions {

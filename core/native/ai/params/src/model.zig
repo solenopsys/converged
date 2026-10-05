@@ -39,7 +39,7 @@ pub const Model = struct {
     session: *OrtwSession,
 
     pub fn init(allocator: std.mem.Allocator, path: []const u8) !Model {
-        const path_z = try allocator.dupeZ(u8, path);
+        const path_z = try allocator.dupeSentinel(u8, path, 0);
         defer allocator.free(path_z);
         var session: ?*OrtwSession = null;
         if (ortw_session_create(path_z.ptr, 0, &session) != 0) return error.OnnxSessionCreateFailed;
@@ -68,7 +68,7 @@ pub const Model = struct {
             tensorI64(names[8], &empty_i64_values, &empty_shape), tensorF32(names[9], &empty_f32_values, &empty_shape),
         };
         const output_names = [_][*:0]const u8{ "pair_indices", "pair_logits", "pair_valid", "cls_logits" };
-        var out = [_]TensorOutput{std.mem.zeroes(TensorOutput)} ** 4;
+        var out: [4]TensorOutput = @splat(std.mem.zeroes(TensorOutput));
         if (ortw_session_run(self.session, &inputs, inputs.len, &output_names, out.len, &out) != 0) return error.OnnxRunFailed;
         return .{ .pair_indices = out[0], .pair_logits = out[1], .pair_valid = out[2], .cls_logits = out[3] };
     }

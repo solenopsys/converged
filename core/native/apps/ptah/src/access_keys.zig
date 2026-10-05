@@ -135,7 +135,7 @@ fn signServiceToken(
 
 test "the same seed derives the same key and token" {
     const gpa = std.testing.allocator;
-    const seed = [_]u8{7} ** 32;
+    const seed = @as([32]u8, @splat(7));
 
     var first = try derive(gpa, seed, "converged-runtime", "test-issuer", "test-audience", 1_700_000_000);
     defer first.deinit(gpa);
@@ -149,16 +149,16 @@ test "the same seed derives the same key and token" {
 
 test "a different seed derives a different key" {
     const gpa = std.testing.allocator;
-    var a = try derive(gpa, [_]u8{1} ** 32, "x", "test-issuer", "test-audience", 0);
+    var a = try derive(gpa, @as([32]u8, @splat(1)), "x", "test-issuer", "test-audience", 0);
     defer a.deinit(gpa);
-    var b = try derive(gpa, [_]u8{2} ** 32, "x", "test-issuer", "test-audience", 0);
+    var b = try derive(gpa, @as([32]u8, @splat(2)), "x", "test-issuer", "test-audience", 0);
     defer b.deinit(gpa);
     try std.testing.expect(!std.mem.eql(u8, a.kid, b.kid));
 }
 
 test "the service token verifies under the published key" {
     const gpa = std.testing.allocator;
-    const seed = [_]u8{3} ** 32;
+    const seed = @as([32]u8, @splat(3));
     var material = try derive(gpa, seed, "converged-runtime", "test-issuer", "test-audience", 1_700_000_000);
     defer material.deinit(gpa);
 

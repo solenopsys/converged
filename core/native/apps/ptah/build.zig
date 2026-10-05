@@ -43,7 +43,7 @@ fn addPolicyBundle(b: *Build) Build.LazyPath {
     bundle.addFileInput(b.path("policy/build.ts"));
 
     const io = b.graph.io;
-    var dir = b.build_root.handle.openDir(io, "policy/src", .{ .iterate = true }) catch
+    var dir = std.Io.Dir.cwd().openDir(io, "policy/src", .{ .iterate = true }) catch
         @panic("ptah: policy/src is missing");
     defer dir.close(io);
     var walker = dir.walk(b.allocator) catch @panic("OOM");
@@ -114,7 +114,7 @@ fn linkMbedtls(
     const lib_dir = b.fmt(".zig-cache/mbedtls/{s}/lib", .{target_str});
     const include_dir = b.fmt(
         "{s}/.zig-cache/mbedtls/{s}/{s}/install/include",
-        .{ mbedtls_wrapper_dir, target_str, if (optimize == .Debug) "Debug" else "Release" },
+        .{ mbedtls_wrapper_dir, target_str, if (optimize == .debug) "Debug" else "Release" },
     );
 
     const wrapper = b.addSystemCommand(&.{
@@ -129,6 +129,14 @@ fn linkMbedtls(
     wrapper.setName("build mbedTLS wrapper");
 
     compile.step.dependOn(&wrapper.step);
+    const c_headers = b.addTranslateC(.{
+        .root_source_file = b.path("src/c_imports.h"),
+        .target = target,
+        .optimize = optimize,
+    });
+    c_headers.addIncludePath(b.path(include_dir));
+    c_headers.step.dependOn(&wrapper.step);
+    compile.root_module.addImport("c", c_headers.createModule());
     compile.root_module.addIncludePath(b.path(include_dir));
     compile.root_module.addLibraryPath(.{ .cwd_relative = lib_dir });
     compile.root_module.linkSystemLibrary("mbedtls", .{});
@@ -167,7 +175,7 @@ pub fn build(b: *Build) void {
         })
     else
         requested;
-    const optimize = b.option(OptimizeMode, "optimize", "Prioritize performance, safety, or binary size") orelse .ReleaseFast;
+    const optimize = b.option(OptimizeMode, "optimize", "Prioritize performance, safety, or binary size") orelse .fast;
 
     const policy_js = addPolicyBundle(b);
 
@@ -186,7 +194,6 @@ pub fn build(b: *Build) void {
 
     const run_cmd = b.addRunArtifact(exe);
     run_cmd.step.dependOn(b.getInstallStep());
-    if (b.args) |args| run_cmd.addArgs(args);
     const run_step = b.step("run", "Run ptah");
     run_step.dependOn(&run_cmd.step);
 
@@ -203,7 +210,7 @@ pub fn build(b: *Build) void {
     const run_tests = b.addRunArtifact(tests);
     run_tests.setEnvironmentVariable(
         "LD_LIBRARY_PATH",
-        b.fmt("{s}:{s}", .{ b.pathFromRoot(test_lib_dir), b.pathFromRoot(test_tls_lib_dir) }),
+        b.fmt("{s}:{s}", .{ b.root.joinString(b.allocator, test_lib_dir) catch @panic("OOM"), b.root.joinString(b.allocator, test_tls_lib_dir) catch @panic("OOM") }),
     );
     const test_step = b.step("test", "Run ptah unit tests");
     test_step.dependOn(&run_tests.step);

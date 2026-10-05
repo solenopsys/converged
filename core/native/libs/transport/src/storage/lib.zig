@@ -3,7 +3,7 @@ const socket = @import("socket.zig");
 
 // Import the C header — gives us all transport_req_* / transport_resp_* symbols
 // that are implemented in capnp_wrap.cpp.
-const c = @cImport(@cInclude("transport.h"));
+const c = @import("c");
 
 const Mutex = struct {
     raw: std.c.pthread_mutex_t = std.c.PTHREAD_MUTEX_INITIALIZER,

@@ -43,7 +43,7 @@ pub fn build(b: *std.Build) void {
         .abi = .gnu,
         .glibc_version = host.os.version_range.linux.glibc,
     }) else requested;
-    const optimize = b.option(std.builtin.OptimizeMode, "optimize", "Prioritize performance, safety, or binary size") orelse .ReleaseFast;
+    const optimize = b.option(std.builtin.OptimizeMode, "optimize", "Prioritize performance, safety, or binary size") orelse .fast;
     const exe = b.addExecutable(.{
         .name = "case",
         .root_module = b.createModule(.{
@@ -58,7 +58,6 @@ pub fn build(b: *std.Build) void {
     b.installArtifact(exe);
     const run = b.addRunArtifact(exe);
     run.step.dependOn(b.getInstallStep());
-    if (b.args) |args| run.addArgs(args);
     const run_step = b.step("run", "Run the CASE HTTP service");
     run_step.dependOn(&run.step);
 }

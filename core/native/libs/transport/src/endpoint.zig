@@ -340,7 +340,7 @@ fn recvPacket(
 const test_limits = Limits{ .max_envelope_bytes = 4096, .max_payload_bytes = 1 << 20 };
 
 fn testEndpoint(buffer: []u8) [:0]const u8 {
-    return std.fmt.bufPrintZ(buffer, "ipc:///tmp/transport-endpoint-test-{d}.sock", .{std.c.getpid()}) catch unreachable;
+    return std.fmt.bufPrintSentinel(buffer, "ipc:///tmp/transport-endpoint-test-{d}.sock", .{std.c.getpid()}, 0) catch unreachable;
 }
 
 test "peer to router round-trip with envelope frames" {
@@ -401,7 +401,7 @@ test "peer to router round-trip with envelope frames" {
 
 test "router rejects malformed frame shapes and recovers" {
     var endpoint_buf: [128]u8 = undefined;
-    const endpoint = std.fmt.bufPrintZ(&endpoint_buf, "ipc:///tmp/transport-endpoint-shape-{d}.sock", .{std.c.getpid()}) catch unreachable;
+    const endpoint = std.fmt.bufPrintSentinel(&endpoint_buf, "ipc:///tmp/transport-endpoint-shape-{d}.sock", .{std.c.getpid()}, 0) catch unreachable;
 
     var router = try Router.init(endpoint, test_limits);
     defer router.deinit();
@@ -433,7 +433,7 @@ test "router rejects malformed frame shapes and recovers" {
 
 test "a bare empty frame from a peer surfaces as an empty-envelope Incoming (matches ZMQ_ROUTER_NOTIFY shape)" {
     var endpoint_buf: [128]u8 = undefined;
-    const endpoint = std.fmt.bufPrintZ(&endpoint_buf, "ipc:///tmp/transport-endpoint-notify-{d}.sock", .{std.c.getpid()}) catch unreachable;
+    const endpoint = std.fmt.bufPrintSentinel(&endpoint_buf, "ipc:///tmp/transport-endpoint-notify-{d}.sock", .{std.c.getpid()}, 0) catch unreachable;
 
     var router = try Router.init(endpoint, test_limits);
     defer router.deinit();
@@ -458,7 +458,7 @@ test "a bare empty frame from a peer surfaces as an empty-envelope Incoming (mat
 
 test "recv times out with null" {
     var endpoint_buf: [128]u8 = undefined;
-    const endpoint = std.fmt.bufPrintZ(&endpoint_buf, "ipc:///tmp/transport-endpoint-idle-{d}.sock", .{std.c.getpid()}) catch unreachable;
+    const endpoint = std.fmt.bufPrintSentinel(&endpoint_buf, "ipc:///tmp/transport-endpoint-idle-{d}.sock", .{std.c.getpid()}, 0) catch unreachable;
 
     var router = try Router.init(endpoint, test_limits);
     defer router.deinit();
@@ -468,7 +468,7 @@ test "recv times out with null" {
 
 test "non-blocking recv returns null without a timeout option" {
     var endpoint_buf: [128]u8 = undefined;
-    const endpoint = std.fmt.bufPrintZ(&endpoint_buf, "ipc:///tmp/transport-endpoint-nowait-{d}.sock", .{std.c.getpid()}) catch unreachable;
+    const endpoint = std.fmt.bufPrintSentinel(&endpoint_buf, "ipc:///tmp/transport-endpoint-nowait-{d}.sock", .{std.c.getpid()}, 0) catch unreachable;
 
     var router = try Router.init(endpoint, test_limits);
     defer router.deinit();
@@ -477,7 +477,7 @@ test "non-blocking recv returns null without a timeout option" {
 
 test "sending to an identity nobody answers for fails instead of being discarded" {
     var endpoint_buf: [128]u8 = undefined;
-    const endpoint = std.fmt.bufPrintZ(&endpoint_buf, "ipc:///tmp/transport-endpoint-unroutable-{d}.sock", .{std.c.getpid()}) catch unreachable;
+    const endpoint = std.fmt.bufPrintSentinel(&endpoint_buf, "ipc:///tmp/transport-endpoint-unroutable-{d}.sock", .{std.c.getpid()}, 0) catch unreachable;
 
     var router = try Router.init(endpoint, test_limits);
     defer router.deinit();
@@ -497,7 +497,7 @@ test "sending to an identity nobody answers for fails instead of being discarded
 
 test "payload over the limit is rejected" {
     var endpoint_buf: [128]u8 = undefined;
-    const endpoint = std.fmt.bufPrintZ(&endpoint_buf, "ipc:///tmp/transport-endpoint-limit-{d}.sock", .{std.c.getpid()}) catch unreachable;
+    const endpoint = std.fmt.bufPrintSentinel(&endpoint_buf, "ipc:///tmp/transport-endpoint-limit-{d}.sock", .{std.c.getpid()}, 0) catch unreachable;
 
     var router = try Router.init(endpoint, .{ .max_envelope_bytes = 4096, .max_payload_bytes = 16 });
     defer router.deinit();

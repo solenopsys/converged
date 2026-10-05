@@ -123,9 +123,9 @@ pub const Hub = struct {
         var buf: [64]u8 = undefined;
         var upper: [32]u8 = undefined;
         if (name.len >= upper.len) return error.EndpointUnknown;
-        const key = std.fmt.bufPrintZ(&buf, "RESONUS_ENDPOINT_{s}", .{
+        const key = std.fmt.bufPrintSentinel(&buf, "RESONUS_ENDPOINT_{s}", .{
             std.ascii.upperString(upper[0..name.len], name),
-        }) catch return error.EndpointUnknown;
+        }, 0) catch return error.EndpointUnknown;
 
         const spec = env.opt(key) orelse return self.vendorEndpoint(name);
         const split = std.mem.indexOfScalar(u8, spec, ':') orelse return error.EndpointNotConfigured;

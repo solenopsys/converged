@@ -36,8 +36,8 @@ pub const Code = enum {
     }
 
     pub fn fromWireName(name: []const u8) ?Code {
-        inline for (@typeInfo(Code).@"enum".fields) |field| {
-            const code: Code = @enumFromInt(field.value);
+        inline for (@typeInfo(Code).@"enum".field_values) |value| {
+            const code: Code = @enumFromInt(value);
             if (std.mem.eql(u8, code.wireName(), name)) return code;
         }
         return null;

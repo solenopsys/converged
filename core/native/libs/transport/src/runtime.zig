@@ -749,11 +749,10 @@ const TestCompletion = struct {
 
 test "runtime dispatches a response to the completion registered by request id" {
     var endpoint_buffer: [128]u8 = undefined;
-    const address = try std.fmt.bufPrintZ(
+    const address = try std.fmt.bufPrintSentinel(
         &endpoint_buffer,
         "ipc:///tmp/transport-runtime-test-{d}.sock",
-        .{std.c.getpid()},
-    );
+        .{std.c.getpid()}, 0);
     const limits = endpoint.Limits{ .max_envelope_bytes = 4096, .max_payload_bytes = 1 << 20 };
     var router = try endpoint.Router.init(address, limits);
     defer router.deinit();
@@ -806,7 +805,7 @@ test "runtime dispatches a response to the completion registered by request id" 
 
 test "runtime completes an unanswered request at its deadline" {
     var endpoint_buffer: [128]u8 = undefined;
-    const address = try std.fmt.bufPrintZ(&endpoint_buffer, "ipc:///tmp/transport-runtime-deadline-{d}.sock", .{std.c.getpid()});
+    const address = try std.fmt.bufPrintSentinel(&endpoint_buffer, "ipc:///tmp/transport-runtime-deadline-{d}.sock", .{std.c.getpid()}, 0);
     const limits = endpoint.Limits{ .max_envelope_bytes = 4096, .max_payload_bytes = 1 << 20 };
     var router = try endpoint.Router.init(address, limits);
     defer router.deinit();
@@ -842,7 +841,7 @@ test "runtime completes an unanswered request at its deadline" {
 
 test "router reset re-registers the connection target without application help" {
     var endpoint_buffer: [128]u8 = undefined;
-    const address = try std.fmt.bufPrintZ(&endpoint_buffer, "ipc:///tmp/transport-runtime-reset-{d}.sock", .{std.c.getpid()});
+    const address = try std.fmt.bufPrintSentinel(&endpoint_buffer, "ipc:///tmp/transport-runtime-reset-{d}.sock", .{std.c.getpid()}, 0);
     const limits = endpoint.Limits{ .max_envelope_bytes = 4096, .max_payload_bytes = 1 << 20 };
     var router = try endpoint.Router.init(address, limits);
     defer router.deinit();
@@ -893,7 +892,7 @@ fn nextPacket(router: *endpoint.Router, runtime: *Runtime, deadline_ns: i128) !?
 
 test "replacement connection for a live target is delivered once the old one closes" {
     var endpoint_buffer: [128]u8 = undefined;
-    const address = try std.fmt.bufPrintZ(&endpoint_buffer, "ipc:///tmp/transport-runtime-replace-{d}.sock", .{std.c.getpid()});
+    const address = try std.fmt.bufPrintSentinel(&endpoint_buffer, "ipc:///tmp/transport-runtime-replace-{d}.sock", .{std.c.getpid()}, 0);
     const limits = endpoint.Limits{ .max_envelope_bytes = 4096, .max_payload_bytes = 1 << 20 };
     var router = try endpoint.Router.init(address, limits);
     defer router.deinit();

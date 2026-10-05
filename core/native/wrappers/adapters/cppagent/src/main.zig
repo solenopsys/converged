@@ -244,9 +244,9 @@ fn spawnCppAgent(
     defer arena_impl.deinit();
     const arena = arena_impl.allocator();
 
-    const agent_bin_z = try arena.dupeZ(u8, agent_bin);
-    const config_path_z = try arena.dupeZ(u8, config_path);
-    const work_dir_z = if (work_dir) |d| if (d.len > 0) try arena.dupeZ(u8, d) else null else null;
+    const agent_bin_z = try arena.dupeSentinel(u8, agent_bin, 0);
+    const config_path_z = try arena.dupeSentinel(u8, config_path, 0);
+    const work_dir_z = if (work_dir) |d| if (d.len > 0) try arena.dupeSentinel(u8, d, 0) else null else null;
 
     const argv = try arena.allocSentinel(?[*:0]const u8, 3, null);
     argv[0] = agent_bin_z.ptr;

@@ -1,11 +1,6 @@
 const std = @import("std");
 
-const c = @cImport({
-    @cInclude("errno.h");
-    @cInclude("fcntl.h");
-    @cInclude("termios.h");
-    @cInclude("unistd.h");
-});
+const c = @import("c");
 
 const Allocator = std.mem.Allocator;
 
@@ -32,8 +27,8 @@ fn sleepNs(ns: u64) void {
 }
 
 fn enumFromInt(comptime T: type, value: anytype) ?T {
-    inline for (std.meta.fields(T)) |field| {
-        if (value == field.value) return @enumFromInt(field.value);
+    inline for (@typeInfo(T).@"enum".field_values) |field_value| {
+        if (value == field_value) return @enumFromInt(field_value);
     }
     return null;
 }
@@ -180,7 +175,7 @@ const Adapter = struct {
 
     telemetry: Telemetry = .{},
     current_tool: u8 = 0,
-    tool_offsets: [max_tools]f64 = [_]f64{0} ** max_tools,
+    tool_offsets: [max_tools]f64 = @splat(0),
     bed_offset: f64 = 0.0,
     chamber_offset: f64 = 0.0,
     last_error: []u8 = &[_]u8{},
@@ -274,7 +269,7 @@ const Adapter = struct {
         self.rx_buffer.clearRetainingCapacity();
         self.telemetry = .{};
         self.current_tool = 0;
-        self.tool_offsets = [_]f64{0} ** max_tools;
+        self.tool_offsets = @splat(0);
         self.bed_offset = 0.0;
         self.chamber_offset = 0.0;
         self.last_error = self.replaceOwnedString(self.last_error, "") catch self.last_error;

@@ -6,7 +6,7 @@ pub fn build(b: *std.Build) void {
     // build graph reuses one transport module rather than building a second,
     // type-incompatible copy of it.
     const target = b.standardTargetOptions(.{});
-    const optimize = b.option(std.builtin.OptimizeMode, "optimize", "Prioritize performance, safety, or binary size") orelse .ReleaseFast;
+    const optimize = b.option(std.builtin.OptimizeMode, "optimize", "Prioritize performance, safety, or binary size") orelse .fast;
     const transport_dep = b.dependency("transport", .{ .target = target, .optimize = optimize });
 
     const module = b.addModule("processor", .{

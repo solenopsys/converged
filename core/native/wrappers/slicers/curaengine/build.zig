@@ -24,12 +24,12 @@ fn targetProcessor(target: std.Build.ResolvedTarget) []const u8 {
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
-    const optimize = b.option(std.builtin.OptimizeMode, "optimize", "Prioritize performance, safety, or binary size") orelse .ReleaseFast;
+    const optimize = b.option(std.builtin.OptimizeMode, "optimize", "Prioritize performance, safety, or binary size") orelse .fast;
     const zig = b.graph.zig_exe;
     const triple = targetTriple(b, target);
     const build_dir = b.fmt(".zig-cache/cmake-current/{s}/{s}", .{ triple, @tagName(optimize) });
     const cmake = b.addSystemCommand(&.{ "cmake", "-S", ".", "-B", build_dir, "-G", "Ninja" });
-    cmake.addArg(b.fmt("-DCMAKE_BUILD_TYPE={s}", .{if (optimize == .Debug) "Debug" else "Release"}));
+    cmake.addArg(b.fmt("-DCMAKE_BUILD_TYPE={s}", .{if (optimize == .debug) "Debug" else "Release"}));
     cmake.addArg("-DCMAKE_SYSTEM_NAME=Linux");
     cmake.addArg(b.fmt("-DCMAKE_SYSTEM_PROCESSOR={s}", .{targetProcessor(target)}));
     cmake.addArg("-DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY");

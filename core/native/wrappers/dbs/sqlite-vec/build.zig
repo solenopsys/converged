@@ -61,7 +61,7 @@ fn buildForTarget(
     optimize: std.builtin.OptimizeMode,
     artifacts_dir: []const u8,
     hashes: *std.StringHashMap([]const u8),
-    json_step: *build_utils.WriteJsonStep,
+    json_step: *std.Build.Step.Run,
 ) void {
     const target_str = build_utils.getTargetString(target);
     const lib_name = build_utils.getLibName(std.heap.page_allocator, "sqlite-vec", target_str);
@@ -83,7 +83,7 @@ fn buildForTarget(
 }
 
 pub fn build(b: *std.Build) void {
-    const optimize = b.option(std.builtin.OptimizeMode, "optimize", "Prioritize performance, safety, or binary size") orelse .ReleaseFast;
+    const optimize = b.option(std.builtin.OptimizeMode, "optimize", "Prioritize performance, safety, or binary size") orelse .fast;
     const artifacts_dir = "../../artifacts/libs";
     const json_path = "current.json";
 

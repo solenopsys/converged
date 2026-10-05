@@ -5,7 +5,7 @@ const Piece = struct { text: []u8, id: u32, score: f32 };
 pub const Tokenizer = struct {
     allocator: std.mem.Allocator,
     pieces: []Piece,
-    buckets: [256]std.ArrayListUnmanaged(u32) = [_]std.ArrayListUnmanaged(u32){.empty} ** 256,
+    buckets: [256]std.ArrayListUnmanaged(u32) = @splat(.empty),
     special: std.StringHashMapUnmanaged(u32) = .empty,
     unk_id: u32,
 

@@ -49,7 +49,7 @@ pub fn main(init: std.process.Init) !void {
 
     const endpoint_value = init.environ_map.get("CENTIMANUS_FUJIN_ZMQ_ENDPOINT") orelse
         init.environ_map.get("FUJIN_ZMQ_ENDPOINT") orelse "tcp://127.0.0.1:5557";
-    const endpoint = try gpa.dupeZ(u8, endpoint_value);
+    const endpoint = try gpa.dupeSentinel(u8, endpoint_value, 0);
     const target = init.environ_map.get("FUJIN_TARGET") orelse "centimanus";
     const service_token = init.environ_map.get("SERVICE_TOKEN") orelse {
         std.debug.print("centimanus: missing required env SERVICE_TOKEN\n", .{});

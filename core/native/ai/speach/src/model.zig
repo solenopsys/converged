@@ -19,7 +19,7 @@ pub const Model = struct {
     session: *OrtwSession,
 
     pub fn init(allocator: std.mem.Allocator, path: []const u8) !Model {
-        const path_z = try allocator.dupeZ(u8, path);
+        const path_z = try allocator.dupeSentinel(u8, path, 0);
         defer allocator.free(path_z);
         var session: ?*OrtwSession = null;
         if (ortw_session_create(path_z.ptr, 0, &session) != 0) return error.OnnxSessionCreateFailed;

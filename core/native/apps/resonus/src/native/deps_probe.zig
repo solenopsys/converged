@@ -72,7 +72,7 @@ pub const DepsProbe = struct {
 
         const FnVersionString = *const fn ([*]u8) callconv(.c) void;
         if (lib.lookup(FnVersionString, "mbedtls_version_get_string")) |fn_ver| {
-            var buf: [128]u8 = [_]u8{0} ** 128;
+            var buf: [128]u8 = @splat(0);
             fn_ver(&buf);
             const end = std.mem.indexOfScalar(u8, buf[0..], 0) orelse buf.len;
             if (end > 0) {

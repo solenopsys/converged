@@ -163,7 +163,7 @@ pub fn recvMessage(handle: i32, out_allocator: std.mem.Allocator) ![]u8 {
 }
 
 fn uniqueIpcPath(buffer: []u8) ![:0]const u8 {
-    return std.fmt.bufPrintZ(buffer, "/tmp/behemoth-transport-{d}.sock", .{std.c.getpid()});
+    return std.fmt.bufPrintSentinel(buffer, "/tmp/behemoth-transport-{d}.sock", .{std.c.getpid()}, 0);
 }
 
 test "IPC transports raw Cap'n Proto bytes as one ZeroMQ message" {
