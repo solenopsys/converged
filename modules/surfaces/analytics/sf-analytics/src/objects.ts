@@ -1,5 +1,10 @@
 import { EntityListView } from "front-core";
-import { defineSurface, objectRef, setOf } from "front-core/object-runtime";
+import {
+	defineSurface,
+	objectOf,
+	objectRef,
+	setOf,
+} from "front-core/object-runtime";
 import type { AnalyticsQueryParams } from "g-analytics";
 import {
 	analyticsColumns,
@@ -10,6 +15,7 @@ import { AnalyticsSummary } from "./summary";
 import { AnalyticsDashboardView } from "./views/AnalyticsDashboardView";
 import { AnalyticsRealtimeView } from "./views/AnalyticsRealtimeView";
 import { GeoDatabasesView } from "./views/GeoDatabasesView";
+import { AnalyticsSessionEventsView } from "./views/AnalyticsSessionEventsView";
 
 const hasPreset = (params: Record<string, unknown>, id: string) =>
 	Array.isArray(params.presets) &&
@@ -124,6 +130,14 @@ export default defineSurface({
 				tableId: "analytics-ip-sessions",
 				title: "IP activity",
 				columns: analyticsIpSessionColumns,
+				rowRef: (row) => {
+					const id = `${String(row.visitor_id)}:${String(row.session_id)}`;
+					return objectRef("analytics.ip-sessions", id, {
+						title: String(row.session_id),
+						data: row,
+					});
+				},
+
 				filters: [
 					{
 						id: "ip_address",
@@ -225,11 +239,6 @@ export default defineSurface({
 						filter,
 					);
 				},
-				rowRef: (row) =>
-					objectRef(
-						"analytics.ip-sessions",
-						`${String(row.visitor_id)}:${String(row.session_id)}`,
-					),
 			},
 		},
 	],
@@ -263,6 +272,12 @@ export default defineSurface({
 			label: "IP activity",
 			accepts: setOf("analytics.ip-sessions"),
 			component: EntityListView,
+		},
+		{
+			id: "analytics.ip-session.events",
+			label: "Session events",
+			accepts: objectOf("analytics.ip-sessions"),
+			component: AnalyticsSessionEventsView,
 		},
 	],
 	operations: [],

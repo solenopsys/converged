@@ -174,7 +174,7 @@ pub fn build(b: *std.Build) void {
         .abi = .gnu,
         .glibc_version = host.os.version_range.linux.glibc,
     }) else target;
-    const optimize = b.option(std.builtin.OptimizeMode, "optimize", "Prioritize performance, safety, or binary size") orelse .ReleaseFast;
+    const optimize = b.option(std.builtin.OptimizeMode, "optimize", "Prioritize performance, safety, or binary size") orelse .fast;
     const build_all = b.option(bool, "all", "Build for all supported targets") orelse false;
 
     const native_zimq = b.dependency("zimq", .{ .target = runtime_target, .optimize = optimize });

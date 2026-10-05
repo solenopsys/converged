@@ -20,6 +20,13 @@ export type DashboardIndicatorPinInput = {
 	position?: number;
 };
 
+/** A serialized last-known chart payload, indexed by `modulename.graphicname`. */
+export type DashboardChartCache = {
+	key: string;
+	data: unknown;
+	updatedAt: string;
+};
+
 export interface DashboardService {
 	pinIndicator(
 		input: DashboardIndicatorPinInput,
@@ -27,4 +34,6 @@ export interface DashboardService {
 	unpinIndicator(widgetId: string): Promise<void>;
 	listIndicators(): Promise<DashboardIndicatorPin[]>;
 	clearIndicators(): Promise<void>;
+	getChartCache(key: string): Promise<DashboardChartCache | null>;
+	setChartCache(key: string, data: unknown): Promise<void>;
 }

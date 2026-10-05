@@ -1,6 +1,7 @@
 export type {
 	DashboardIndicatorPin,
 	DashboardIndicatorPinInput,
+	DashboardChartCache,
 	DashboardPinId,
 	DashboardService,
 	ISODateString,

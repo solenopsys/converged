@@ -4,6 +4,7 @@ import {
 	type EventCallable,
 	type Store,
 } from "effector";
+import { CASE_CHAT_ANSWER_ID } from "../case-context";
 import { type ChatBlock, type ChatDriver, wantsTools } from "../chat-driver";
 import { createMachine } from "../machine";
 import { createFunctionSteps } from "../steps";
@@ -152,6 +153,11 @@ const factOf = (plan: OrchestratorPlan): string | undefined => {
 	return undefined;
 };
 
+type ConversationOpen = {
+	blocks: ChatBlock[];
+	allowTools?: boolean;
+};
+
 export function createConversation({
 	ask,
 	prompt,
@@ -227,7 +233,11 @@ export function createConversation({
 					id: caseEntryId,
 					patch: {
 						status: "completed",
-						outcome: routedId ? `EXECUTE ${routedId}` : "UNKNOWN",
+						outcome: routedId === CASE_CHAT_ANSWER_ID
+							? "ANSWER IN CHAT"
+							: routedId
+								? `EXECUTE ${routedId}`
+								: "UNKNOWN",
 						elapsedMs: Date.now() - caseStartedAt,
 					},
 				});
@@ -246,6 +256,11 @@ export function createConversation({
 			routedId = undefined;
 		}
 		const selectedId = routedId && frozen.meta(routedId) ? routedId : undefined;
+		// This reserved CASE command is a routing decision, not a catalog action.
+		// Skip the remote function selector and let the regular chat answer it.
+		if (routedId === CASE_CHAT_ANSWER_ID) {
+			return { plan: { kind: "answer" }, caseHandled: false };
+		}
 		// CASE has already selected an existing UI controller. Opening its default
 		// projection is local and must not wait for schema loading or an args model.
 		if (selectedId) {
@@ -417,10 +432,13 @@ export function createConversation({
 	/** One streamed exchange; returns the calls the model wants run next. */
 	const exchange = async (
 		blocks: ChatBlock[],
+		allowTools = true,
 	): Promise<Array<StepToolCall & { id: string }>> => {
-		const tools = [...$tools.getState().values()].map(
-			({ execute: _execute, ...spec }) => spec,
-		);
+		const tools = allowTools
+			? [...$tools.getState().values()].map(
+					({ execute: _execute, ...spec }) => spec,
+				)
+			: [];
 		const calls: Array<StepToolCall & { id: string }> = [];
 		let answerId: string | undefined;
 		let tokens: number | undefined;
@@ -484,16 +502,18 @@ export function createConversation({
 	/** One turn: whatever opens it, then the model/tool loop until the model
 	 *  stops asking for tools. */
 	const converse = async (
-		open: () => Promise<ChatBlock[] | undefined>,
+		open: () => Promise<ConversationOpen | undefined>,
 	): Promise<void> => {
 		turn.turnStarted();
 
 		try {
-			let blocks = await open();
-			if (blocks === undefined) return;
+			const opened = await open();
+			if (opened === undefined) return;
+			let { blocks } = opened;
+			const allowTools = opened.allowTools ?? true;
 
 			for (;;) {
-				const calls = await exchange(blocks);
+				const calls = await exchange(blocks, allowTools);
 				if (calls.length === 0) return;
 
 				const admitted: Array<StepToolCall & { id: string }> = [];
@@ -571,13 +591,19 @@ export function createConversation({
 			const { plan, caseHandled } = await runSteps(text);
 			if (caseHandled) return undefined;
 			const fact = factOf(plan);
-			return [
-				...(await systemBlocks()),
-				{ type: "text" as const, data: text },
-				...(fact
-					? [{ type: "text" as const, data: `Function result:\n${fact}` }]
-					: []),
-			];
+			return {
+				blocks: [
+					...(await systemBlocks()),
+					{ type: "text" as const, data: text },
+					...(fact
+						? [{ type: "text" as const, data: `Function result:\n${fact}` }]
+						: []),
+				],
+				// A miss already passed through route and select. Let the conversational
+				// model explain it or ask the user for clarification without repeating
+				// the same function search through the chat tool list.
+				allowTools: plan.kind !== "function-missed",
+			};
 		});
 
 	/** A turn the host opens, with no user message behind it: something happened
@@ -589,10 +615,12 @@ export function createConversation({
 	 *  turn only ever started from a typed message.
 	 */
 	const follow = (event: string): Promise<void> =>
-		converse(async () => [
-			...(await systemBlocks()),
-			{ type: "text" as const, data: event },
-		]);
+		converse(async () => ({
+			blocks: [
+				...(await systemBlocks()),
+				{ type: "text" as const, data: event },
+			],
+		}));
 
 	return {
 		domain,

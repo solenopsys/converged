@@ -69,6 +69,10 @@ export { configFromPage } from "./chat/config/from-page";
 export { renderMarkdown } from "./chat/ui/markdown";
 export { ContentContainer } from "./components/ContentContainer";
 export {
+	ScreenPreview,
+	type ScreenPreviewProps,
+} from "./components/ScreenPreview";
+export {
 	type CallTranscriptLine,
 	CallTranscriptPanel,
 	type CallTranscriptPanelProps,

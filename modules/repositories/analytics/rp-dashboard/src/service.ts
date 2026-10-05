@@ -2,6 +2,7 @@ import { StoresController } from "./stores";
 import type {
 	DashboardIndicatorPin,
 	DashboardIndicatorPinInput,
+	DashboardChartCache,
 	DashboardService,
 } from "./types";
 
@@ -48,6 +49,16 @@ export class DashboardServiceImpl implements DashboardService {
 	async clearIndicators(): Promise<void> {
 		await this.init();
 		await this.stores.pins.clear();
+	}
+
+	async getChartCache(key: string): Promise<DashboardChartCache | null> {
+		await this.init();
+		return this.stores.charts.get(key);
+	}
+
+	async setChartCache(key: string, data: unknown): Promise<void> {
+		await this.init();
+		this.stores.charts.set(key, data);
 	}
 
 	async destroy(): Promise<void> {

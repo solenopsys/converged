@@ -13,6 +13,7 @@ import type {
 	AnalyticsUriPageViewSummary,
 	PaginatedResult,
 } from "../../types";
+import { siteTrafficCondition } from "../site-traffic";
 
 const TABLE = "analytics_events";
 type EventStore = { db: SqlStore["db"] };
@@ -172,12 +173,14 @@ export class AnalyticsStoreService {
 		const [row, sessions, visitors] = await Promise.all([
 			this.store.db
 				.selectFrom(TABLE)
+			.where(siteTrafficCondition())
 				.select(({ fn }) => fn.countAll().as("page_views"))
 				.where("event_type", "=", "page_view")
 				.where("ts", ">=", fromTs)
 				.executeTakeFirst(),
 			this.store.db
 				.selectFrom(TABLE)
+			.where(siteTrafficCondition())
 				.select("session_id")
 				.distinct()
 				.where("event_type", "=", "page_view")
@@ -185,6 +188,7 @@ export class AnalyticsStoreService {
 				.execute(),
 			this.store.db
 				.selectFrom(TABLE)
+			.where(siteTrafficCondition())
 				.select("visitor_id")
 				.distinct()
 				.where("event_type", "=", "page_view")
@@ -210,6 +214,7 @@ export class AnalyticsStoreService {
 	> {
 		const rows = await this.store.db
 			.selectFrom(TABLE)
+			.where(siteTrafficCondition())
 			.select([
 				"ts",
 				"visitor_id",
@@ -235,6 +240,7 @@ export class AnalyticsStoreService {
 	async pageViewsByUri(fromTs: number): Promise<AnalyticsUriPageViewSummary[]> {
 		const rows = await this.store.db
 			.selectFrom(TABLE)
+			.where(siteTrafficCondition())
 			.select("url")
 			.select(({ fn }) => fn.countAll().as("page_views"))
 			.where("event_type", "=", "page_view")
@@ -317,17 +323,19 @@ export class AnalyticsStoreService {
 		};
 	}
 
-	async count(): Promise<number> {
-		const row = await this.store.db
+	async count(siteOnly = false): Promise<number> {
+		let query = this.store.db
 			.selectFrom(TABLE)
-			.select(({ fn }) => fn.countAll().as("count"))
-			.executeTakeFirst();
+			.select(({ fn }) => fn.countAll().as("count"));
+		if (siteOnly) query = query.where(siteTrafficCondition());
+		const row = await query.executeTakeFirst();
 		return Number(row?.count ?? 0);
 	}
 
 	async byEvent(): Promise<Record<string, number>> {
 		const rows = await this.store.db
 			.selectFrom(TABLE)
+			.where(siteTrafficCondition())
 			.select("event_type")
 			.select(({ fn }) => fn.countAll().as("count"))
 			.groupBy("event_type")
@@ -345,6 +353,7 @@ export class AnalyticsStoreService {
 		const [events, visits] = await Promise.all([
 			this.store.db
 				.selectFrom(TABLE)
+			.where(siteTrafficCondition())
 				.select(bucket.as("timestamp"))
 				.select(({ fn }) => fn.countAll().as("count"))
 				.where("ts", ">=", fromTs)
@@ -352,6 +361,7 @@ export class AnalyticsStoreService {
 				.execute(),
 			this.store.db
 				.selectFrom(TABLE)
+			.where(siteTrafficCondition())
 				.select(bucket.as("timestamp"))
 				.select(({ fn }) => fn.count("session_id").distinct().as("count"))
 				.where("event_type", "=", "page_view")
@@ -395,6 +405,7 @@ export class AnalyticsStoreService {
 	> {
 		const rows = await this.store.db
 			.selectFrom(TABLE)
+			.where(siteTrafficCondition())
 			.select(["visitor_id", "session_id"])
 			.select(({ fn }) => [
 				fn.max<number>("webdriver").as("webdriver"),

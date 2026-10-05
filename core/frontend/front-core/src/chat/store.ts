@@ -10,6 +10,7 @@ import {
 	createFunctionSteps,
 	createResonusCaseRouter,
 	loadResonusCaseContext,
+	CASE_CHAT_ANSWER_ID,
 	buildCaseContext,
 	caseLanguage,
 	createUploadedChatFilesTool,
@@ -29,6 +30,7 @@ import {
 import { registerBuiltinSlashCommands } from "./commands/builtin";
 import { isSlashInput, runSlashCommand } from "./commands/registry";
 import type { ChatConfig } from "./config";
+import { CHAT_ANSWER_EXAMPLES } from "./case-defaults";
 import { createContextPromptResolver } from "./context-prompt";
 import { initChatMessages } from "./i18n";
 import { createServices } from "./services";
@@ -260,7 +262,15 @@ export function initChatStore(config: ChatConfig, host?: ChatCatalog): Chat {
 	const caseContext = buildCaseContext(
 		`chat:${crypto.randomUUID()}`,
 		config.language,
-		caseActions(),
+		[
+			...caseActions(),
+			{
+				id: CASE_CHAT_ANSWER_ID,
+				exposure: "user",
+				root: { surface: "assistant", baseType: "chat" },
+				examples: CHAT_ANSWER_EXAMPLES,
+			},
+		],
 	);
 	const caseRouter = caseContext && caseContext.sections.length > 0
 		? createResonusCaseRouter({

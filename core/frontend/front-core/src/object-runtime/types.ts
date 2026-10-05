@@ -78,6 +78,12 @@ export type StatisticDefinition = {
 	};
 };
 
+/** Optional data cache bridge supplied by the dashboard when mounting a chart. */
+export type StatisticCacheProps = {
+	cachedData?: unknown;
+	onCacheData?: (data: unknown) => void;
+};
+
 /** The complete configuration for an object's default infinite-list projection. */
 export type InfinityDefinition<TData extends object = Record<string, unknown>> =
 	{

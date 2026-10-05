@@ -83,6 +83,7 @@ export type AnalyticsStatistic = {
 
 export type AnalyticsDeviceCounts = {
 	device_type: "mobile" | "tablet" | "desktop" | "unknown";
+	visitors?: number;
 	human: number;
 	bot: number;
 	unverified: number;
@@ -90,6 +91,7 @@ export type AnalyticsDeviceCounts = {
 
 export type AnalyticsResolutionCounts = {
 	resolution: string;
+	visitors?: number;
 	human: number;
 	bot: number;
 	unverified: number;
@@ -126,13 +128,14 @@ export type AnalyticsIpSession = {
 	first_seen: number;
 	last_seen: number;
 	page_views: number;
+	event_count: number;
 	clicks: number;
 	visible_ms: number;
 	scroll_max: number;
 };
 
 export type AnalyticsIpSessionPage = {
-	items: AnalyticsIpSession[];
+	items: Array<AnalyticsIpSession & { id: string; duration_seconds: number }>;
 	totalCount: number;
 };
 

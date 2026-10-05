@@ -24,6 +24,12 @@ export type DashboardIndicatorPinInput = {
 	position?: number;
 };
 
+export type DashboardChartCache = {
+	key: string;
+	data: unknown;
+	updatedAt: string;
+};
+
 const metadata: ServiceMetadata = {
   "interfaceName": "DashboardService",
   "serviceName": "dashboard",
@@ -74,6 +80,42 @@ const metadata: ServiceMetadata = {
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
+    },
+    {
+      "name": "getChartCache",
+      "parameters": [
+        {
+          "name": "key",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "DashboardChartCache | any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "setChartCache",
+      "parameters": [
+        {
+          "name": "key",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "data",
+          "type": "unknown",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "void",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     }
   ],
   "types": [
@@ -96,6 +138,11 @@ const metadata: ServiceMetadata = {
       "name": "DashboardIndicatorPinInput",
       "kind": "type",
       "definition": "{\n\twidgetId: string;\n\ttitle?: string;\n\tsource?: string;\n\tcomponentKey?: string;\n\tposition?: number;\n}"
+    },
+    {
+      "name": "DashboardChartCache",
+      "kind": "type",
+      "definition": "{\n\tkey: string;\n\tdata: unknown;\n\tupdatedAt: string;\n}"
     }
   ]
 };
@@ -106,6 +153,8 @@ export interface DashboardServiceRtClient {
   unpinIndicator(widgetId: string): void;
   listIndicators(): DashboardIndicatorPin[];
   clearIndicators(): void;
+  getChartCache(key: string): DashboardChartCache | any;
+  setChartCache(key: string, data: unknown): void;
 }
 
 export function createDashboardServiceRtClient(): DashboardServiceRtClient {

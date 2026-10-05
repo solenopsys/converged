@@ -53,7 +53,7 @@ fn decodePublicKey(encoded: []const u8) !std.crypto.sign.Ed25519.PublicKey {
 }
 
 test "JWKS accepts only Ed25519 public keys" {
-    const key_pair = try std.crypto.sign.Ed25519.KeyPair.generateDeterministic([_]u8{13} ** 32);
+    const key_pair = try std.crypto.sign.Ed25519.KeyPair.generateDeterministic(@as([32]u8, @splat(13)));
     const bytes = key_pair.public_key.toBytes();
     const encoded_size = std.base64.url_safe_no_pad.Encoder.calcSize(bytes.len);
     const encoded = try std.testing.allocator.alloc(u8, encoded_size);

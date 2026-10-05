@@ -49,7 +49,7 @@ fn endpoint(kind: EndpointKind, addr: [*:0]const u8, port: u16) ![:0]u8 {
         .tcp => std.fmt.allocPrint(allocator, "tcp://{s}:{d}", .{ value, port }),
     };
     defer allocator.free(formatted);
-    return allocator.dupeZ(u8, formatted);
+    return allocator.dupeSentinel(u8, formatted, 0);
 }
 
 fn setTimeout(connection: *Connection, timeout_ms: u32) !void {

@@ -5,10 +5,12 @@ import {
 	sql,
 } from "back-core";
 import type {
+	AnalyticsDeviceCounts,
 	AnalyticsEventInput,
 	AnalyticsFilterObject,
 	AnalyticsIpSession,
 } from "../../../types";
+import { siteTrafficCondition } from "../site-traffic";
 
 const TABLE = "analytics_ip_sessions";
 const ipSessionFilterSchema: KyselyFilterSchema = {
@@ -123,6 +125,7 @@ export class IpSessionsStoreService {
 				last_seen: ts,
 				url: event.url,
 				page_views: Number(event.event_type === "page_view"),
+				event_count: Number(!isSessionSignal(event.event_type)),
 				clicks: (event.trusted_clicks ?? 0) + (event.untrusted_clicks ?? 0),
 				visible_ms: event.visible_ms ?? 0,
 				hidden_ms: event.hidden_ms ?? 0,
@@ -163,6 +166,7 @@ export class IpSessionsStoreService {
 				current.scroll_events += event.scroll_events ?? 0;
 				current.key_events += event.key_events ?? 0;
 				current.page_views += Number(event.event_type === "page_view");
+				current.event_count += Number(!isSessionSignal(event.event_type));
 				current.clicks +=
 					(event.trusted_clicks ?? 0) + (event.untrusted_clicks ?? 0);
 				current.visible_ms += event.visible_ms ?? 0;
@@ -205,6 +209,7 @@ export class IpSessionsStoreService {
 						last_seen: sql`MAX(${sql.ref(`${TABLE}.last_seen`)}, excluded.last_seen)`,
 						url: sql`CASE WHEN excluded.last_seen >= ${sql.ref(`${TABLE}.last_seen`)} THEN excluded.url ELSE ${sql.ref(`${TABLE}.url`)} END`,
 						page_views: sql`(${sql.ref(`${TABLE}.page_views`)} + excluded.page_views)`,
+						event_count: sql`(${sql.ref(`${TABLE}.event_count`)} + excluded.event_count)`,
 						clicks: sql`(${sql.ref(`${TABLE}.clicks`)} + excluded.clicks)`,
 						visible_ms: sql`(${sql.ref(`${TABLE}.visible_ms`)} + excluded.visible_ms)`,
 						hidden_ms: sql`(${sql.ref(`${TABLE}.hidden_ms`)} + excluded.hidden_ms)`,
@@ -218,6 +223,7 @@ export class IpSessionsStoreService {
 	async typeSummary(fromTs: number) {
 		const rows = await this.store.db
 			.selectFrom(TABLE)
+			.where(siteTrafficCondition())
 			.select("user_type")
 			.select(({ fn }) => fn.countAll().as("count"))
 			.where("last_seen", ">=", fromTs)
@@ -233,67 +239,40 @@ export class IpSessionsStoreService {
 	}
 
 	async deviceSummary(fromTs: number) {
+		const counts = [
+			sql<number>`COUNT(DISTINCT visitor_id)`.as("visitors"),
+			sql<number>`SUM(CASE WHEN user_type = 'human' THEN 1 ELSE 0 END)`.as("human"),
+			sql<number>`SUM(CASE WHEN user_type = 'bot' THEN 1 ELSE 0 END)`.as("bot"),
+			sql<number>`SUM(CASE WHEN user_type = 'unverified' THEN 1 ELSE 0 END)`.as("unverified"),
+		];
 		const [deviceRows, resolutionRows] = await Promise.all([
-			this.store.db
-				.selectFrom(TABLE)
-				.select(["device_type", "user_type"])
-				.select(({ fn }) => fn.countAll().as("count"))
+			this.store.db.selectFrom(TABLE)
+			.where(siteTrafficCondition())
+				.select("device_type").select(counts)
 				.where("last_seen", ">=", fromTs)
-				.groupBy(["device_type", "user_type"])
-				.execute(),
-			this.store.db
-				.selectFrom(TABLE)
-				.select(["screen", "user_type"])
-				.select(({ fn }) => fn.countAll().as("count"))
+				.groupBy("device_type").execute(),
+			this.store.db.selectFrom(TABLE)
+			.where(siteTrafficCondition())
+				.select("screen").select(counts)
 				.where("last_seen", ">=", fromTs)
 				.where("screen", "<>", "")
-				.groupBy(["screen", "user_type"])
-				.execute(),
+				.groupBy("screen").execute(),
 		]);
-		const devices = new Map<
-			string,
-			{ device_type: string; human: number; bot: number; unverified: number }
-		>();
-		for (const row of deviceRows) {
-			const key = row.device_type || "unknown";
-			const counts = devices.get(key) ?? {
-				device_type: key,
-				human: 0,
-				bot: 0,
-				unverified: 0,
-			};
-			counts[row.user_type as "human" | "bot" | "unverified"] = Number(
-				row.count,
-			);
-			devices.set(key, counts);
-		}
-		const resolutions = new Map<
-			string,
-			{ resolution: string; human: number; bot: number; unverified: number }
-		>();
-		for (const row of resolutionRows) {
-			const key = row.screen || "unknown";
-			const counts = resolutions.get(key) ?? {
-				resolution: key,
-				human: 0,
-				bot: 0,
-				unverified: 0,
-			};
-			counts[row.user_type as "human" | "bot" | "unverified"] = Number(
-				row.count,
-			);
-			resolutions.set(key, counts);
-		}
+		const numbers = (row: { visitors: number; human: number; bot: number; unverified: number }) => ({
+			visitors: Number(row.visitors),
+			human: Number(row.human),
+			bot: Number(row.bot),
+			unverified: Number(row.unverified),
+		});
 		return {
-			devices: [...devices.values()].sort((a, b) =>
-				a.device_type.localeCompare(b.device_type),
-			),
-			resolutions: [...resolutions.values()]
-				.sort(
-					(a, b) =>
-						b.human + b.bot + b.unverified - (a.human + a.bot + a.unverified),
-				)
-				.slice(0, 12),
+			devices: deviceRows.map((row) => ({
+				device_type: (row.device_type || "unknown") as AnalyticsDeviceCounts["device_type"],
+				...numbers(row),
+			})).sort((a, b) => a.device_type.localeCompare(b.device_type)),
+			resolutions: resolutionRows.map((row) => ({
+				resolution: row.screen,
+				...numbers(row),
+			})).sort((a, b) => b.visitors - a.visitors).slice(0, 12),
 		};
 	}
 
@@ -305,6 +284,7 @@ export class IpSessionsStoreService {
 		const bucket = sql<number>`CAST(first_seen / ${bucketMs} AS INTEGER) * ${bucketMs}`;
 		const rows = await this.store.db
 			.selectFrom(TABLE)
+			.where(siteTrafficCondition())
 			.select(bucket.as("timestamp"))
 			.select(({ fn }) => [
 				fn.countAll().as("visits"),
@@ -324,6 +304,7 @@ export class IpSessionsStoreService {
 	async realtimeRows(fromTs: number) {
 		return this.store.db
 			.selectFrom(TABLE)
+			.where(siteTrafficCondition())
 			.select([
 				"visitor_id",
 				"session_id",
@@ -367,6 +348,7 @@ export class IpSessionsStoreService {
 						"first_seen",
 						"last_seen",
 						"page_views",
+						"event_count",
 						"clicks",
 						"visible_ms",
 						"scroll_max",
@@ -397,7 +379,8 @@ function classifyDevice(
 	if (/ipad|tablet|kindle|silk/i.test(userAgent)) return "tablet";
 	if (/mobi|iphone|ipod|windows phone|android.*mobile/i.test(userAgent))
 		return "mobile";
-	if (/android/i.test(userAgent) && touchPoints > 0) return "tablet";
+	if (/android/i.test(userAgent)) return "tablet";
+	if (/macintosh/i.test(userAgent) && touchPoints > 1) return "tablet";
 	if (/windows|macintosh|x11|linux/i.test(userAgent)) return "desktop";
 	const dimensions = screen.match(/^(\d+)x(\d+)$/);
 	if (touchPoints > 0 && dimensions) {
@@ -414,4 +397,10 @@ function mergeUserType(
 	if (current === "bot" || next === "bot") return "bot";
 	if (current === "human" || next === "human") return "human";
 	return "unverified";
+}
+
+function isSessionSignal(eventType: string): boolean {
+	return ["activity", "pointer", "scroll", "key", "visibility"].includes(
+		eventType,
+	);
 }

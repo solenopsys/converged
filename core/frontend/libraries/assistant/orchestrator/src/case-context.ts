@@ -1,6 +1,9 @@
 /** The language codes CASE indexes. Browser locales such as `pt-BR` normalize to these. */
 export type CaseLanguage = "en" | "ru" | "de" | "fr" | "es" | "it" | "pt";
 
+/** Reserved CASE command that sends the turn to the normal conversational answer. */
+export const CASE_CHAT_ANSWER_ID = "assistant.chat.answer";
+
 export type CaseActionRoot = {
 	surface: string;
 	baseType: string;

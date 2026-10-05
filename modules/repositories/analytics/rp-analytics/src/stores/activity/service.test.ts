@@ -84,4 +84,52 @@ describe("IpSessionsStoreService", () => {
 			unverified: 0,
 		});
 	});
+
+	it("separates browser counts from repeated sessions at the same resolution", async () => {
+		await service.record(Array.from({ length: 4 }, (_, index) => ({
+			visitor_id: "same-browser",
+			session_id: `tab-${index}`,
+			event_type: "page_view",
+			ts: 100,
+			url: "/",
+			user_agent: "Mozilla/5.0 (X11; Linux x86_64)",
+			screen: "1920x1080",
+			trusted_clicks: index < 3 ? 1 : 0,
+		})));
+		const summary = await service.deviceSummary(0);
+		expect(summary.devices).toEqual([
+			{ device_type: "desktop", visitors: 1, human: 3, bot: 0, unverified: 1 },
+		]);
+		expect(summary.resolutions).toEqual([
+			{ resolution: "1920x1080", visitors: 1, human: 3, bot: 0, unverified: 1 },
+		]);
+	});
+
+	it("excludes historical console sessions from every site summary", async () => {
+		const urls = ["/console", "/console/mail", "/console?tab=mail", "/console#mail", "/ru/console", "/en/console/mail", "/", "/console-guide"];
+		await service.record(urls.map((url, index) => ({
+			visitor_id: `visitor-${index}`,
+			session_id: `session-${index}`,
+			event_type: "page_view",
+			ts: 100,
+			url,
+			ip_address: "203.0.113.1",
+			user_agent: "Mozilla/5.0 (X11; Linux x86_64)",
+			screen: "1920x1080",
+			trusted_clicks: 1,
+		})));
+		expect(await service.typeSummary(0)).toEqual({ human: 2, bot: 0, unverified: 0 });
+		expect((await service.deviceSummary(0)).devices[0]).toMatchObject({ visitors: 2, human: 2 });
+		expect(await service.timeline(0, 1000, "human")).toEqual([{ timestamp: 0, visits: 2, events: 2 }]);
+		expect((await service.realtimeRows(0)).map((row) => row.url).sort()).toEqual(["/", "/console-guide"]);
+		expect((await service.list(100, 0)).totalCount).toBe(urls.length);
+	});
+
+	it("recognizes iPad desktop user agents and Android tablets", async () => {
+		await service.record([
+			{ visitor_id: "ipad", session_id: "ipad", event_type: "page_view", url: "/", user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15) AppleWebKit/605.1.15 Safari/605.1.15", touch_points: 5, screen: "1024x1366", trusted_clicks: 1 },
+			{ visitor_id: "android", session_id: "android", event_type: "page_view", url: "/", user_agent: "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36", screen: "800x1280", trusted_clicks: 1 },
+		]);
+		expect((await service.deviceSummary(0)).devices).toEqual([{ device_type: "tablet", visitors: 2, human: 2, bot: 0, unverified: 0 }]);
+	});
 });

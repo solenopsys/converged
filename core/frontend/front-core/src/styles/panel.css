@@ -62,6 +62,10 @@ textarea {
 	background: var(--hw-field);
 }
 
+.composer.without-audio {
+	grid-template-columns: minmax(0, 1fr) var(--hw-composer-cell) var(--hw-panel-action);
+}
+
 .composer-cell {
 	width: var(--hw-composer-cell);
 	height: var(--hw-composer-cell);
@@ -99,6 +103,14 @@ textarea {
 .composer.is-expanded .panel-toggle {
 	grid-column: 5;
 	grid-row: 2;
+}
+
+.composer.without-audio.is-expanded .icon-button:not(.voice-button):not(.dictation-button) {
+	grid-column: 2;
+}
+
+.composer.without-audio.is-expanded .panel-toggle {
+	grid-column: 3;
 }
 
 .composer:not(.is-expanded) .composer-input {

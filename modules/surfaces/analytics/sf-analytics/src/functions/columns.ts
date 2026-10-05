@@ -65,6 +65,13 @@ export const analyticsColumns = getTableColumns(fields);
 
 export const analyticsIpSessionColumns = getTableColumns([
 	{
+		id: "id",
+		title: "Session ID",
+		type: "text",
+		tableVisible: true,
+		width: 205,
+	},
+	{
 		id: "ip_address",
 		title: "IP address",
 		type: "text",
@@ -113,7 +120,27 @@ export const analyticsIpSessionColumns = getTableColumns([
 		tableVisible: true,
 		width: 105,
 	},
-	{ id: "url", title: "Page", type: "text", tableVisible: true, minWidth: 230 },
+	{
+		id: "url",
+		title: "Last page",
+		type: "text",
+		tableVisible: true,
+		minWidth: 230,
+	},
+	{
+		id: "event_count",
+		title: "Events",
+		type: "number",
+		tableVisible: true,
+		width: 90,
+	},
+	{
+		id: "duration_seconds",
+		title: "Duration (s)",
+		type: "number",
+		tableVisible: true,
+		width: 110,
+	},
 	{
 		id: "clicks",
 		title: "Clicks",
@@ -131,6 +158,13 @@ export const analyticsIpSessionColumns = getTableColumns([
 	{
 		id: "last_seen",
 		title: "Last seen",
+		type: "date",
+		tableVisible: true,
+		width: 170,
+	},
+	{
+		id: "first_seen",
+		title: "Started",
 		type: "date",
 		tableVisible: true,
 		width: 170,

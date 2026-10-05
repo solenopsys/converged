@@ -34,7 +34,11 @@ export type {
 	CaseContext,
 	CaseLanguage,
 } from "./case-context";
-export { buildCaseContext, caseLanguage } from "./case-context";
+export {
+	buildCaseContext,
+	caseLanguage,
+	CASE_CHAT_ANSWER_ID,
+} from "./case-context";
 export type { CaseOrchestratorOptions } from "./case-orchestrator";
 export { createCaseOrchestrator } from "./case-orchestrator";
 export type {

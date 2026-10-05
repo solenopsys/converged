@@ -78,20 +78,20 @@ const IncomingMessage = struct {
         errdefer result.arena.deinit();
 
         const arena = result.arena.allocator();
-        result.request_id = try arena.dupeZ(u8, decoded.request_id);
+        result.request_id = try arena.dupeSentinel(u8, decoded.request_id, 0);
         result.to = .{
-            .target = try arena.dupeZ(u8, decoded.to.target),
-            .service = try arena.dupeZ(u8, decoded.to.service),
+            .target = try arena.dupeSentinel(u8, decoded.to.target, 0),
+            .service = try arena.dupeSentinel(u8, decoded.to.service, 0),
         };
         result.from = .{
-            .target = try arena.dupeZ(u8, decoded.from.target),
-            .service = try arena.dupeZ(u8, decoded.from.service),
+            .target = try arena.dupeSentinel(u8, decoded.from.target, 0),
+            .service = try arena.dupeSentinel(u8, decoded.from.service, 0),
         };
-        result.method = try arena.dupeZ(u8, decoded.method);
-        result.scope = try arena.dupeZ(u8, decoded.scope);
-        result.user = try arena.dupeZ(u8, decoded.user);
-        result.auth = try arena.dupeZ(u8, decoded.auth);
-        result.error_code = try arena.dupeZ(u8, decoded.error_code);
+        result.method = try arena.dupeSentinel(u8, decoded.method, 0);
+        result.scope = try arena.dupeSentinel(u8, decoded.scope, 0);
+        result.user = try arena.dupeSentinel(u8, decoded.user, 0);
+        result.auth = try arena.dupeSentinel(u8, decoded.auth, 0);
+        result.error_code = try arena.dupeSentinel(u8, decoded.error_code, 0);
         return result;
     }
 

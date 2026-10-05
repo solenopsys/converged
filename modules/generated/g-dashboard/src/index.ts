@@ -28,6 +28,12 @@ export type DashboardIndicatorPinInput = {
 	position?: number;
 };
 
+export type DashboardChartCache = {
+	key: string;
+	data: unknown;
+	updatedAt: string;
+};
+
 export const metadata: ServiceMetadata = {
   "interfaceName": "DashboardService",
   "serviceName": "dashboard",
@@ -78,6 +84,42 @@ export const metadata: ServiceMetadata = {
       "isAsync": true,
       "returnTypeIsArray": false,
       "isAsyncIterable": false
+    },
+    {
+      "name": "getChartCache",
+      "parameters": [
+        {
+          "name": "key",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "DashboardChartCache | any",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
+    },
+    {
+      "name": "setChartCache",
+      "parameters": [
+        {
+          "name": "key",
+          "type": "string",
+          "optional": false,
+          "isArray": false
+        },
+        {
+          "name": "data",
+          "type": "unknown",
+          "optional": false,
+          "isArray": false
+        }
+      ],
+      "returnType": "void",
+      "isAsync": true,
+      "returnTypeIsArray": false,
+      "isAsyncIterable": false
     }
   ],
   "types": [
@@ -100,6 +142,11 @@ export const metadata: ServiceMetadata = {
       "name": "DashboardIndicatorPinInput",
       "kind": "type",
       "definition": "{\n\twidgetId: string;\n\ttitle?: string;\n\tsource?: string;\n\tcomponentKey?: string;\n\tposition?: number;\n}"
+    },
+    {
+      "name": "DashboardChartCache",
+      "kind": "type",
+      "definition": "{\n\tkey: string;\n\tdata: unknown;\n\tupdatedAt: string;\n}"
     }
   ]
 };
@@ -110,6 +157,8 @@ export interface DashboardService {
   unpinIndicator(widgetId: string): Promise<void>;
   listIndicators(): Promise<DashboardIndicatorPin[]>;
   clearIndicators(): Promise<void>;
+  getChartCache(key: string): Promise<DashboardChartCache | any>;
+  setChartCache(key: string, data: unknown): Promise<void>;
 }
 
 // Client interface
@@ -118,6 +167,8 @@ export interface DashboardServiceClient {
   unpinIndicator(widgetId: string): Promise<void>;
   listIndicators(): Promise<DashboardIndicatorPin[]>;
   clearIndicators(): Promise<void>;
+  getChartCache(key: string): Promise<DashboardChartCache | any>;
+  setChartCache(key: string, data: unknown): Promise<void>;
 }
 
 // Native factory: cruller-transport -> Fujin -> cluster peer.

@@ -5,9 +5,20 @@ const build_utils = @import("build_utils.zig");
 const artifacts_dir = "../../artifacts/libs";
 const current_json = "current.json";
 
+fn addCMacro(
+    b: *std.Build,
+    translate: *std.Build.Step.TranslateC,
+    module: *std.Build.Module,
+    name: []const u8,
+    value: ?[]const u8,
+) void {
+    translate.defineCMacro(name, value);
+    module.c_macros.append(b.allocator, b.fmt("-D{s}={s}", .{ name, value orelse "1" })) catch @panic("OOM");
+}
+
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
-    const optimize = b.option(std.builtin.OptimizeMode, "optimize", "Prioritize performance, safety, or binary size") orelse .ReleaseFast;
+    const optimize = b.option(std.builtin.OptimizeMode, "optimize", "Prioritize performance, safety, or binary size") orelse .fast;
 
     const poller = b.option(Poller, "poller",
         \\Choose polling system [default=poll].
@@ -24,7 +35,7 @@ pub fn build(b: *std.Build) void {
         bool,
         "strip",
         "Omit debug symbols",
-    ) orelse (optimize != .Debug);
+    ) orelse (optimize != .debug);
 
     const curve = b.option(
         bool,
@@ -97,10 +108,10 @@ pub fn build(b: *std.Build) void {
     const format = b.addFmt(.{
         .check = true,
         .paths = &.{
-            "src/",
-            "build.zig",
-            "build.zig.zon",
-            "example.zig",
+            b.path("src"),
+            b.path("build.zig"),
+            b.path("build.zig.zon"),
+            b.path("example.zig"),
         },
     });
     const format_step = b.step("fmt", "Format project");
@@ -159,10 +170,6 @@ const Options = struct {
 };
 
 const shared_values = .{
-    ._REENTRANT = {},
-    ._THREAD_SAFE = {},
-
-    .ZMQ_CUSTOM_PLATFORM_HPP = {},
     .ZMQ_USE_CV_IMPL_STL11 = {}, // LLVM for sure has std::condition_variable
     .ZMQ_HAVE_NOEXCEPT = {}, // LLVM for sure supports `noexcept`
 };
@@ -521,16 +528,13 @@ fn buildLibzmq(
     header.linkLibrary(library);
 
     if (target.result.os.tag == .freebsd) {
-        translate.defineCMacro("__BSD_VISIBLE", "1");
+        addCMacro(b, translate, module, "__BSD_VISIBLE", "1");
     }
     if (options.draft) {
-        translate.defineCMacro("ZMQ_BUILD_DRAFT_API", "");
+        addCMacro(b, translate, module, "ZMQ_BUILD_DRAFT_API", "");
     }
-    inline for (@typeInfo(@TypeOf(shared_values)).@"struct".fields) |field| {
-        translate.defineCMacro(field.name, "");
-    }
-    for (translate.c_macros.items) |macro| {
-        module.c_macros.append(b.allocator, b.fmt("-D{s}", .{macro})) catch @panic("OOM");
+    inline for (@typeInfo(@TypeOf(shared_values)).@"struct".field_names) |field_name| {
+        addCMacro(b, translate, module, field_name, "");
     }
 
     var platform = b.addConfigHeader(.{

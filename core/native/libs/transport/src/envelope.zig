@@ -182,8 +182,8 @@ pub fn encode(env: *const Envelope, buf: []u8) ![]u8 {
     // data word 0
     var data0: u64 = env.version;
     if (env.fin) data0 |= @as(u64, 1) << 8;
-    data0 |= @as(u64, @intFromEnum(env.kind)) << 16;
-    data0 |= @as(u64, @intFromEnum(env.codec)) << 32;
+    data0 |= @as(u64, @backingInt(env.kind)) << 16;
+    data0 |= @as(u64, @backingInt(env.codec)) << 32;
     writer.putWord(1, data0);
 
     // data word 1
@@ -351,7 +351,7 @@ const golden_full_hex =
     "0000000000000000752d370000000000";
 
 // segment table + root pointer + 9 zero words (2 data + 7 null pointers)
-const golden_empty_hex = "000000000a0000000000000002000700" ++ ("00" ** 72);
+const golden_empty_hex = "000000000a0000000000000002000700" ++ "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
 
 const golden_full_env = Envelope{
     .version = 1,
@@ -476,7 +476,7 @@ test "round-trip with sparse fields" {
 
 test "rejects malformed input" {
     try std.testing.expectError(DecodeError.MessageTruncated, decode(""));
-    try std.testing.expectError(DecodeError.MessageTruncated, decode(&[_]u8{0} ** 12));
+    try std.testing.expectError(DecodeError.MessageTruncated, decode(&@as([12]u8, @splat(0))));
 
     // multi-segment
     var multi = hexBytes(golden_empty_hex);

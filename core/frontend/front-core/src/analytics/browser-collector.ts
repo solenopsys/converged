@@ -1,4 +1,5 @@
 import { authToken } from "../auth-token";
+import { createAnalyticsTransport } from "./transport";
 
 type BrowserEvent = {
 	ts: number;
@@ -56,11 +57,8 @@ type ActivityMetrics = Partial<
 const HEARTBEAT_INTERVAL_MS = 15_000;
 const POINTER_SAMPLE_INTERVAL_MS = 250;
 const SCROLL_SAMPLE_INTERVAL_MS = 500;
-const MAX_RECONNECT_ATTEMPTS = 5;
-const ANALYTICS_INGEST_URI = "/ingest/analytics";
 const VISITOR_KEY = "rp-analytics:visitor";
 const SESSION_KEY = "rp-analytics:session";
-const encoder = new TextEncoder();
 
 function isAuthenticatedAudience(): boolean {
 	try {
@@ -109,32 +107,53 @@ function maxScroll(): number {
 		: Math.min(1, Math.max(0, window.scrollY / available));
 }
 
-function supportsStreamingRequest(): boolean {
-	if (typeof ReadableStream === "undefined") return false;
-	let duplexAccessed = false;
-	try {
-		const request = new Request(ANALYTICS_INGEST_URI, {
-			method: "POST",
-			body: new ReadableStream(),
-			get duplex() {
-				duplexAccessed = true;
-				return "half";
-			},
-		} as RequestInit & { duplex: "half" });
-		return duplexAccessed && !request.headers.has("Content-Type");
-	} catch {
-		return false;
+function clickTarget(
+	target: EventTarget | null,
+): Pick<ActivityMetrics, "content_type" | "content_id"> {
+	if (!(target instanceof Element)) return {};
+	const interactive = target.closest<HTMLElement>(
+		'a[href], button, [role="button"], input[type="button"], input[type="submit"], [data-analytics-id]',
+	);
+	const element = interactive ?? target;
+	const tag = element.tagName.toLowerCase();
+	const contentType =
+		tag === "a" ? "link" : (element.getAttribute("role") ?? tag);
+	const href =
+		element instanceof HTMLAnchorElement
+			? element.getAttribute("href")
+			: undefined;
+	const label =
+		element.getAttribute("aria-label") ||
+		element.getAttribute("title") ||
+		(element.matches("a, button, [role='button']")
+			? element.textContent?.replace(/\s+/g, " ").trim().slice(0, 80)
+			: "");
+	const stableId =
+		element.getAttribute("data-analytics-id") || element.id || "";
+	const path: string[] = [];
+	let current: HTMLElement | null = element;
+	while (current && path.length < 3) {
+		const id = current.id ? `#${current.id}` : "";
+		const classes = [...current.classList]
+			.slice(0, 2)
+			.map((name) => `.${name}`)
+			.join("");
+		path.unshift(`${current.tagName.toLowerCase()}${id}${classes}`);
+		current = current.parentElement;
 	}
+	const description = [label, href, stableId]
+		.filter((part): part is string => Boolean(part))
+		.join(" · ");
+	return {
+		content_type: contentType,
+		content_id: description || path.join(" > "),
+	};
 }
 
 export function startBrowserAnalytics(): void {
-	if (
-		typeof window === "undefined" ||
-		typeof document === "undefined" ||
-		!supportsStreamingRequest()
-	)
-		return;
+	if (typeof window === "undefined" || typeof document === "undefined") return;
 
+	const transport = createAnalyticsTransport();
 	const visitorId = id(browserStorage("localStorage"), VISITOR_KEY);
 	const sessionId = id(browserStorage("sessionStorage"), SESSION_KEY);
 	let authenticatedAudience = isAuthenticatedAudience();
@@ -159,15 +178,12 @@ export function startBrowserAnalytics(): void {
 	};
 	let firstInteractionMs = 0;
 	let lastHeartbeatAt = startedAt;
+	let lastVisibility = document.visibilityState;
 	let deepestScroll = maxScroll();
 	let lastPointerAt = 0;
 	let lastPointer: { x: number; y: number; dx: number; dy: number } | undefined;
 	let lastScrollAt = 0;
 	let lastPageUrl = "";
-	let activeController: ReadableStreamDefaultController<Uint8Array> | undefined;
-	let reconnectTimer: number | undefined;
-	let reconnectDelay = 500;
-	let reconnectAttempts = 0;
 	let closed = false;
 
 	function event(
@@ -212,73 +228,15 @@ export function startBrowserAnalytics(): void {
 		};
 	}
 
-	function scheduleReconnect(): void {
-		if (
-			closed ||
-			reconnectTimer !== undefined ||
-			reconnectAttempts >= MAX_RECONNECT_ATTEMPTS
-		)
-			return;
-		reconnectAttempts++;
-		reconnectTimer = window.setTimeout(() => {
-			reconnectTimer = undefined;
-			connect();
-		}, reconnectDelay);
-		reconnectDelay = Math.min(reconnectDelay * 2, 30_000);
-	}
-
-	function connect(): void {
-		if (closed || activeController) return;
-		let controller: ReadableStreamDefaultController<Uint8Array>;
-		const body = new ReadableStream<Uint8Array>(
-			{
-				start(streamController) {
-					controller = streamController;
-					activeController = streamController;
-				},
-				cancel() {
-					if (activeController === controller) activeController = undefined;
-				},
-			},
-			{ highWaterMark: 16 },
-		);
-		const init = {
-			method: "POST",
-			body,
-			mode: "same-origin",
-			headers: { "Content-Type": "application/x-ndjson" },
-			duplex: "half",
-		} as RequestInit & { duplex: "half" };
-
-		void fetch(ANALYTICS_INGEST_URI, init)
-			.then(async (response) => {
-				if (!response.ok) throw new Error("analytics stream rejected");
-				await response.arrayBuffer();
-			})
-			.catch(() => {})
-			.finally(() => {
-				if (activeController === controller) activeController = undefined;
-				if (closed) return;
-				scheduleReconnect();
-			});
-	}
-
 	function send(eventType: string, metrics: ActivityMetrics = {}): void {
 		if (
-			!activeController ||
 			closed ||
-			(activeController.desiredSize !== null &&
-				activeController.desiredSize <= 0)
+			/^\/(?:en\/|ru\/|de\/|fr\/|es\/|it\/|pt\/)?console(?:\/|$)/.test(
+				window.location.pathname,
+			)
 		)
 			return;
-		try {
-			activeController.enqueue(
-				encoder.encode(`${JSON.stringify(event(eventType, metrics))}\n`),
-			);
-			reconnectDelay = 500;
-		} catch {
-			activeController = undefined;
-		}
+		transport.send(event(eventType, metrics));
 	}
 
 	window.addEventListener("front-core:analytics-event", (event) => {
@@ -309,12 +267,12 @@ export function startBrowserAnalytics(): void {
 		send("page_view");
 	}
 
-	connect();
 	pageView();
 
 	window.addEventListener(
 		"pointermove",
 		(pointerEvent) => {
+			if (!pointerEvent.isTrusted) return;
 			markInteraction();
 			const now = Date.now();
 			if (now - lastPointerAt < POINTER_SAMPLE_INTERVAL_MS) return;
@@ -354,17 +312,20 @@ export function startBrowserAnalytics(): void {
 	window.addEventListener(
 		"click",
 		(clickEvent) => {
-			markInteraction();
-			send(
-				"click",
-				clickEvent.isTrusted ? { trusted_clicks: 1 } : { untrusted_clicks: 1 },
-			);
+			if (clickEvent.isTrusted) markInteraction();
+			send("click", {
+				...clickTarget(clickEvent.target),
+				...(clickEvent.isTrusted
+					? { trusted_clicks: 1 }
+					: { untrusted_clicks: 1 }),
+			});
 		},
 		true,
 	);
 	window.addEventListener(
 		"keydown",
-		() => {
+		(keyEvent) => {
+			if (!keyEvent.isTrusted) return;
 			markInteraction();
 			send("key", { key_events: 1 });
 		},
@@ -372,7 +333,8 @@ export function startBrowserAnalytics(): void {
 	);
 	window.addEventListener(
 		"scroll",
-		() => {
+		(scrollEvent) => {
+			if (!scrollEvent.isTrusted) return;
 			const now = Date.now();
 			deepestScroll = Math.max(deepestScroll, maxScroll());
 			if (now - lastScrollAt < SCROLL_SAMPLE_INTERVAL_MS) return;
@@ -382,14 +344,21 @@ export function startBrowserAnalytics(): void {
 		},
 		{ passive: true },
 	);
-	document.addEventListener("visibilitychange", () => {
+	function activityMetrics(): ActivityMetrics {
 		const now = Date.now();
 		const elapsed = now - lastHeartbeatAt;
 		lastHeartbeatAt = now;
-		send("visibility", {
-			visible_ms: document.visibilityState === "visible" ? elapsed : 0,
-			hidden_ms: document.visibilityState === "hidden" ? elapsed : 0,
-		});
+		const metrics = {
+			visible_ms: lastVisibility === "visible" ? elapsed : 0,
+			hidden_ms: lastVisibility === "hidden" ? elapsed : 0,
+		};
+		lastVisibility = document.visibilityState;
+		return metrics;
+	}
+
+	document.addEventListener("visibilitychange", () => {
+		send("visibility", activityMetrics());
+		if (document.visibilityState === "hidden") transport.flush(true);
 	});
 
 	window.addEventListener("popstate", pageView);
@@ -406,46 +375,27 @@ export function startBrowserAnalytics(): void {
 	let heartbeat: number;
 	function startHeartbeat(): void {
 		heartbeat = window.setInterval(() => {
-			const now = Date.now();
-			const elapsed = now - lastHeartbeatAt;
-			lastHeartbeatAt = now;
-			send("activity", {
-				visible_ms: document.visibilityState === "visible" ? elapsed : 0,
-				hidden_ms: document.visibilityState === "hidden" ? elapsed : 0,
-			});
+			send("activity", activityMetrics());
 		}, HEARTBEAT_INTERVAL_MS);
 	}
 	startHeartbeat();
 
 	window.addEventListener("pagehide", () => {
 		window.dispatchEvent(new Event("front-core:analytics-before-exit"));
-		send("page_exit");
+		send("page_exit", activityMetrics());
 		closed = true;
 		window.clearInterval(heartbeat);
-		if (reconnectTimer !== undefined) {
-			window.clearTimeout(reconnectTimer);
-			reconnectTimer = undefined;
-		}
-		try {
-			activeController?.close();
-		} catch {
-			// The request may already have been closed by the network.
-		}
-		activeController = undefined;
+		transport.pause();
 	});
 	window.addEventListener("pageshow", (pageEvent) => {
 		if (!pageEvent.persisted) return;
 		closed = false;
 		lastHeartbeatAt = Date.now();
+		lastVisibility = document.visibilityState;
 		lastPageUrl = "";
-		connect();
+		transport.resume();
 		pageView();
 		startHeartbeat();
 	});
-	window.addEventListener("online", () => {
-		if (closed || activeController) return;
-		reconnectAttempts = 0;
-		reconnectDelay = 500;
-		connect();
-	});
+	window.addEventListener("online", () => transport.flush());
 }

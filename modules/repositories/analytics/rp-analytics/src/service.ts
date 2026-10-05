@@ -2,6 +2,7 @@ import type { CacheAdapter } from "back-core";
 import { Access } from "nrpc";
 import { StoresController } from "./stores";
 import { AnalyticsStoreService } from "./stores/events/service";
+import { isSiteUrl } from "./stores/site-traffic";
 import type {
 	AnalyticsDashboardSummary,
 	AnalyticsEventInput,
@@ -63,10 +64,11 @@ export class AnalyticsServiceImpl implements AnalyticsService {
 
 	@Access("internal")
 	async writeBatch(events: AnalyticsEventInput[]): Promise<number> {
-		if (events.length === 0) return 0;
+		const siteEvents = events.filter((event) => isSiteUrl(event.url));
+		if (siteEvents.length === 0) return 0;
 		await this.ensureReady();
 		const enriched = await Promise.all(
-			events.map((event) => this.enrich(event)),
+			siteEvents.map((event) => this.enrich(event)),
 		);
 		await this.stores.ipSessions.record(enriched);
 		const storedEvents = enriched
@@ -119,8 +121,8 @@ export class AnalyticsServiceImpl implements AnalyticsService {
 			dashboard,
 			geoLiteDatabases,
 		] = await Promise.all([
-			this.stores.hot.count(),
-			this.stores.cold.count(),
+			this.stores.hot.count(true),
+			this.stores.cold.count(true),
 			this.stores.hot.byEvent(),
 			this.stores.cold.byEvent(),
 			this.stores.hot.timeline(timelineStart, HOUR_MS),
@@ -213,8 +215,8 @@ export class AnalyticsServiceImpl implements AnalyticsService {
 			this.stores.hot.todaySummary(today.getTime()),
 			this.stores.cold.todaySummary(today.getTime()),
 			this.stores.ipSessions.realtimeRows(realtimeSince),
-			this.stores.hot.count(),
-			this.stores.cold.count(),
+			this.stores.hot.count(true),
+			this.stores.cold.count(true),
 			this.stores.hot.pageViewsByUri(uriStatsSince),
 			this.stores.cold.pageViewsByUri(uriStatsSince),
 		]);
@@ -256,7 +258,19 @@ export class AnalyticsServiceImpl implements AnalyticsService {
 		await this.ensureReady();
 		const safeLimit = Math.max(1, Math.min(500, Math.floor(limit || 100)));
 		const safeOffset = Math.max(0, Math.floor(offset || 0));
-		return this.stores.ipSessions.list(safeLimit, safeOffset, filter);
+		const page = await this.stores.ipSessions.list(safeLimit, safeOffset, filter);
+		return {
+			...page,
+			items: page.items.map((session) => ({
+				...session,
+				id: session.session_id,
+				event_count: Math.max(
+					Number(session.event_count),
+					Number(session.page_views) + Number(session.clicks),
+				),
+				duration_seconds: Math.max(0, (Number(session.last_seen) - Number(session.first_seen)) / 1000),
+			})),
+		};
 	}
 
 	@Access("user")

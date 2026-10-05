@@ -223,7 +223,7 @@ fn makeToken(
 }
 
 test "EdDSA JWT verifies claims and preserves trusted context" {
-    const seed = [_]u8{42} ** 32;
+    const seed: [32]u8 = @splat(42);
     const key_pair = try std.crypto.sign.Ed25519.KeyPair.generateDeterministic(seed);
     const keys = [_]Key{.{ .kid = "current", .public_key = key_pair.public_key }};
     const config = Config{ .issuer = "test-issuer", .audience = "test-audience", .keys = &keys };
@@ -248,7 +248,7 @@ test "EdDSA JWT verifies claims and preserves trusted context" {
 }
 
 test "EdDSA JWT rejects tampering and invalid mandatory claims" {
-    const seed = [_]u8{7} ** 32;
+    const seed: [32]u8 = @splat(7);
     const key_pair = try std.crypto.sign.Ed25519.KeyPair.generateDeterministic(seed);
     const keys = [_]Key{.{ .kid = "current", .public_key = key_pair.public_key }};
     const config = Config{ .issuer = "test-issuer", .audience = "test-audience", .keys = &keys };

@@ -100,7 +100,7 @@ const PooledConfig = struct {
     fn init(allocator: std.mem.Allocator, cfg: *const TransportConfig) !PooledConfig {
         return .{
             .kind = cfg.kind,
-            .addr = try allocator.dupeZ(u8, std.mem.span(cfg.addr)),
+            .addr = try allocator.dupeSentinel(u8, std.mem.span(cfg.addr), 0),
             .port = cfg.port,
         };
     }

@@ -86,6 +86,7 @@ export type AnalyticsStatistic = {
 
 export type AnalyticsDeviceCounts = {
 	device_type: "mobile" | "tablet" | "desktop" | "unknown";
+	visitors?: number;
 	human: number;
 	bot: number;
 	unverified: number;
@@ -93,6 +94,7 @@ export type AnalyticsDeviceCounts = {
 
 export type AnalyticsResolutionCounts = {
 	resolution: string;
+	visitors?: number;
 	human: number;
 	bot: number;
 	unverified: number;
@@ -129,13 +131,14 @@ export type AnalyticsIpSession = {
 	first_seen: number;
 	last_seen: number;
 	page_views: number;
+	event_count: number;
 	clicks: number;
 	visible_ms: number;
 	scroll_max: number;
 };
 
 export type AnalyticsIpSessionPage = {
-	items: AnalyticsIpSession[];
+	items: Array<AnalyticsIpSession & { id: string; duration_seconds: number }>;
 	totalCount: number;
 };
 
@@ -516,12 +519,12 @@ const metadata: ServiceMetadata = {
     {
       "name": "AnalyticsDeviceCounts",
       "kind": "type",
-      "definition": "{\n\tdevice_type: \"mobile\" | \"tablet\" | \"desktop\" | \"unknown\";\n\thuman: number;\n\tbot: number;\n\tunverified: number;\n}"
+      "definition": "{\n\tdevice_type: \"mobile\" | \"tablet\" | \"desktop\" | \"unknown\";\n\tvisitors?: number;\n\thuman: number;\n\tbot: number;\n\tunverified: number;\n}"
     },
     {
       "name": "AnalyticsResolutionCounts",
       "kind": "type",
-      "definition": "{\n\tresolution: string;\n\thuman: number;\n\tbot: number;\n\tunverified: number;\n}"
+      "definition": "{\n\tresolution: string;\n\tvisitors?: number;\n\thuman: number;\n\tbot: number;\n\tunverified: number;\n}"
     },
     {
       "name": "AnalyticsTimelineBucket",
@@ -536,12 +539,12 @@ const metadata: ServiceMetadata = {
     {
       "name": "AnalyticsIpSession",
       "kind": "type",
-      "definition": "{\n\tvisitor_id: string;\n\tsession_id: string;\n\tip_address: string;\n\tnetwork: string;\n\tcountry_code: string;\n\tcountry_name: string;\n\tregion_name: string;\n\tcity_name: string;\n\tasn: number;\n\tasn_organization: string;\n\tuser_type: \"human\" | \"bot\" | \"unverified\";\n\tdevice_type: \"mobile\" | \"tablet\" | \"desktop\" | \"unknown\";\n\tscreen: string;\n\taudience_type: \"authenticated\" | \"external\" | \"unknown\";\n\turl: string;\n\tfirst_seen: number;\n\tlast_seen: number;\n\tpage_views: number;\n\tclicks: number;\n\tvisible_ms: number;\n\tscroll_max: number;\n}"
+      "definition": "{\n\tvisitor_id: string;\n\tsession_id: string;\n\tip_address: string;\n\tnetwork: string;\n\tcountry_code: string;\n\tcountry_name: string;\n\tregion_name: string;\n\tcity_name: string;\n\tasn: number;\n\tasn_organization: string;\n\tuser_type: \"human\" | \"bot\" | \"unverified\";\n\tdevice_type: \"mobile\" | \"tablet\" | \"desktop\" | \"unknown\";\n\tscreen: string;\n\taudience_type: \"authenticated\" | \"external\" | \"unknown\";\n\turl: string;\n\tfirst_seen: number;\n\tlast_seen: number;\n\tpage_views: number;\n\tevent_count: number;\n\tclicks: number;\n\tvisible_ms: number;\n\tscroll_max: number;\n}"
     },
     {
       "name": "AnalyticsIpSessionPage",
       "kind": "type",
-      "definition": "{\n\titems: AnalyticsIpSession[];\n\ttotalCount: number;\n}"
+      "definition": "{\n\titems: Array<AnalyticsIpSession & { id: string; duration_seconds: number }>;\n\ttotalCount: number;\n}"
     },
     {
       "name": "GeoLiteCountryNetworkInput",

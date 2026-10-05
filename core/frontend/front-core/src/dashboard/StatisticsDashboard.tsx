@@ -20,6 +20,7 @@ import {
 	widgetsRestored,
 } from "./home";
 import { StatisticActionsProvider } from "./statistic-actions";
+import { CachedStatistic } from "./CachedStatistic";
 import {
 	resolveStatistic,
 	type StatisticSection,
@@ -47,7 +48,12 @@ function Widget({
 		>
 			{mounted ? (
 				<StatisticActionsProvider actions={widget.statistic?.actions?.metrics}>
-					<mounted.Component {...mounted.props} />
+					<CachedStatistic
+						key={`${widget.owner}.${widget.typeId}`}
+						component={mounted.Component}
+						cacheKey={`${widget.owner}.${widget.typeId.split(".").at(-1)}`}
+						props={mounted.props}
+					/>
 				</StatisticActionsProvider>
 			) : (
 				<div className="flex h-full flex-col justify-center rounded-xl border bg-muted/20 px-3 py-2.5 text-sm">

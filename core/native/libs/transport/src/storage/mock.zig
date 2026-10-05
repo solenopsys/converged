@@ -241,7 +241,7 @@ const Response = struct {
 
     fn fail(self: *Response, msg: []const u8) *Response {
         self.ok = false;
-        self.err = gpa.dupeZ(u8, msg) catch null;
+        self.err = gpa.dupeSentinel(u8, msg, 0) catch null;
         return self;
     }
 };
@@ -368,7 +368,7 @@ fn execute(entry: *PoolEntry, req: *Request) ?*Response {
                 while (it.next()) |k| {
                     // kv_list filters by prefix; file_list returns everything.
                     if (req.op == .kv_list and !std.mem.startsWith(u8, k.*, req.key)) continue;
-                    const owned = gpa.dupeZ(u8, k.*) catch return resp.fail("oom");
+                    const owned = gpa.dupeSentinel(u8, k.*, 0) catch return resp.fail("oom");
                     keys.append(gpa, owned) catch {
                         gpa.free(owned);
                         return resp.fail("oom");

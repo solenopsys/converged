@@ -240,7 +240,7 @@ export function DashboardLineChartCard({
 					)}
 				</CardHeader>
 			)}
-			<CardContent className="flex min-h-0 flex-1 flex-col gap-2 px-4 pb-4 pt-0 sm:flex-row sm:items-center">
+			<CardContent className="flex min-h-0 flex-1 flex-col gap-2 px-4 pb-4 pt-0 sm:flex-row sm:items-stretch">
 				{loading ? (
 					<div
 						className="flex flex-1 items-center justify-center text-muted-foreground"
@@ -252,11 +252,11 @@ export function DashboardLineChartCard({
 					<>
 						<div
 							ref={chartContainerRef}
-							className="min-h-[160px] min-w-0 flex-1 overflow-hidden"
+							className="min-h-[240px] min-w-0 flex-1 overflow-hidden"
 						>
 							<svg
 								viewBox={`0 0 ${chartWidth} ${VIEW_HEIGHT}`}
-								className="h-full w-full"
+								className="block h-full min-h-[240px] w-full"
 								role="img"
 								aria-label={title}
 								onMouseMove={updateActiveIndex}

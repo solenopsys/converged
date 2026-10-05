@@ -1,6 +1,7 @@
 export type {
 	AnalyticsCountrySummary,
 	AnalyticsDashboardSummary,
+	AnalyticsDeviceCounts,
 	AnalyticsEvent,
 	AnalyticsEventInput,
 	AnalyticsFilterObject,

@@ -12,6 +12,7 @@ import { CHAT_MESSAGES_NAMESPACE } from "../chat/i18n";
 import { DictationButton, VoiceCallButton } from "./buttons";
 
 const t = translator(CHAT_MESSAGES_NAMESPACE);
+const CHAT_AUDIO_CAPABILITIES_ENABLED = false;
 
 
 export function Composer({
@@ -97,14 +98,14 @@ export function Composer({
 
 	return (
 		<form
-			class={expanded ? "composer is-expanded" : "composer"}
+			class={`${expanded ? "composer is-expanded" : "composer"}${CHAT_AUDIO_CAPABILITIES_ENABLED ? "" : " without-audio"}`}
 			onSubmit={(event) => {
 				event.preventDefault();
 				onSubmit();
 			}}
 		>
-			<LiveAudioDiagram />
-			{hint ? (
+			{CHAT_AUDIO_CAPABILITIES_ENABLED ? <LiveAudioDiagram /> : null}
+			{CHAT_AUDIO_CAPABILITIES_ENABLED && hint ? (
 				<p
 					class={isError ? "composer-status is-error" : "composer-status"}
 					role={isError ? "alert" : "status"}
@@ -112,7 +113,7 @@ export function Composer({
 					{hint}
 				</p>
 			) : null}
-			<VoiceCallButton config={callConfig} />
+			{CHAT_AUDIO_CAPABILITIES_ENABLED ? <VoiceCallButton config={callConfig} /> : null}
 			<label class="sr-only" for={id}>
 				{t("composer.messageLabel")}
 			</label>
@@ -145,12 +146,14 @@ export function Composer({
 					}
 				}}
 			/>
-			<DictationButton
-				config={dictationConfig}
-				onStart={() => {
-					dictationBase.current = draft;
-				}}
-			/>
+			{CHAT_AUDIO_CAPABILITIES_ENABLED ? (
+				<DictationButton
+					config={dictationConfig}
+					onStart={() => {
+						dictationBase.current = draft;
+					}}
+				/>
+			) : null}
 			{attach({ onClick: () => fileInputRef.current?.click() })}
 			<input
 				ref={fileInputRef}
