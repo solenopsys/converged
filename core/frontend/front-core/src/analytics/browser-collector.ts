@@ -8,6 +8,15 @@ type BrowserEvent = {
 	event_type: string;
 	company_id: string;
 	campaign_id: string;
+	utm_source: string;
+	utm_medium: string;
+	utm_campaign: string;
+	utm_term: string;
+	utm_content: string;
+	utm_id: string;
+	utm_source_platform: string;
+	utm_creative_format: string;
+	utm_marketing_tactic: string;
 	url: string;
 	referrer: string;
 	language: string;
@@ -170,11 +179,23 @@ export function startBrowserAnalytics(): void {
 		query.get("campaign") ??
 		query.get("utm_campaign") ??
 		"";
+	const utm = {
+		utm_source: query.get("utm_source") ?? "",
+		utm_medium: query.get("utm_medium") ?? "",
+		utm_campaign: query.get("utm_campaign") ?? "",
+		utm_term: query.get("utm_term") ?? "",
+		utm_content: query.get("utm_content") ?? "",
+		utm_id: query.get("utm_id") ?? "",
+		utm_source_platform: query.get("utm_source_platform") ?? "",
+		utm_creative_format: query.get("utm_creative_format") ?? "",
+		utm_marketing_tactic: query.get("utm_marketing_tactic") ?? "",
+	};
 	const identity = {
 		visitor_id: visitorId,
 		session_id: sessionId,
 		company_id: companyId,
 		campaign_id: campaignId,
+		...utm,
 	};
 	let firstInteractionMs = 0;
 	let lastHeartbeatAt = startedAt;

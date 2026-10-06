@@ -1,4 +1,5 @@
-import { createDomain, createInfiniteTableStore } from "front-core";
+import { createDomain } from "effector";
+import { createInfiniteTableStore } from "front-core";
 import type { GeoLiteDatabaseRow, GeoLiteDataset } from "g-analytics";
 import analytics from "./service";
 

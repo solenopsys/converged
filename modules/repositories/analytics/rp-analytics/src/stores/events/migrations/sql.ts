@@ -2,6 +2,7 @@ import AddContentFields from "./addContentFieldsSql";
 import AddGeoFields from "./addGeoFieldsSql";
 import AddGeoLocationFields from "./addGeoLocationFieldsSql";
 import AddSessionIndex from "./addSessionIndexSql";
+import AddUtmFields from "./addUtmFieldsSql";
 import CreateAnalyticsEvents from "./createAnalyticsEventsSql";
 
 export default [
@@ -10,4 +11,5 @@ export default [
 	AddContentFields,
 	AddGeoLocationFields,
 	AddSessionIndex,
+	AddUtmFields,
 ];

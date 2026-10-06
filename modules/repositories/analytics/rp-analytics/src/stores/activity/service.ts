@@ -13,6 +13,17 @@ import type {
 import { siteTrafficCondition } from "../site-traffic";
 
 const TABLE = "analytics_ip_sessions";
+const UTM_FIELDS = [
+	"utm_source",
+	"utm_medium",
+	"utm_campaign",
+	"utm_term",
+	"utm_content",
+	"utm_id",
+	"utm_source_platform",
+	"utm_creative_format",
+	"utm_marketing_tactic",
+] as const;
 const ipSessionFilterSchema: KyselyFilterSchema = {
 	ip_address: {
 		valueType: "string",
@@ -53,6 +64,11 @@ const ipSessionFilterSchema: KyselyFilterSchema = {
 		valueType: "string",
 		operators: ["eq", "contains", "startsWith"],
 		column: "url",
+	},
+	utm_source: {
+		valueType: "string",
+		operators: ["eq", "contains"],
+		column: "utm_source",
 	},
 };
 const BOT_AGENT =
@@ -124,6 +140,15 @@ export class IpSessionsStoreService {
 				first_seen: ts,
 				last_seen: ts,
 				url: event.url,
+				utm_source: event.utm_source ?? "",
+				utm_medium: event.utm_medium ?? "",
+				utm_campaign: event.utm_campaign ?? "",
+				utm_term: event.utm_term ?? "",
+				utm_content: event.utm_content ?? "",
+				utm_id: event.utm_id ?? "",
+				utm_source_platform: event.utm_source_platform ?? "",
+				utm_creative_format: event.utm_creative_format ?? "",
+				utm_marketing_tactic: event.utm_marketing_tactic ?? "",
 				page_views: Number(event.event_type === "page_view"),
 				event_count: Number(!isSessionSignal(event.event_type)),
 				clicks: (event.trusted_clicks ?? 0) + (event.untrusted_clicks ?? 0),
@@ -136,6 +161,9 @@ export class IpSessionsStoreService {
 				current.last_seen = Math.max(current.last_seen, ts);
 				if (ts >= current.last_seen) {
 					current.url = event.url;
+					for (const field of UTM_FIELDS) {
+						if (event[field]) current[field] = event[field];
+					}
 					if (event.audience_type && event.audience_type !== "unknown") {
 						current.audience_type = event.audience_type;
 					}
@@ -208,6 +236,15 @@ export class IpSessionsStoreService {
 						first_seen: sql`MIN(${sql.ref(`${TABLE}.first_seen`)}, excluded.first_seen)`,
 						last_seen: sql`MAX(${sql.ref(`${TABLE}.last_seen`)}, excluded.last_seen)`,
 						url: sql`CASE WHEN excluded.last_seen >= ${sql.ref(`${TABLE}.last_seen`)} THEN excluded.url ELSE ${sql.ref(`${TABLE}.url`)} END`,
+						utm_source: sql`COALESCE(NULLIF(excluded.utm_source, ''), ${sql.ref(`${TABLE}.utm_source`)})`,
+						utm_medium: sql`COALESCE(NULLIF(excluded.utm_medium, ''), ${sql.ref(`${TABLE}.utm_medium`)})`,
+						utm_campaign: sql`COALESCE(NULLIF(excluded.utm_campaign, ''), ${sql.ref(`${TABLE}.utm_campaign`)})`,
+						utm_term: sql`COALESCE(NULLIF(excluded.utm_term, ''), ${sql.ref(`${TABLE}.utm_term`)})`,
+						utm_content: sql`COALESCE(NULLIF(excluded.utm_content, ''), ${sql.ref(`${TABLE}.utm_content`)})`,
+						utm_id: sql`COALESCE(NULLIF(excluded.utm_id, ''), ${sql.ref(`${TABLE}.utm_id`)})`,
+						utm_source_platform: sql`COALESCE(NULLIF(excluded.utm_source_platform, ''), ${sql.ref(`${TABLE}.utm_source_platform`)})`,
+						utm_creative_format: sql`COALESCE(NULLIF(excluded.utm_creative_format, ''), ${sql.ref(`${TABLE}.utm_creative_format`)})`,
+						utm_marketing_tactic: sql`COALESCE(NULLIF(excluded.utm_marketing_tactic, ''), ${sql.ref(`${TABLE}.utm_marketing_tactic`)})`,
 						page_views: sql`(${sql.ref(`${TABLE}.page_views`)} + excluded.page_views)`,
 						event_count: sql`(${sql.ref(`${TABLE}.event_count`)} + excluded.event_count)`,
 						clicks: sql`(${sql.ref(`${TABLE}.clicks`)} + excluded.clicks)`,

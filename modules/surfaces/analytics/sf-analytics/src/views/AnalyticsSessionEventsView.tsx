@@ -78,6 +78,15 @@ export function AnalyticsSessionEventsView({
 		],
 		["Device", stringValue(session?.device_type)],
 		["Browser", browser],
+		["Source", stringValue(session?.utm_source)],
+		["Medium", stringValue(session?.utm_medium)],
+		["Campaign", stringValue(session?.utm_campaign)],
+		["Term", stringValue(session?.utm_term)],
+		["Content", stringValue(session?.utm_content)],
+		["Campaign ID", stringValue(session?.utm_id)],
+		["Source platform", stringValue(session?.utm_source_platform)],
+		["Creative format", stringValue(session?.utm_creative_format)],
+		["Marketing tactic", stringValue(session?.utm_marketing_tactic)],
 	].filter((item): item is [string, string] => Boolean(item[1]));
 
 	return (

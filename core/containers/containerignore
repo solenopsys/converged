@@ -30,6 +30,11 @@ club/tools
 club/dist
 converged/dist
 
+# The shared build context is the parent of both products. The legacy next-arh
+# workspace is not part of either image and contains large native trees.
+next-arh
+manage
+
 # The UI build does not compile or import the native workspace. The Containerfile
 # only copies the prebuilt shared libraries below into the runtime image.
 converged/core/native/*

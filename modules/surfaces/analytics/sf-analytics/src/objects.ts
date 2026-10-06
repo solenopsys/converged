@@ -226,6 +226,12 @@ export default defineSurface({
 						type: "search",
 						operator: "contains",
 					},
+					{
+						id: "utm_source",
+						label: "Traffic source",
+						type: "search",
+						operator: "contains",
+					},
 				],
 				presets: [
 					{

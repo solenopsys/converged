@@ -114,6 +114,13 @@ export const analyticsIpSessionColumns = getTableColumns([
 		width: 105,
 	},
 	{
+		id: "utm_source",
+		title: "Traffic source",
+		type: "text",
+		tableVisible: true,
+		minWidth: 140,
+	},
+	{
 		id: "screen",
 		title: "Screen",
 		type: "text",
