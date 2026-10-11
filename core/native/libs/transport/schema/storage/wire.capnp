@@ -11,6 +11,7 @@ enum StoreType {
   vector @3;
   files  @4;
   graph  @5;
+  ledger @6;
 }
 
 struct Telemetry {
@@ -53,6 +54,7 @@ struct Request {
     storeStats  @27 :Void;
     kvPutFromCache @28 :KvCacheRefBody;
     kvGetToCache   @29 :KvKeyBody;
+    ledger          @30 :LedgerBody;
   }
 
   struct CreateBody    { storeType @0 :StoreType; }
@@ -73,6 +75,7 @@ struct Request {
   }
   struct DumpDeleteBody { fileName @0 :Text; }
   struct DumpReadBody   { fileName @0 :Text; offset @1 :UInt64; length @2 :UInt32; }
+  struct LedgerBody     { operation @0 :UInt8; events @1 :Data; }
 }
 
 struct Response {

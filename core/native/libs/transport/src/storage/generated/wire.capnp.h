@@ -26,6 +26,7 @@ enum class StoreType_8b1997aae9d03789: uint16_t {
   VECTOR,
   FILES,
   GRAPH,
+  LEDGER,
 };
 CAPNP_DECLARE_ENUM(StoreType, 8b1997aae9d03789);
 CAPNP_DECLARE_SCHEMA(c9d06189012b40f5);
@@ -43,6 +44,7 @@ CAPNP_DECLARE_SCHEMA(8437388f75fb5f43);
 CAPNP_DECLARE_SCHEMA(f405922cdbf806e4);
 CAPNP_DECLARE_SCHEMA(d30eb85190ad02d0);
 CAPNP_DECLARE_SCHEMA(dbf92c17d1c076c0);
+CAPNP_DECLARE_SCHEMA(b86333eb6c16a090);
 CAPNP_DECLARE_SCHEMA(82e27950a9944a5d);
 CAPNP_DECLARE_SCHEMA(a63aeeac83ae5e48);
 CAPNP_DECLARE_SCHEMA(c804787942f16755);
@@ -94,6 +96,7 @@ struct Request {
   struct VecSearchBody;
   struct DumpDeleteBody;
   struct DumpReadBody;
+  struct LedgerBody;
   struct Body;
 
   struct _capnpPrivate {
@@ -299,6 +302,21 @@ struct Request::DumpReadBody {
   };
 };
 
+struct Request::LedgerBody {
+  LedgerBody() = delete;
+
+  class Reader;
+  class Builder;
+  class Pipeline;
+
+  struct _capnpPrivate {
+    CAPNP_DECLARE_STRUCT_HEADER(b86333eb6c16a090, 1, 1)
+    #if !CAPNP_LITE
+    static constexpr ::capnp::_::RawBrandedSchema const* brand() { return &schema->defaultBrand; }
+    #endif  // !CAPNP_LITE
+  };
+};
+
 struct Request::Body {
   Body() = delete;
 
@@ -334,6 +352,7 @@ struct Request::Body {
     STORE_STATS,
     KV_PUT_FROM_CACHE,
     KV_GET_TO_CACHE,
+    LEDGER,
   };
 
   struct _capnpPrivate {
@@ -1812,6 +1831,92 @@ private:
 };
 #endif  // !CAPNP_LITE
 
+class Request::LedgerBody::Reader {
+public:
+  typedef LedgerBody Reads;
+
+  Reader() = default;
+  inline explicit Reader(::capnp::_::StructReader base): _reader(base) {}
+
+  inline ::capnp::MessageSize totalSize() const {
+    return _reader.totalSize().asPublic();
+  }
+
+#if !CAPNP_LITE
+  inline ::kj::StringTree toString() const {
+    return ::capnp::_::structString(_reader, *_capnpPrivate::brand());
+  }
+#endif  // !CAPNP_LITE
+
+  inline  ::uint8_t getOperation() const;
+
+  inline bool hasEvents() const;
+  inline  ::capnp::Data::Reader getEvents() const;
+
+private:
+  ::capnp::_::StructReader _reader;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::ToDynamic_;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::_::PointerHelpers;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::List;
+  friend class ::capnp::MessageBuilder;
+  friend class ::capnp::Orphanage;
+};
+
+class Request::LedgerBody::Builder {
+public:
+  typedef LedgerBody Builds;
+
+  Builder() = delete;  // Deleted to discourage incorrect usage.
+                       // You can explicitly initialize to nullptr instead.
+  inline Builder(decltype(nullptr)) {}
+  inline explicit Builder(::capnp::_::StructBuilder base): _builder(base) {}
+  inline operator Reader() const { return Reader(_builder.asReader()); }
+  inline Reader asReader() const { return *this; }
+
+  inline ::capnp::MessageSize totalSize() const { return asReader().totalSize(); }
+#if !CAPNP_LITE
+  inline ::kj::StringTree toString() const { return asReader().toString(); }
+#endif  // !CAPNP_LITE
+
+  inline  ::uint8_t getOperation();
+  inline void setOperation( ::uint8_t value);
+
+  inline bool hasEvents();
+  inline  ::capnp::Data::Builder getEvents();
+  inline void setEvents( ::capnp::Data::Reader value);
+  inline  ::capnp::Data::Builder initEvents(unsigned int size);
+  inline void adoptEvents(::capnp::Orphan< ::capnp::Data>&& value);
+  inline ::capnp::Orphan< ::capnp::Data> disownEvents();
+
+private:
+  ::capnp::_::StructBuilder _builder;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::ToDynamic_;
+  friend class ::capnp::Orphanage;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::_::PointerHelpers;
+};
+
+#if !CAPNP_LITE
+class Request::LedgerBody::Pipeline {
+public:
+  typedef LedgerBody Pipelines;
+
+  inline Pipeline(decltype(nullptr)): _typeless(nullptr) {}
+  inline explicit Pipeline(::capnp::AnyPointer::Pipeline&& typeless)
+      : _typeless(kj::mv(typeless)) {}
+
+private:
+  ::capnp::AnyPointer::Pipeline _typeless;
+  friend class ::capnp::PipelineHook;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::ToDynamic_;
+};
+#endif  // !CAPNP_LITE
+
 class Request::Body::Reader {
 public:
   typedef Body Reads;
@@ -1930,6 +2035,10 @@ public:
   inline bool isKvGetToCache() const;
   inline bool hasKvGetToCache() const;
   inline  ::Request::KvKeyBody::Reader getKvGetToCache() const;
+
+  inline bool isLedger() const;
+  inline bool hasLedger() const;
+  inline  ::Request::LedgerBody::Reader getLedger() const;
 
 private:
   ::capnp::_::StructReader _reader;
@@ -2139,6 +2248,14 @@ public:
   inline  ::Request::KvKeyBody::Builder initKvGetToCache();
   inline void adoptKvGetToCache(::capnp::Orphan< ::Request::KvKeyBody>&& value);
   inline ::capnp::Orphan< ::Request::KvKeyBody> disownKvGetToCache();
+
+  inline bool isLedger();
+  inline bool hasLedger();
+  inline  ::Request::LedgerBody::Builder getLedger();
+  inline void setLedger( ::Request::LedgerBody::Reader value);
+  inline  ::Request::LedgerBody::Builder initLedger();
+  inline void adoptLedger(::capnp::Orphan< ::Request::LedgerBody>&& value);
+  inline ::capnp::Orphan< ::Request::LedgerBody> disownLedger();
 
 private:
   ::capnp::_::StructBuilder _builder;
@@ -3904,6 +4021,54 @@ inline void Request::DumpReadBody::Builder::setLength( ::uint32_t value) {
       ::capnp::bounded<2>() * ::capnp::ELEMENTS, value);
 }
 
+inline  ::uint8_t Request::LedgerBody::Reader::getOperation() const {
+  return _reader.getDataField< ::uint8_t>(
+      ::capnp::bounded<0>() * ::capnp::ELEMENTS);
+}
+
+inline  ::uint8_t Request::LedgerBody::Builder::getOperation() {
+  return _builder.getDataField< ::uint8_t>(
+      ::capnp::bounded<0>() * ::capnp::ELEMENTS);
+}
+inline void Request::LedgerBody::Builder::setOperation( ::uint8_t value) {
+  _builder.setDataField< ::uint8_t>(
+      ::capnp::bounded<0>() * ::capnp::ELEMENTS, value);
+}
+
+inline bool Request::LedgerBody::Reader::hasEvents() const {
+  return !_reader.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS).isNull();
+}
+inline bool Request::LedgerBody::Builder::hasEvents() {
+  return !_builder.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS).isNull();
+}
+inline  ::capnp::Data::Reader Request::LedgerBody::Reader::getEvents() const {
+  return ::capnp::_::PointerHelpers< ::capnp::Data>::get(_reader.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS));
+}
+inline  ::capnp::Data::Builder Request::LedgerBody::Builder::getEvents() {
+  return ::capnp::_::PointerHelpers< ::capnp::Data>::get(_builder.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS));
+}
+inline void Request::LedgerBody::Builder::setEvents( ::capnp::Data::Reader value) {
+  ::capnp::_::PointerHelpers< ::capnp::Data>::set(_builder.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS), value);
+}
+inline  ::capnp::Data::Builder Request::LedgerBody::Builder::initEvents(unsigned int size) {
+  return ::capnp::_::PointerHelpers< ::capnp::Data>::init(_builder.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS), size);
+}
+inline void Request::LedgerBody::Builder::adoptEvents(
+    ::capnp::Orphan< ::capnp::Data>&& value) {
+  ::capnp::_::PointerHelpers< ::capnp::Data>::adopt(_builder.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS), kj::mv(value));
+}
+inline ::capnp::Orphan< ::capnp::Data> Request::LedgerBody::Builder::disownEvents() {
+  return ::capnp::_::PointerHelpers< ::capnp::Data>::disown(_builder.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS));
+}
+
 inline  ::Request::Body::Which Request::Body::Reader::which() const {
   return _reader.getDataField<Which>(
       ::capnp::bounded<0>() * ::capnp::ELEMENTS);
@@ -5114,6 +5279,60 @@ inline ::capnp::Orphan< ::Request::KvKeyBody> Request::Body::Builder::disownKvGe
   KJ_IREQUIRE((which() == Request::Body::KV_GET_TO_CACHE),
               "Must check which() before get()ing a union member.");
   return ::capnp::_::PointerHelpers< ::Request::KvKeyBody>::disown(_builder.getPointerField(
+      ::capnp::bounded<2>() * ::capnp::POINTERS));
+}
+
+inline bool Request::Body::Reader::isLedger() const {
+  return which() == Request::Body::LEDGER;
+}
+inline bool Request::Body::Builder::isLedger() {
+  return which() == Request::Body::LEDGER;
+}
+inline bool Request::Body::Reader::hasLedger() const {
+  if (which() != Request::Body::LEDGER) return false;
+  return !_reader.getPointerField(
+      ::capnp::bounded<2>() * ::capnp::POINTERS).isNull();
+}
+inline bool Request::Body::Builder::hasLedger() {
+  if (which() != Request::Body::LEDGER) return false;
+  return !_builder.getPointerField(
+      ::capnp::bounded<2>() * ::capnp::POINTERS).isNull();
+}
+inline  ::Request::LedgerBody::Reader Request::Body::Reader::getLedger() const {
+  KJ_IREQUIRE((which() == Request::Body::LEDGER),
+              "Must check which() before get()ing a union member.");
+  return ::capnp::_::PointerHelpers< ::Request::LedgerBody>::get(_reader.getPointerField(
+      ::capnp::bounded<2>() * ::capnp::POINTERS));
+}
+inline  ::Request::LedgerBody::Builder Request::Body::Builder::getLedger() {
+  KJ_IREQUIRE((which() == Request::Body::LEDGER),
+              "Must check which() before get()ing a union member.");
+  return ::capnp::_::PointerHelpers< ::Request::LedgerBody>::get(_builder.getPointerField(
+      ::capnp::bounded<2>() * ::capnp::POINTERS));
+}
+inline void Request::Body::Builder::setLedger( ::Request::LedgerBody::Reader value) {
+  _builder.setDataField<Request::Body::Which>(
+      ::capnp::bounded<0>() * ::capnp::ELEMENTS, Request::Body::LEDGER);
+  ::capnp::_::PointerHelpers< ::Request::LedgerBody>::set(_builder.getPointerField(
+      ::capnp::bounded<2>() * ::capnp::POINTERS), value);
+}
+inline  ::Request::LedgerBody::Builder Request::Body::Builder::initLedger() {
+  _builder.setDataField<Request::Body::Which>(
+      ::capnp::bounded<0>() * ::capnp::ELEMENTS, Request::Body::LEDGER);
+  return ::capnp::_::PointerHelpers< ::Request::LedgerBody>::init(_builder.getPointerField(
+      ::capnp::bounded<2>() * ::capnp::POINTERS));
+}
+inline void Request::Body::Builder::adoptLedger(
+    ::capnp::Orphan< ::Request::LedgerBody>&& value) {
+  _builder.setDataField<Request::Body::Which>(
+      ::capnp::bounded<0>() * ::capnp::ELEMENTS, Request::Body::LEDGER);
+  ::capnp::_::PointerHelpers< ::Request::LedgerBody>::adopt(_builder.getPointerField(
+      ::capnp::bounded<2>() * ::capnp::POINTERS), kj::mv(value));
+}
+inline ::capnp::Orphan< ::Request::LedgerBody> Request::Body::Builder::disownLedger() {
+  KJ_IREQUIRE((which() == Request::Body::LEDGER),
+              "Must check which() before get()ing a union member.");
+  return ::capnp::_::PointerHelpers< ::Request::LedgerBody>::disown(_builder.getPointerField(
       ::capnp::bounded<2>() * ::capnp::POINTERS));
 }
 

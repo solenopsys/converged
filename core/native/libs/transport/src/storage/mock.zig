@@ -169,6 +169,7 @@ const Op = enum {
     file_get_to_cache,
     file_delete,
     file_list,
+    ledger,
 };
 
 const Request = struct {
@@ -178,6 +179,7 @@ const Request = struct {
     /// Item key; doubles as the prefix for kv_list. Empty for file_list/ping.
     key: []u8,
     value: []u8,
+    ledger_operation: u8 = 0,
 
     fn create(op: Op, namespace: []const u8, store: []const u8, key: []const u8, value: []const u8) ?*Request {
         const req = gpa.create(Request) catch return null;
@@ -287,6 +289,8 @@ fn execute(entry: *PoolEntry, req: *Request) ?*Response {
         .query_sql => {
             // ok with zero rows
         },
+
+        .ledger => return resp.fail("ledger requires an embedded TigerBeetle cluster"),
 
         .kv_put, .file_put => {
             const space = if (req.op == .kv_put) &entry.kv else &entry.files;
@@ -552,6 +556,19 @@ pub export fn transport_req_file_list(ms: ?[*:0]const u8, store: ?[*:0]const u8)
     const ms_z = ms orelse return null;
     const store_z = store orelse return null;
     return Request.create(.file_list, std.mem.span(ms_z), std.mem.span(store_z), "", "");
+}
+
+pub export fn transport_req_ledger(ms: ?[*:0]const u8, store: ?[*:0]const u8, operation: u8, events: ?[*]const u8, events_len: usize) ?*Request {
+    const ms_z = ms orelse return null;
+    const store_z = store orelse return null;
+    const data: []const u8 = if (events) |bytes| bytes[0..events_len] else if (events_len == 0) "" else return null;
+    const req = Request.create(.ledger, std.mem.span(ms_z), std.mem.span(store_z), "", data) orelse return null;
+    req.ledger_operation = operation;
+    return req;
+}
+
+pub export fn transport_req_finance(ms: ?[*:0]const u8, store: ?[*:0]const u8, operation: u8, events: ?[*]const u8, events_len: usize) ?*Request {
+    return transport_req_ledger(ms, store, operation, events, events_len);
 }
 
 pub export fn transport_req_free(req: ?*Request) void {

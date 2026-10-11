@@ -21,6 +21,8 @@ typedef enum {
     STORE_VECTOR = 3,
     STORE_FILES  = 4,
     STORE_GRAPH  = 5,
+    STORE_FINANCE = 6,
+    STORE_LEDGER = STORE_FINANCE, /* legacy alias */
 } StoreTypeC;
 
 /* Value type tags returned by transport_resp_value_type() */
@@ -61,6 +63,8 @@ TransportRequest* transport_req_dump_create(const char* ms, const char* store);
 TransportRequest* transport_req_dump_list(void);
 TransportRequest* transport_req_dump_delete(const char* file_name);
 TransportRequest* transport_req_dump_read(const char* file_name, uint64_t offset, uint32_t length);
+TransportRequest* transport_req_ledger(const char* ms, const char* store, uint8_t operation, const uint8_t* events, size_t events_len);
+TransportRequest* transport_req_finance(const char* ms, const char* store, uint8_t operation, const uint8_t* events, size_t events_len);
 
 /* Serialize request to a flat capnp buffer. Caller must free with transport_free_buf(). */
 int32_t transport_req_encode(TransportRequest* req, uint8_t** out_buf, size_t* out_len);
@@ -195,6 +199,8 @@ typedef enum {
     REQ_STATS       = 25,
     REQ_KV_PUT_FROM_CACHE = 26,
     REQ_KV_GET_TO_CACHE   = 27,
+    REQ_FINANCE     = 30,
+    REQ_LEDGER      = REQ_FINANCE, /* legacy alias */
 } RequestCmd;
 
 TransportRequestReader* transport_req_reader_decode(const uint8_t* buf, size_t len);
@@ -210,6 +216,8 @@ const char* transport_req_reader_key(TransportRequestReader* r);
 const char* transport_req_reader_cache_key(TransportRequestReader* r);
 const uint8_t* transport_req_reader_value_ptr(TransportRequestReader* r);
 size_t      transport_req_reader_value_len(TransportRequestReader* r);
+uint8_t     transport_req_reader_ledger_operation(TransportRequestReader* r);
+uint8_t     transport_req_reader_finance_operation(TransportRequestReader* r);
 const char* transport_req_reader_prefix(TransportRequestReader* r);
 const char* transport_req_reader_file_name(TransportRequestReader* r);
 uint64_t    transport_req_reader_dump_offset(TransportRequestReader* r);

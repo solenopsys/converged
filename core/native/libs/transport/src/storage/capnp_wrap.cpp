@@ -328,6 +328,23 @@ extern "C" TransportRequest* transport_req_dump_read(const char* file_name, uint
     } TRANSPORT_CATCH_RET(nullptr, "transport_req_dump_read")
 }
 
+extern "C" TransportRequest* transport_req_ledger(const char* ms, const char* store, uint8_t operation,
+                                                    const uint8_t* events, size_t events_len) {
+    try {
+        auto* r = make_req(ms, store);
+        if (!r) return nullptr;
+        auto body = r->req.getBody().initLedger();
+        body.setOperation(operation);
+        body.setEvents(kj::arrayPtr(reinterpret_cast<const kj::byte*>(events), events_len));
+        return r;
+    } TRANSPORT_CATCH_RET(nullptr, "transport_req_ledger")
+}
+
+extern "C" TransportRequest* transport_req_finance(const char* ms, const char* store, uint8_t operation,
+                                                     const uint8_t* events, size_t events_len) {
+    return transport_req_ledger(ms, store, operation, events, events_len);
+}
+
 // ── Encode / free request ─────────────────────────────────────────────────────
 
 extern "C" int32_t transport_req_encode(TransportRequest* req, uint8_t** out_buf, size_t* out_len) {
@@ -754,6 +771,7 @@ extern "C" const uint8_t* transport_req_reader_value_ptr(TransportRequestReader*
         auto which = r->req.getBody().which();
         if (which == Request::Body::KV_PUT)   return reinterpret_cast<const uint8_t*>(r->req.getBody().getKvPut().getValue().begin());
         if (which == Request::Body::FILE_PUT) return reinterpret_cast<const uint8_t*>(r->req.getBody().getFilePut().getData().begin());
+        if (which == Request::Body::LEDGER)   return reinterpret_cast<const uint8_t*>(r->req.getBody().getLedger().getEvents().begin());
         return nullptr;
     } catch (...) { return nullptr; }
 }
@@ -763,8 +781,19 @@ extern "C" size_t transport_req_reader_value_len(TransportRequestReader* r) {
         auto which = r->req.getBody().which();
         if (which == Request::Body::KV_PUT)   return r->req.getBody().getKvPut().getValue().size();
         if (which == Request::Body::FILE_PUT) return r->req.getBody().getFilePut().getData().size();
+        if (which == Request::Body::LEDGER) return r->req.getBody().getLedger().getEvents().size();
         return 0;
     } catch (...) { return 0; }
+}
+extern "C" uint8_t transport_req_reader_ledger_operation(TransportRequestReader* r) {
+    if (!r) return 0;
+    try {
+        if (r->req.getBody().which() != Request::Body::LEDGER) return 0;
+        return r->req.getBody().getLedger().getOperation();
+    } catch (...) { return 0; }
+}
+extern "C" uint8_t transport_req_reader_finance_operation(TransportRequestReader* r) {
+    return transport_req_reader_ledger_operation(r);
 }
 extern "C" const char* transport_req_reader_prefix(TransportRequestReader* r) {
     if (!r) return "";
